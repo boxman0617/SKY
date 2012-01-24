@@ -1,0 +1,6 @@
+RewriteEngine On
+#Rewritebase /
+
+RewriteRule ^((?!public|favicon.ico|core/smarty/plugins/images|lib/plugins).*) configs/routes.php?query=$1 [QSA,L]
+#RewriteRule ^PUT/(.*) configs/routes.php?query=$1&REQUEST_METHOD=PUT [QSA,L]
+#RewriteRule ^DELETE/(.*) configs/routes.php?query=$1&REQUEST_METHOD=DELETE [QSA,L]
