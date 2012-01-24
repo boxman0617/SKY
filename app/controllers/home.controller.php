@@ -19,25 +19,25 @@ class Home extends Controller
     
     public function BeforeIndex()
     {
-        //switch(rand(0, 3))
-        //{
-        //    case 0:
-        //        $this->SetFlash('This is an info notification');
-        //        $this->Assign('flash_type', 'info');
-        //        break;
-        //    case 1:
-        //        $this->SetFlash('This is a warning notification');
-        //        $this->Assign('flash_type', 'warning');
-        //        break;
-        //    case 2:
-        //        $this->SetFlash('This is a success notification');
-        //        $this->Assign('flash_type', 'success');
-        //        break;
-        //    case 3:
-        //        $this->SetFlash('This is an error notification');
-        //        $this->Assign('flash_type', 'error');
-        //        break;
-        //}
+        switch(rand(0, 3))
+        {
+            case 0:
+                $this->SetFlash('This is an info notification');
+                $this->Assign('flash_type', 'info');
+                break;
+            case 1:
+                $this->SetFlash('This is a warning notification');
+                $this->Assign('flash_type', 'warning');
+                break;
+            case 2:
+                $this->SetFlash('This is a success notification');
+                $this->Assign('flash_type', 'success');
+                break;
+            case 3:
+                $this->SetFlash('This is an error notification');
+                $this->Assign('flash_type', 'error');
+                break;
+        }
     }
     
     public function Index()
@@ -50,7 +50,7 @@ class Home extends Controller
         $this->Assign('id', $id);
         $mailer = new HomeMailer(array(
             'article' => $id,
-            'name' => 'Alan'
+            'name' => 'Test'
         ));
         $mailer->Deliver('TestEmail');
     }
@@ -66,7 +66,7 @@ class Home extends Controller
     
     public function Edit($id)
     {
-        //// Test using model zip [Requires zip table]
+        //// Test using model zip [Requires a zip table]
         //$zip = new Zip();
         //$r = $zip->find_by_zip('92234');
         //foreach($r as $z)

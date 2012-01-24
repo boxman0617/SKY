@@ -1,4 +1,5 @@
 <?php
+//Core system
 import(CONFIGS_DIR.'/configure.php');
 import(PLUGINS_CLASS);
 import(EVENT_CLASS);

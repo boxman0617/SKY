@@ -1,4 +1,5 @@
 <?php
+//Example of Data driven Model
 class Test extends Model
 {
     protected $model_type = M_TYPE_DATA;

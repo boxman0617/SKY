@@ -21,21 +21,38 @@
 
 if (!defined('E_STRICT'))
 {
-    define('E_STRICT', 2048);
+	/**
+	* Constant E_STRICT, Strict error code
+	*/
+	define('E_STRICT', 2048);
 }
 if (!defined('E_RECOVERABLE_ERROR'))
 {
-    define('E_RECOVERABLE_ERROR' , 4096);
+	/**
+	* Constant E_RECOVERABLE_ERROR, Recoverable error code
+	*/
+	define('E_RECOVERABLE_ERROR' , 4096);
 }
 if (!defined('E_DEPRECATED'))
 {
-    define('E_DEPRECATED', 8192);
+	/**
+	* Constant E_DEPRECATED, Depricated error code
+	*/
+	define('E_DEPRECATED', 8192);
 }
 if (!defined('E_USER_DEPRECATED'))
 {
-    define('E_USER_DEPRECATED', 16384);
+	/**
+	* Constant E_USER_DEPRECATED, User depricated error code
+	*/
+	define('E_USER_DEPRECATED', 16384);
 }
 
+/**
+ * ErrorHandler class
+ * Handles errors created by code
+ * @package Sky.Core.ErrorHandler
+ */
 class ErrorHandler
 {
     private static $instance;

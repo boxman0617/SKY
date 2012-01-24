@@ -1,0 +1,54 @@
+###### Idea behind framework ######
+This is a rapid development framework...
+It will allow any developer to quickly set up a site with an MVC style structure.
+!!!IT'S STILL UNDER DEVELOPMENT!!!
+
+Right now it is under version 1.3 and should be ready for live push soon.
+I am hoping to release it in version 1.5... Not sure yet...
+
+###### Tutorials ######
+I will be setting up a page will full tutorials, examples, and docs soon.
+You can follow me on Twitter to see how the project is going @atirado0617
+
+###### Plugin Hooks ######
+# Available hooks:
+./core/Controller.class.php
+    Event::PublishActionHook('/Controller/before/__construct/', array($this));
+    Event::PublishActionHook('/Controller/after/__construct/', array($this));
+    Event::PublishActionHook('/Controller/before/HandleRequest/', array($this));
+    Event::PublishActionHook('/Controller/after/HandleRequest/', array($this));
+    Event::PublishActionHook('/Controller/before/RenderJSON/', array($this->render_info));
+    Event::PublishActionHook('/Controller/after/RenderJSON/', array($this));
+    Event::PublishActionHook('/Controller/before/RenderHTML/', array($this, $s_tpl));
+    Event::PublishActionHook('/Controller/after/RenderHTML/', array($this, $s_tpl));
+    Event::PublishActionHook('/Controller/before/Assign/', array($this));
+    Event::PublishActionHook('/Controller/after/Assign/', array($this));
+./core/Mailer.class.php
+    Event::PublishActionHook('/Mailer/before/__construct/', array($this));
+    Event::PublishActionHook('/Mailer/after/__construct/', array($this));
+    Event::PublishActionHook('/Mailer/before/Mail/', array($this, $email));
+    Event::PublishActionHook('/Mailer/after/Mail/', array($this, $email));
+    Event::PublishActionHook('/Mailer/before/Deliver/', array($this, $method));
+    Event::PublishActionHook('/Mailer/after/Deliver/', array($this, $method));
+    Event::PublishActionHook('/Mailer/before/Assign/', array($this, $name, $value));
+    Event::PublishActionHook('/Mailer/after/Assign/', array($this, $name, $value));
+./core/Route.class.php
+    Event::PublishActionHook('/Route/before/__construct/');
+    Event::PublishActionHook('/Route/after/__construct/');
+    Event::PublishActionHook('/Route/before/SecurePOST/');
+    Event::PublishActionHook('/Route/after/SecurePOST/');
+    Event::PublishActionHook('/Route/before/Follow/');
+    Event::PublishActionHook('/Route/before/Follow/HomeRequest/', array($obj));
+    Event::PublishActionHook('/Route/after/Follow/HomeRequest/', array($obj));
+    Event::PublishActionHook('/Route/before/Follow/DirectMatchRequest/', array($obj));
+    Event::PublishActionHook('/Route/after/Follow/DirectMatchRequest/', array($obj));
+    Event::PublishActionHook('/Route/before/Follow/IndirectMatchRequest/', array($obj));
+    Event::PublishActionHook('/Route/after/Follow/IndirectMatchRequest/', array($obj));
+    Event::PublishActionHook('/Route/before/Follow/NotFoundRequest/', array($obj));
+    Event::PublishActionHook('/Route/after/Follow/NotFoundRequest/', array($obj));
+./configs/preimports.php
+    Event::PublishActionHook('/preimports/after/');
+./configs/preloader.php
+    Event::PublishActionHook('/autoload_classes/before/model/', array($class_name));
+    Event::PublishActionHook('/autoload_classes/before/mailer/', array($class_name));
+    Event::PublishActionHook('/autoload_classes/before/Object/', array($class_name));

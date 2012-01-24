@@ -1,6 +1,7 @@
 <?php
 class ClientHistory extends Model
 {
+    //Example of validation array
     public $validate = array(
         'client_id' => array(
             'required' => true,
@@ -18,6 +19,7 @@ class ClientHistory extends Model
         )
     );
     
+    //Example of output formatting array
     public $output_format = array(
         'time_changed' => array(
             'custom' => 'FormatTime'
@@ -25,6 +27,7 @@ class ClientHistory extends Model
         'client_id' => 'Client ID: %d'
     );
     
+    //Example of custom formatting method
     public function FormatTime($time)
     {
         return date("F j, Y @ g:iA", strtotime($time));

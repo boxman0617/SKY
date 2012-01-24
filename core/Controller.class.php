@@ -44,18 +44,12 @@ define('RENDERED', true);
  */
 define('NOT_RENDERED', false);
 
-interface iController
-{
-    public function __construct();
-    public function HandleRequest($method, $pass = null);
-}
-
 /**
  * Controller class
  * Handles what to do with models and data then displays it to view or JSON
  * @package Sky.Core.Controller
  */
-abstract class Controller implements iController
+abstract class Controller
 {
     /**
      * Error Class Object

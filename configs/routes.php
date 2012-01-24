@@ -13,6 +13,7 @@ $routes->Match('/home/:id/edit', 'Home#Edit', 'GET');
 $routes->Match('/home/:id', 'Home#Update', 'PUT');
 $routes->Match('/test/:status', 'Home#Test', 'GET');
 
+//$routes->Resource('test'); //Example
 //$routes->Match('/home/index', 'Home#Index', 'GET'); //Example
 
 $routes->Follow();

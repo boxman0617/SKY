@@ -1,4 +1,5 @@
 <?php
+//Preloader of ObjectFacotry, Models, and Mailers
 import(FACTORY_CLASS);
 spl_autoload_register('autoload_classes');
 function autoload_classes($class_name)

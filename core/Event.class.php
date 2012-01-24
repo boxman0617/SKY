@@ -1,4 +1,23 @@
 <?php
+/**
+ * Event Core Class
+ *
+ * Event system allows the ablity to hook plugins into the main core system classes
+ *
+ * LICENSE:
+ *
+ * This file may not be redistributed in whole or significant part, or
+ * used on a web site without licensing of the enclosed code, and
+ * software features.
+ * 
+ * @author Alan Tirado <root@deeplogik.com>
+ * @copyright 2012 DeepLogiK, All Rights Reserved
+ * @license http://www.deeplogik.com/sky/legal/license
+ * @link http://www.deeplogik.com/sky/index
+ * @version 1.0 Initial build
+ * @package Sky.Core
+ */
+
 interface iEvent
 {
     /**
@@ -9,28 +28,60 @@ interface iEvent
     public static function PublishActionHook($hook, $args);
     
     /**
-     * Filter OUTPUT hooks
+     * @todo Filter OUTPUT hooks
      */
     //public static function SubstribeFilterHook($hook, $callback);
     //public static function UnSubstribeFilterHook($hook);
     //public static function PublishFilterHook($hook, $args);
 }
 
+/**
+ * Event class
+ * Handles hooks added to core class systems
+ * @package Sky.Core.Event
+ */
 class Event implements iEvent
 {
+    /**
+     * Array of all subscribed to action hooks
+     * @access public
+     * @static
+     * @var array
+     */
     public static $hooks;
     
+    /**
+     * Sets up {@link $hooks} under self::$hooks['action']
+     * @access public
+     * @static
+     * @param string $hook
+     * @param mixed $callback. Array of OBJ::$method or string function name
+     */
     public static function SubscribeActionHook($hook, $callback)
     {
         self::$hooks['action'][$hook] = $callback;
     }
     
+    /**
+     * Unsets {@link $hooks} under self::$hooks['action']
+     * @access public
+     * @static
+     * @param string $hook
+     */
     public static function UnSubscribeActionHook($hook)
     {
         if(isset(self::$hooks['action'][$hook]))
             unset(self::$hooks['action'][$hook]);
     }
     
+    /**
+     * Publishes an action. Checks to see if subscribed to and runs appropriate action
+     * @access public
+     * @static
+     * @param string $hook
+     * @param array $args. Arguments to pass to hook action
+     * @todo Allow functions to be passed
+     */
     public static function PublishActionHook($hook, $args = array())
     {
         if(isset(self::$hooks['action'][$hook]))

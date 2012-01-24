@@ -18,10 +18,28 @@
  * @package Sky.Core
  */
 
+/**
+ * Plugin class
+ * Handles the registering of user created plugins
+ * @package Sky.Core.Plugin
+ */
 class Plugin
 {
+    /**
+     * Array of all plugins
+     * @access public
+     * @static
+     * @var array
+     */
     public static $plugin = array();
     
+    /**
+     * Sets up {@link $plugin} under self::$plugin
+     * Reads plugin's info.cnf file and runs it's init.php script
+     * @access public
+     * @static
+     * @param string $name
+     */
     public static function Register($name)
     {
         $name = strtolower($name);
