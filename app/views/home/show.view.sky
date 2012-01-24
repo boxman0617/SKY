@@ -1,0 +1,6 @@
+{*Smarty*}
+<h1>Show {$id}</h1>
+<p>Email sent!</p>
+<ul>
+    <li>{back_link default='/home' output='Go Back'}</li>
+</ul>

@@ -1,0 +1,41 @@
+[User Notice] {File: /data/httpd/html/sky/configs/routes.php | Line: 3 | Time: 09:53:03} No object found [Smarty_Internal_Data]
+[User Notice] {File: /data/httpd/html/sky/configs/routes.php | Line: 17 | Time: 09:53:03} No object found [Email]
+[Run-Time Warning] {File: /data/httpd/html/sky/configs/defines.php | Line: 47 | Time: 11:20:00} fopen(/data/httpd/html/sky/configs/../log/imports.log) [<a href='function.fopen'>function.fopen</a>]: failed to open stream: Permission denied $_IMPORT: 
+[Run-Time Warning] {File: /data/httpd/html/sky/configs/defines.php | Line: 48 | Time: 11:20:00} fwrite() expects parameter 1 to be resource, boolean given $_IMPORT: 
+[Run-Time Warning] {File: /data/httpd/html/sky/configs/defines.php | Line: 49 | Time: 11:20:00} fclose() expects parameter 1 to be resource, boolean given $_IMPORT: 
+[Run-Time Warning] {File: /data/httpd/html/sky/configs/defines.php | Line: 47 | Time: 11:20:00} fopen(/data/httpd/html/sky/configs/../log/imports.log) [<a href='function.fopen'>function.fopen</a>]: failed to open stream: Permission denied $_IMPORT: 
+[Run-Time Warning] {File: /data/httpd/html/sky/configs/defines.php | Line: 48 | Time: 11:20:00} fwrite() expects parameter 1 to be resource, boolean given $_IMPORT: 
+[Run-Time Warning] {File: /data/httpd/html/sky/configs/defines.php | Line: 49 | Time: 11:20:00} fclose() expects parameter 1 to be resource, boolean given $_IMPORT: 
+[Recoverable error] {File: /data/httpd/html/sky/core/Mailer.class.php | Line: 66 | Time: 11:31:26} Argument 1 passed to Mailer::Mail() must be an instance of iMail, instance of Email given, called in /data/httpd/html/sky/app/mailers/homemailer.mailer.php on line 13 and defined $_IMPORT: 
+[Recoverable error] {File: /data/httpd/html/sky/core/Mailer.class.php | Line: 66 | Time: 11:31:42} Argument 1 passed to Mailer::Mail() must be an instance of iMail, instance of Email given, called in /data/httpd/html/sky/app/mailers/homemailer.mailer.php on line 13 and defined $_IMPORT: 
+[Recoverable error] {File: /data/httpd/html/sky/core/Mailer.class.php | Line: 66 | Time: 12:20:31} Argument 1 passed to Mailer::Mail() must be an instance of iMail, instance of Email given, called in /data/httpd/html/sky/app/mailers/homemailer.mailer.php on line 13 and defined
+[Recoverable error] {File: /data/httpd/html/sky/core/Mailer.class.php | Line: 66 | Time: 13:46:59} Argument 1 passed to Mailer::Mail() must be an instance of Mail, instance of Email given, called in /data/httpd/html/sky/app/mailers/homemailer.mailer.php on line 13 and defined
+[Notice] {File: /data/httpd/html/sky/core/objects/Email.object.php | Line: 26 | Time: 13:47:15} Undefined index: header
+[Run-Time Warning] {File: /data/httpd/html/sky/core/Session.class.php | Line: 62 | Time: 13:47:15} session_start() [<a href='function.session-start'>function.session-start</a>]: Cannot send session cache limiter - headers already sent (output started at /data/httpd/html/sky/core/Error.class.php:172)
+[User Error] {File: /data/httpd/html/sky/configs/routes.php | Line: 17 | Time: 13:52:22} Email did not send!
+[User Error] {File: /data/httpd/html/sky/configs/routes.php | Line: 17 | Time: 13:53:04} Email did not send!
+[User Error] {File: /data/httpd/html/sky/configs/routes.php | Line: 17 | Time: 13:53:27} Email did not send!
+[User Error] {File: /data/httpd/html/sky/configs/routes.php | Line: 17 | Time: 13:53:44} Email did not send!
+[User Error] {File: /data/httpd/html/sky/configs/routes.php | Line: 17 | Time: 13:56:57} Email did not send!
+[User Error] {File: /data/httpd/html/sky/configs/routes.php | Line: 17 | Time: 13:57:13} Email did not send!
+[User Error] {File: /data/httpd/html/sky/configs/routes.php | Line: 17 | Time: 13:58:53} Email did not send!
+[User Error] {File: /data/httpd/html/sky/configs/routes.php | Line: 17 | Time: 13:59:10} Email did not send!
+[User Error] {File: /data/httpd/html/sky/configs/routes.php | Line: 17 | Time: 13:59:33} Email did not send!
+[User Error] {File: /data/httpd/html/sky/configs/routes.php | Line: 17 | Time: 14:02:12} Email did not send!
+[User Error] {File: /data/httpd/html/sky/configs/routes.php | Line: 17 | Time: 14:02:35} Email did not send!
+[User Error] {File: /data/httpd/html/sky/configs/routes.php | Line: 17 | Time: 14:03:13} Email did not send!
+[User Error] {File: /data/httpd/html/sky/configs/routes.php | Line: 17 | Time: 14:03:48} Email did not send!
+[User Error] {File: /data/httpd/html/sky/configs/routes.php | Line: 17 | Time: 14:04:22} Email did not send!
+[User Error] {File: /data/httpd/html/sky/configs/routes.php | Line: 17 | Time: 14:04:45} Email did not send!
+[User Error] {File: /data/httpd/html/sky/configs/routes.php | Line: 17 | Time: 14:05:30} No [to] field set
+[User Error] {File: /data/httpd/html/sky/configs/routes.php | Line: 17 | Time: 14:06:20} Email did not send!
+[User Error] {File: /data/httpd/html/sky/configs/routes.php | Line: 17 | Time: 14:06:54} Email did not send!
+[User Error] {File: /data/httpd/html/sky/configs/routes.php | Line: 17 | Time: 14:07:38} Email did not send!
+[User Error] {File: /data/httpd/html/sky/configs/routes.php | Line: 17 | Time: 14:08:12} Email did not send!
+[User Error] {File: /data/httpd/html/sky/configs/routes.php | Line: 17 | Time: 14:08:26} Email did not send!
+[User Error] {File: /data/httpd/html/sky/configs/routes.php | Line: 17 | Time: 14:08:47} No [to] field set
+[Notice] {File: /data/httpd/html/sky/core/objects/Email.object.php | Line: 42 | Time: 14:10:14} Undefined index: from
+[User Error] {File: /data/httpd/html/sky/configs/routes.php | Line: 17 | Time: 14:10:14} Email did not send!
+[Notice] {File: /data/httpd/html/sky/core/Mailer.class.php | Line: 82 | Time: 14:11:18} Undefined variable: headers
+[User Error] {File: /data/httpd/html/sky/configs/routes.php | Line: 17 | Time: 14:11:18} Email did not send!
+[User Error] {File: /data/httpd/html/sky/configs/routes.php | Line: 17 | Time: 14:11:43} Email did not send!

@@ -1,0 +1,12 @@
+<?php
+function blah()
+{
+    echo "blah\n";
+    $zip = new Zip();
+    $r = $zip->find_by_zip('92584');
+    foreach($r as $z)
+    {
+        echo $z->city."\n";
+    }
+}
+?>

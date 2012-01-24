@@ -1,0 +1,16 @@
+Included [1327360192.462]: preimports.php
+Included [1327360192.4621]: configure.php
+Included [1327360192.4624]: Plugin.class.php
+Included [1327360192.4625]: Event.class.php
+Included [1327360192.4627]: plugins.php
+Included [1327360192.4629]: preloader.php
+Included [1327360192.4631]: Factory.class.php
+Included [1327360192.4632]: Error.class.php
+Included [1327360192.4637]: Controller.class.php
+Included [1327360192.4642]: Smarty.class.php
+Included [1327360192.4665]: Model.class.php
+Included [1327360192.4681]: Mailer.class.php
+Included [1327360192.4684]: Session.class.php
+Included [1327360192.4686]: Route.class.php
+Included [1327360192.4697]: home.controller.php
+Included [1327360192.47]: Test.plugin.php

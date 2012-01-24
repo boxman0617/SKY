@@ -1,0 +1,12 @@
+#!/usr/bin/php
+<?php
+require_once(dirname(__FILE__).'/../configs/defines.php');
+import(PRELOADER);
+import(CORE_DIR.'/Test.class.php');
+
+$test = new Test($argv);
+if(isset($argv[1]))
+    $test->HandleInput($argv[1]);
+else
+    echo "No arguments passed... :-/\n";
+?>

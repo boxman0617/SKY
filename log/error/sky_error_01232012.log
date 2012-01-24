@@ -1,0 +1,2 @@
+[Notice] {File: /data/httpd/html/sky/core/Route.class.php | Line: 321 | Time: 14:29:42} Undefined variable: obj
+[Run-Time Warning] {File: /data/httpd/html/sky/core/Session.class.php | Line: 62 | Time: 14:29:42} session_start() [<a href='function.session-start'>function.session-start</a>]: Cannot send session cache limiter - headers already sent (output started at /data/httpd/html/sky/core/Error.class.php:172)
