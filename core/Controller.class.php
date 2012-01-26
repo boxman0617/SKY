@@ -17,6 +17,7 @@
  * @link http://www.deeplogik.com/sky/index
  * @version 1.0 Initial build
  * @version 1.1 Added ability to change main layout by child controller or controller action
+ * @version 1.1.2 Fixed DRYRunFilter method
  * @package Sky.Core
  */
 
@@ -203,17 +204,17 @@ abstract class Controller
                     {
                         if(in_array($this->method, $options['only']))
                         {
-                            return call_user_func(array($this, $filter));
+                            call_user_func(array($this, $filter));
                         }
                     } else {
                         if(strtolower($this->method) == strtolower($options['only']))
                         {
-                            return call_user_func(array($this, $filter));
+                            call_user_func(array($this, $filter));
                         }
                     }
                 }
             } else { //Run before filter [No options]
-                return call_user_func(array($this, $filter));
+                call_user_func(array($this, $filter));
             }
         }
         return true;

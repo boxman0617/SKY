@@ -11,6 +11,7 @@ class Plugin_Test
         }   
         else
             $obj->Assign('css', array('/lib/plugins/test/test.css'));
+            
     }
     public function AddSomething()
     {
