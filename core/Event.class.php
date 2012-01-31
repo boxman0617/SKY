@@ -25,7 +25,7 @@ interface iEvent
      */
     public static function SubscribeActionHook($hook, $callback);
     public static function UnSubscribeActionHook($hook);
-    public static function PublishActionHook($hook, $args);
+    public static function PublishActionHook($hook, $args = array());
     
     /**
      * @todo Filter OUTPUT hooks

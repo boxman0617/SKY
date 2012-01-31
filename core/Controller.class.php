@@ -165,6 +165,11 @@ abstract class Controller
             }
             return true;
         }
+		if(isset($params['view']))
+		{
+			$this->Assign('MAIN_PAGE', $params['view']);
+			return true;
+		}
     }
     
     /**
