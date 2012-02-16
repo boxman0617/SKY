@@ -13,11 +13,35 @@ abstract class Model2 implements Iterator
     protected $last_query;
     
     /**
+     * Relational property [this model has one on one relationship with]
+     * @access protected
+     * @var array
+     */
+    protected $has_one = array();
+    /**
+     * Relational property [this model has one on many relationship with]
+     * @access protected
+     * @var array
+     */
+    protected $has_many = array();
+    /**
+     * Fields to validate on save
+     * @access protected
+     * @var array
+     */
+    protected $validate = array();
+    /**
      * Output formatting
      * @access public
      * @var array
      */
     public $output_format = array();
+    /**
+     * Input formatting
+     * @access public
+     * @var array
+     */
+    public $input_format = array();
     /**
      * Holds internal iterator position
      * @access private
@@ -135,12 +159,88 @@ abstract class Model2 implements Iterator
     }
     
     /**
+     * Creates where conditions from underscored string
+     * @access private
+     * @param string $name
+     * @param array &$values default array()
+     * @return string
+     */
+    private function create_conditions_from_underscored_string($name, &$values=array())
+    {
+        if (!$name)
+                return null;
+
+        $parts = preg_split('/(_and_|_or_)/i',$name,-1,PREG_SPLIT_DELIM_CAPTURE);
+        $num_values = count($values);
+        $conditions = array('');
+
+        for ($i=0,$j=0,$n=count($parts); $i<$n; $i+=2,++$j)
+        {
+            if ($i >= 2)
+                $conditions[0] .= preg_replace(array('/_and_/i','/_or_/i'),array(' AND ',' OR '),$parts[$i-1]);
+            if ($j < $num_values)
+            {
+                if (!is_null($values[$j]))
+                {
+                    $bind = is_array($values[$j]) ? ' IN(?)' : '=?';
+                    $conditions[] = $values[$j];
+                }
+                else
+                    $bind = ' IS NULL';
+            }
+            else
+                    $bind = ' IS NULL';
+            // map to correct name if $map was supplied
+            $name = $parts[$i];
+
+            $conditions[0] .= $name . $bind;
+        }
+        return $conditions;
+    }
+    
+    /**
+     * Magic __call method
+     * @access public
+     * @param string $method
+     * @param mixed $args
+     *
+     * If method is called on this object and it is not found
+     * this method will be called.
+     * If the method name starts with 'find_by' it will create a
+     * Query using the rest of the method name.
+     * @example http://www.deeplogik.com/sky/docs/examples/model
+     */
+    public function __call($method, $args)
+    {
+        if(substr($method, 0, 7) == 'find_by')
+        {
+            $options = substr($method, 8);
+            $fields = array_keys(self::$table_schema[$this->table_name]);
+            $conditions = $this->create_conditions_from_underscored_string($options, $args);
+            $obj = call_user_func_array(array($this, 'where'), $conditions);
+            return $obj->run();
+        } else {
+            $this->error->Toss('No method name ['.$method.']');
+        }
+    }
+    
+    /**
      * Magic setter sets up {@link $data}
      * @access public
      */
     public function __set( $name, $value )
     {
-        $this->data[$name] = $value;
+        if(isset($this->input_format[$name]))
+        {
+            if(is_array($this->input_format[$name]))
+            {
+                $this->data[$name] = call_user_func(array($this, $this->input_format[$name]['custom']), $value);
+            } else {
+                $this->data[$name] = sprintf($this->input_format[$name], $value);
+            }
+        } else {
+            $this->data[$name] = $value;
+        }
     }
     
     /** Magic getter
@@ -167,6 +267,57 @@ abstract class Model2 implements Iterator
             }
         }
         return $this->data[$name];
+    }
+    
+    /**
+     * Validates before save using {@link $validate}
+     * @access private
+     * @return bool
+     */
+    private function validate()
+    {
+        foreach($this->validate as $field => $params)
+        {
+            if(isset($params['required']) && $params['required']) // Check if required
+            {
+                if(!isset($this->data[$field]))
+                    return false;
+            }
+            if(isset($params['must_be'])) // Check for type
+            {
+                if(isset($this->data[$field]))
+                {
+                    switch($params['must_be'])
+                    {
+                        case 'integer':
+                            if(!is_integer($this->data[$field]))
+                                return false;
+                            break;
+                        case 'bool':
+                            if(!is_bool($this->data[$field]))
+                                return false;
+                            break;
+                        case 'string':
+                            if(!is_string($this->data[$field]))
+                                return false;
+                            break;
+                        case 'float':
+                            if(!is_float($this->data[$field]))
+                                return false;
+                            break;
+                    }
+                }
+            }
+            if(isset($params['custom']))
+            {
+                if(method_exists($this, $params['custom']))
+                {
+                    if(!call_user_func(array($this, $params['custom']), $this->data[$field]))
+                        return false;
+                }
+            }
+        }
+        return true;
     }
     
     /**
@@ -233,6 +384,21 @@ abstract class Model2 implements Iterator
     }
     
     /**
+     * Resets all [Query Builder] properties and runs query
+     * @access public
+     * @return object
+     */
+    public function all()
+    {
+        $this->select = array();
+        $this->where = array();
+        $this->groupby = array();
+        $this->orderby = array();
+        unset($this->limit);
+        return $this->run();
+    }
+    
+    /**
      * Adds to {@link $select}
      * @access public
      * @return $this
@@ -247,9 +413,9 @@ abstract class Model2 implements Iterator
         return $this;
     }
     
-    public function from()
+    public function from($from)
     {
-        
+        $this->from = $from;
     }
     
     /**
@@ -264,16 +430,33 @@ abstract class Model2 implements Iterator
         {
             $this->where[] = func_get_arg(0);
         }
-        // @todo Need to figure out what to do with this
-        //if(func_num_args() == 1 && is_numeric(func_get_arg(0)))
-        //{
-        //    $this->where[] = $this->table_name.".".$this->primary_key." = '".$this->db->real_escape_string(func_get_arg(0))."'";
-        //}
-        if(func_num_args() > 1 && is_string(func_get_arg(0)) && strpos(func_get_arg(0), ":") > -1)
+        elseif(func_num_args() == 1 && is_array(func_get_arg(0)))
         {
-            
+            $where = "";
+            foreach(func_get_arg(0) as $key => $value)
+            {
+                $where .= "`".$this->db->escape($key)."` ";
+                if(is_array($value))
+                {
+                    $where .= " IN ('".implode("','", $value)."') AND ";
+                } else {
+                    $where .= " = '".$value."' AND ";
+                }
+            }
+            $this->where[] = substr($where, 0, -4);
         }
-        if(func_num_args() > 1 && is_string(func_get_arg(0)) && strpos(func_get_arg(0), "?") > -1)
+        elseif(func_num_args() > 1 && is_string(func_get_arg(0)) && is_array(func_get_arg(1)) && strpos(func_get_arg(0), ":") > -1)
+        {
+            $tmp = func_get_arg(0);
+            $data = func_get_arg(1);
+            preg_match_all('/\:([a-zA-Z0-9]+)/', $tmp, $matches);
+            foreach($matches[1] as $field)
+            {
+                $tmp = preg_replace('/(\:'.$field.')/', "'".$this->db->escape($data[$field])."'", $tmp);
+            }
+            $this->where[] = $tmp;
+        }
+        elseif(func_num_args() > 1 && is_string(func_get_arg(0)) && strpos(func_get_arg(0), "?") > -1)
         {
             $tmp = func_get_arg(0);
             $count = substr_count($tmp, "?");
@@ -288,7 +471,7 @@ abstract class Model2 implements Iterator
             }
             $this->where[] = $where;
         }
-        if(func_num_args() > 0 && is_array(func_get_arg(0)))
+        elseif(func_num_args() > 0 && is_array(func_get_arg(0)))
         {
             $where = "";
             for($i=0;$i<func_num_args();$i++)
@@ -424,21 +607,54 @@ abstract class Model2 implements Iterator
         }
         return $this;
     }
-}
-
-class Zip extends Model2
-{
     
+    public function first()
+    {
+        $this->limit(1);
+        return $this;
+    }
+    
+    public function last()
+    {
+        foreach($this->table_schema as $field => $detail)
+        {
+            if($detail['Key'] == 'PRI')
+            {
+                $pri = $field;
+                continue;
+            }
+        }
+        $this->limit(1)->orderby($pri.' DESC');
+        return $this;
+    }
 }
 
-$z = new Zip();
+class Name extends Model2
+{
+    public $output_format = array(
+        'name' => 'Name is %s'
+    );
+    
+    public $input_format = array(
+        'name' => array(
+            'custom' => 'Capitalize'
+        )
+    );
+    
+    public function Capitalize($value)
+    {
+        return ucfirst($value);
+    }
+}
 
-$r = $z->where('zip = ?', '92234')->run();
-echo $r->city."\n-------------------------\n";
+$n = new Name();
+//$n->name = 'robert';
+//echo $n->name."\n";
+//var_dump($n);
+//var_dump($n->save());
+$r = $n->last()->run();
 foreach($r as $v)
 {
-    $v->country = "USA";
-    if($v->save())
-        echo "YAY!!!\n";
+    echo $v->name."\n";
 }
 ?>

@@ -109,7 +109,7 @@ class MySQLDriver implements iDriver
             $query .= " ORDER BY ";
             foreach($material['orderby'] as $value)
             {
-                $query .= '`'.$value."`,";
+                $query .= $value.",";
             }
             $query = substr($query, 0, -1);
         }
@@ -158,7 +158,7 @@ class MySQLDriver implements iDriver
                 continue;
             }
         }
-        if($data[$field] === NULL)
+        if($data[$pri] === NULL)
         {
             $query = 'INSERT INTO `'.$this->table_name.'` SET ';
         } else {
@@ -168,9 +168,13 @@ class MySQLDriver implements iDriver
         
         foreach($data as $field => $value)
         {
-            if($field != $pri)
+            if($field != $pri && $field != 'updated_at' && $field != 'created_at')
             {
                 $query .= "`".$field."` = '".self::$db->real_escape_string($value)."',";
+            }
+            elseif($field == 'created_at' && $data[$pri] === NULL)
+            {
+                $query .= "`created_at` = NOW(),";
             }
         }
         $query = substr($query,0,-1);

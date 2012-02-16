@@ -5,10 +5,10 @@ define('ENV', 'DEV');
 // Development Enviroment [DEV]
 $db_dev = array(
     'MODEL_DRIVER' => 'MySQL',
-    'DB_SERVER' => '10.10.0.6',
+    'DB_SERVER' => '127.0.0.1',
     'DB_USERNAME' => 'root',
     'DB_PASSWORD' => '',
-    'DB_DATABASE' => 'ces'
+    'DB_DATABASE' => 'sky'
 );
 // Testing Enviroment [TEST]
 $db_test = array(
