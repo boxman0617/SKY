@@ -1,99 +1,17 @@
 <?php
-/**
- * Model Core Class
- *
- * This class handles Database and Data models
- *
- * LICENSE:
- *
- * This file may not be redistributed in whole or significant part, or
- * used on a web site without licensing of the enclosed code, and
- * software features.
- * 
- * @author Alan Tirado <root@deeplogik.com>
- * @copyright 2012 DeepLogiK, All Rights Reserved
- * @license http://www.deeplogik.com/sky/legal/license
- * @link http://www.deeplogik.com/sky/index
- * @version 1.0 Initial Build
- * @version 1.1 Adding ability to be driven by Data and File aside from Database
- * @package Sky.Core
- */
-
-import(dirname(__FILE__)."/../configs/configure.php");
+require_once(dirname(__FILE__).'/../configs/defines.php');
 import(ERROR_CLASS);
-import(PRELOADER);
-
-/**
- * Constant M_TYPE_DB, tells Model class to behave as a Database model
- */
-define('M_TYPE_DB', 0);
-/**
- * Constant M_TYPE_DATA, tells Model class to behave as a Data model
- */
-define('M_TYPE_DATA', 1);
-/**
- * Constant M_TYPE_DATA, tells Model class to behave as a Data model
- */
-define('M_TYPE_FILE', 2);
-
-/**
- * DatabaseSingleton class
- * Creates a singleton object of the PHP mysqli class
- * @package Sky.Core.DatabaseSingleton
- */
-class DatabaseSingleton
+import(CONFIGS_DIR.'/configure.php');
+abstract class Model2 implements Iterator
 {
-    private static $m_pInstance;
-    
-    public static function getInstance()
-    {
-        if(!self::$m_pInstance)
-        {
-            self::$m_pInstance = new mysqli(DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_DATABASE);
-        }
-        return self::$m_pInstance;
-    }
-}
-
-/**
- * Model class implements Iterator
- * This class handles Database data models
- * @package Sky.Core.Model
- *
- * @method object find_by...($arg[, ...]); Creates query from underscored method name
- */
-abstract class Model implements Iterator
-{
-    /**
-     * SQLite3 tmp dir
-     * @access protected
-     * @var string
-     */
-    protected $tmp_dir;
-    /**
-     * SQLite3 Database instance
-     * @access protected
-     * @var object
-     */
-    protected $sqlite;
-    /**
-     * Table Name
-     * @access protected
-     * @var string
-     */
+    private $driver;
+    private $error;
+    private $db;
+    protected $data = array();
     protected $table_name;
-    /**
-     * Database instance
-     * @access protected
-     * @var object
-     */
-    protected $db;
-    /**
-     * Magic setter/getter property
-     * @access protected
-     * @var array
-     */
-    protected $data;
+    protected $table_schema = array();
+    protected $last_query;
+    
     /**
      * Relational property [this model has one on one relationship with]
      * @access protected
@@ -118,19 +36,12 @@ abstract class Model implements Iterator
      * @var array
      */
     public $output_format = array();
-    
     /**
-     * Static property to hold table schemas
-     * @access protected
+     * Input formatting
+     * @access public
      * @var array
      */
-    protected static $table_schema = array();
-    /**
-     * Error Class Object
-     * @access private
-     * @var object
-     */
-    private $error;
+    public $input_format = array();
     /**
      * Holds internal iterator position
      * @access private
@@ -143,24 +54,6 @@ abstract class Model implements Iterator
      * @var array
      */
     private $array = array();
-    /**
-     * Holds current model id
-     * @access private
-     * @var integer
-     */
-    private $id;
-    /**
-     * Holds primary key field of model
-     * @access private
-     * @var string
-     */
-    private $primary_key;
-    /**
-     * Sets type of model
-     * @access protected
-     * @var integer
-     */
-    protected $model_type = M_TYPE_DB;
     
     /**
      * [Query Builder] Holds select
@@ -204,169 +97,107 @@ abstract class Model implements Iterator
      * @var array
      */
     protected $groupby = array();
-    /**
-     * Data driven array
-     * @access protected
-     * @var array
-     */
-    protected $data_info = array();
     
-    /**
-     * Constructor sets up {@link $error} and {@link $db}
-     * Then it gets the schema of the table
-     * @access public
-     * @param integer $id default false
-     * @return object If $id is passed
-     */
-    public function __construct($id = false)
+    public function __construct($hash = array())
     {
+        $this->driver = MODEL_DRIVER."Driver";
         $this->error = ErrorHandler::Singleton(true);
-        $this->tmp_dir = LIBS_DIR.'/tmp/';
-        if($this->model_type === M_TYPE_DB)
+        if(is_file(CORE_DIR."/drivers/".MODEL_DRIVER.".driver.php"))
         {
-            $this->db = DatabaseSingleton::getInstance();
+            import(CORE_DIR."/drivers/".MODEL_DRIVER.".driver.php");
+            $this->db = new $this->driver();
+            if(!$this->db instanceof iDriver)
+                $this->error->Toss('Driver loaded is not an instance of iDriver interface!', E_USER_ERROR);
             if(isset($this->table_name))
             {
-                $this->getSchema();
+                $this->db->setTableName($this->table_name);
+                $this->db->setSchema();
             } else {
-                if(!$this->doesTableExist())
+                if(!$this->db->doesTableExist(get_class($this)))
                     $this->error->Toss('No table name specified. Please add property $table_name to model.', E_USER_ERROR);
                 else
-                    $this->getSchema();
-            }
-        }
-        if($this->model_type === M_TYPE_DATA)
-        {
-            if(!isset($this->table_name))
-                $this->table_name = strtolower(get_class($this));
-            if(!isset(self::$table_schema[$this->table_name]))
-                $this->error->Toss('Data driven models require a self::$table_schema array. Please add one.', E_USER_ERROR);
-                
-            $this->SQLiteStartUp();
-        }
-        
-        if($id !== false)
-        {
-            $this->id = $id;
-            return $this->where($id)->run();
-        }
-    }
-    
-    private function SQLiteStartUp()
-    {
-        if(is_file($this->tmp_dir.$this->table_name.'.db'))
-            unlink($this->tmp_dir.$this->table_name.'.db');
-        $this->sqlite = new SQLite3($this->tmp_dir.$this->table_name.'.db');
-        
-        //Create SQLite table
-        $sql = 'CREATE TABLE '.$this->table_name.' (';
-        $fields = '(';
-        foreach(self::$table_schema[$this->table_name] as $field => $info)
-        {
-            $sql .= $field.' '.$info['Type'].',';
-            $fields .= $field.',';
-        }
-        $sql = substr($sql, 0, -1).')';
-        $fields = substr($fields, 0, -1).')';
-        $this->sqlite->exec($sql);
-        
-        //Fill SQLite table
-        foreach($this->data_info as $value)
-        {
-            $sql = 'INSERT INTO '.$this->table_name.' '.$fields.' VALUES (';
-            foreach($value as $v)
-            {
-                $sql .= "'".$v."',";
-            }
-            $sql = substr($sql, 0, -1).')';
-            $this->sqlite->exec($sql);
-        }
-    }
-    
-    /**
-     * Checks if table exists
-     * @access private
-     * @return bool
-     */
-    private function doesTableExist()
-    {
-        $class_name = get_class($this);
-        
-        preg_match_all('/[A-Z][^A-Z]*/', $class_name, $strings);
-        $table_name = false;
-        if(isset($strings[0]))
-            $table_name = strtolower(implode('_', $strings[0]));
-        else
-            return false;
-        
-        if($table_name)
-        {
-            $r = $this->db->query("SHOW TABLES");
-            while($row = $r->fetch_assoc())
-            {
-                if($row['Tables_in_'.DB_DATABASE] == $table_name)
                 {
+                    preg_match_all('/[A-Z][^A-Z]*/', get_class($this), $strings);
+                    if(isset($strings[0]))
+                        $table_name = strtolower(implode('_', $strings[0]));
+                    else
+                        $this->error->Toss('Error handling class name as table name.', E_USER_ERROR);
                     $this->table_name = $table_name;
-                    return true;
+                    $this->db->setTableName($this->table_name);
+                    $this->db->setSchema();
                 }
             }
+            $this->table_schema = $this->db->getSchema();
+        } else {
+            $this->error->Toss('No driver found for model! Model: '.get_class($this).' | Driver: '.MODEL_DRIVER, E_USER_ERROR);
         }
-        return false;
-    }
-    
-    /**
-     * DRY helper function for {@link getSchema}
-     * @access private
-     * @param array $data
-     */
-    private function drySetTableSchema($data)
-    {
-        if($data['Key'] == "PRI")
+        
+        // Setting empty object
+        if(empty($hash))
         {
-            $this->primary_key = $data['Field'];
-        }
-        self::$table_schema[$this->table_name][$data['Field']] = array(
-            "Type" => $data['Type'],
-            "Null" => $data['Null'],
-            "Key" => $data['Key'],
-            "Default" => $data['Default'],
-            "Extra" => $data['Extra']
-        );
-    }
-    
-    /**
-     * Gets schema for table
-     * Stores result in static variable {@link $table_schema}
-     * Sets up {@link $primary_key}
-     */
-    private function getSchema()
-    {
-        if(!isset(self::$table_schema[$this->table_name]))
-        {
-            if($this->model_type === M_TYPE_DB)
+            foreach($this->table_schema as $field => $i)
             {
-                $r = $this->db->query("DESCRIBE `".$this->table_name."`");
-                while($row = $r->fetch_assoc())
-                {
-                    $this->drySetTableSchema($row);
-                }
-                return true;
+                if(isset($i['Default']))
+                    $this->$field = $i['Default'];
+                else
+                    $this->$field = NULL;
             }
         } else {
-            foreach(self::$table_schema[$this->table_name] as $field => $value)
+            foreach($this->table_schema as $field => $i)
             {
-                if($value['Key'] == "PRI")
+                if(isset($hash[$field]))
+                    $this->$field = $hash[$field];
+                else
                 {
-                    $this->primary_key = $field;
+                    if(isset($i['Default']))
+                        $this->$field = $i['Default'];
+                    else
+                        $this->$field = NULL;
                 }
             }
         }
     }
+    
+    /**
+     * Creates where conditions from underscored string
+     * @access private
+     * @param string $name
+     * @param array &$values default array()
+     * @return string
+     */
+    private function create_conditions_from_underscored_string($name, &$values=array())
+    {
+        if (!$name)
+                return null;
 
-////////////////////////////////
-// Magic Methods
-////////////////////////////////
+        $parts = preg_split('/(_and_|_or_)/i',$name,-1,PREG_SPLIT_DELIM_CAPTURE);
+        $num_values = count($values);
+        $conditions = array('');
 
+        for ($i=0,$j=0,$n=count($parts); $i<$n; $i+=2,++$j)
+        {
+            if ($i >= 2)
+                $conditions[0] .= preg_replace(array('/_and_/i','/_or_/i'),array(' AND ',' OR '),$parts[$i-1]);
+            if ($j < $num_values)
+            {
+                if (!is_null($values[$j]))
+                {
+                    $bind = is_array($values[$j]) ? ' IN(?)' : '=?';
+                    $conditions[] = $values[$j];
+                }
+                else
+                    $bind = ' IS NULL';
+            }
+            else
+                    $bind = ' IS NULL';
+            // map to correct name if $map was supplied
+            $name = $parts[$i];
+
+            $conditions[0] .= $name . $bind;
+        }
+        return $conditions;
+    }
+    
     /**
      * Magic __call method
      * @access public
@@ -394,22 +225,22 @@ abstract class Model implements Iterator
     }
     
     /**
-     * Dumps {@link $data}
-     * @access public
-     * @return array
-     */
-    public function dumpData()
-    {
-        return $this->data;
-    }
-    
-    /**
      * Magic setter sets up {@link $data}
      * @access public
      */
     public function __set( $name, $value )
     {
-        $this->data[$name] = $value;
+        if(isset($this->input_format[$name]))
+        {
+            if(is_array($this->input_format[$name]))
+            {
+                $this->data[$name] = call_user_func(array($this, $this->input_format[$name]['custom']), $value);
+            } else {
+                $this->data[$name] = sprintf($this->input_format[$name], $value);
+            }
+        } else {
+            $this->data[$name] = $value;
+        }
     }
     
     /** Magic getter
@@ -421,26 +252,10 @@ abstract class Model implements Iterator
      */
     public function __get( $name )
     {
-        if($name == "primaryKey")
-        {
-            return $this->primary_key;
-        }
-        if($name == "table_name")
-        {
-            return $this->table_name;
-        }
-        if($name == "all")
-        {
-            return $this->data;
-        }
         if(!isset($this->data[$name]))
         {
             $this->error->Toss(__CLASS__."::".__FUNCTION__." No field by the name [".$name."]", E_USER_NOTICE);
             return null;
-        }
-        if(is_object($this->data[$name]))
-        {
-            //@ToDo: Do something here
         }
         if(isset($this->output_format[$name]))
         {
@@ -452,93 +267,6 @@ abstract class Model implements Iterator
             }
         }
         return $this->data[$name];
-    }
-    
-    /**
-     * Magic iterator method
-     * Rewinds {@link $position} to 0
-     * @access public
-     */
-    public function rewind()
-    {
-        $this->position = 0;
-    }
-    
-    /**
-     * Magic iterator method
-     * Returns currect {@link $position} value
-     * @access public
-     * @return mixed
-     */
-    public function current()
-    {
-        return $this->array[$this->position];
-    }
-    
-    /**
-     * Magic iterator method
-     * Returns {@link $position}
-     * @access public
-     * @return integer
-     */
-    public function key()
-    {
-        return $this->position;
-    }
-    
-    /**
-     * Magic iterator method
-     * Increases {@link $position} by 1
-     * @access public
-     */
-    public function next()
-    {
-        ++$this->position;
-    }
-    
-    /**
-     * Magic iterator method
-     * Checks if array[position] is set
-     * @access public
-     * @return bool
-     */
-    public function valid()
-    {
-        return isset($this->array[$this->position]);
-    }
-
-////////////////////////////////
-// Query Methods
-////////////////////////////////
-    
-    /**
-     * Starts a new model
-     * @access public
-     * @param array $keyValue default false
-     * @return $this
-     */
-    public function newItem($keyValue = false)
-    {
-        if($keyValue === false)
-        {
-            foreach(self::$table_schema[$this->table_name] as $Field => $Info)
-            {
-                if($Info['Default'] != NULL)
-                {
-                    $this->data[$Field] = $Info['Default'];
-                }
-            }
-        } else {
-            if(!is_array($keyValue))
-            {
-                $this->error->Toss(__CLASS__."::".__FUNCTION__." - Argument must be an array");
-            }
-            foreach($keyValue as $key => $value)
-            {
-                $this->data[$key] = $value;
-            }
-            return $this;
-        }
     }
     
     /**
@@ -593,35 +321,56 @@ abstract class Model implements Iterator
     }
     
     /**
-     * Deletes current model from database
+     * Magic iterator method
+     * Rewinds {@link $position} to 0
+     * @access public
+     */
+    public function rewind()
+    {
+        $this->position = 0;
+    }
+    
+    /**
+     * Magic iterator method
+     * Returns currect {@link $position} value
+     * @access public
+     * @return mixed
+     */
+    public function current()
+    {
+        return $this->array[$this->position];
+    }
+    
+    /**
+     * Magic iterator method
+     * Returns {@link $position}
+     * @access public
+     * @return integer
+     */
+    public function key()
+    {
+        return $this->position;
+    }
+    
+    /**
+     * Magic iterator method
+     * Increases {@link $position} by 1
+     * @access public
+     */
+    public function next()
+    {
+        ++$this->position;
+    }
+    
+    /**
+     * Magic iterator method
+     * Checks if array[position] is set
      * @access public
      * @return bool
      */
-    public function delete()
+    public function valid()
     {
-        $where = "";
-        $sql = "DELETE FROM `".$this->table_name."` ";
-        if(isset($this->data[$this->primary_key]))
-        {
-            $where = "WHERE `".$this->primary_key."` = '".$this->data[$this->primary_key]."'";
-        } else {
-            $where = "WHERE ";
-            foreach($this->data as $k => $v)
-            {
-                if(isset(self::$table_schema[$this->table_name][$k]))
-                {
-                    if($this->model_type === M_TYPE_DB)
-                        $where .= "`".$k."` = '".$this->db->real_escape_string($v)."' AND ";
-                    if($this->model_type === M_TYPE_DATA)
-                        $where .= "`".$k."` = '".$this->sqlite->escapeString($v)."' AND ";
-                }
-            }
-            $where = substr($where, 0, -4);
-        }
-        if($this->model_type === M_TYPE_DB)
-            return $this->db->query($sql.$where);
-        if($this->model_type === M_TYPE_DATA)
-            return $this->sqlite->query($sql.$where);
+        return isset($this->array[$this->position]);
     }
     
     /**
@@ -631,43 +380,119 @@ abstract class Model implements Iterator
      */
     public function save()
     {
-        $where = "";
-        if(isset($this->data[$this->primary_key]))
-        {
-            $sql = "UPDATE `".$this->table_name."` SET ";
-            $where = " WHERE `".$this->primary_key."` = '".$this->data[$this->primary_key]."' ";
-        } else {
-            $sql = "INSERT INTO `".$this->table_name."` SET ";
-        }
-        if(!$this->validate())
-            $this->error->Toss('Validation fail', E_ERROR);
-        
-        foreach($this->data as $field => $value)
-        {
-            if($field != $this->primary_key)
-            {
-                if($this->model_type === M_TYPE_DB)
-                    $sql .= "`".$field."` = '".$this->db->real_escape_string($value)."',";
-                if($this->model_type === M_TYPE_DATA)
-                    $sql .= "`".$field."` = '".$this->sqlite->escapeString($value)."',";
-            }
-        }
-        $sql = substr($sql,0,-1);
-        if($this->model_type === M_TYPE_DB)
-            return $this->db->query($sql.$where);
-        if($this->model_type === M_TYPE_DATA)
-            return $this->sqlite->query($sql.$where);
+        return $this->db->save($this->data);
     }
     
     /**
-     * Adds an order by to {@link $orderby}
-     * @param string $by
+     * Resets all [Query Builder] properties and runs query
+     * @access public
+     * @return object
+     */
+    public function all()
+    {
+        $this->select = array();
+        $this->where = array();
+        $this->groupby = array();
+        $this->orderby = array();
+        unset($this->limit);
+        return $this->run();
+    }
+    
+    /**
+     * Adds to {@link $select}
      * @access public
      * @return $this
      */
-    public function orderby($by)
+    public function select()
     {
-        $this->orderby[] = $by;
+        $this->select = array();
+        for($i=0;$i<func_num_args();$i++)
+        {
+            $this->select[] = func_get_arg($i);
+        }
+        return $this;
+    }
+    
+    public function from($from)
+    {
+        $this->from = $from;
+    }
+    
+    /**
+     * Adds a where to {@link $where}
+     * @example http://www.deeplogik.com/sky/docs/examples/model
+     * @access public
+     * @return $this
+     */
+    public function where()
+    {
+        if(func_num_args() == 1 && is_string(func_get_arg(0)))
+        {
+            $this->where[] = func_get_arg(0);
+        }
+        elseif(func_num_args() == 1 && is_array(func_get_arg(0)))
+        {
+            $where = "";
+            foreach(func_get_arg(0) as $key => $value)
+            {
+                $where .= "`".$this->db->escape($key)."` ";
+                if(is_array($value))
+                {
+                    $where .= " IN ('".implode("','", $value)."') AND ";
+                } else {
+                    $where .= " = '".$value."' AND ";
+                }
+            }
+            $this->where[] = substr($where, 0, -4);
+        }
+        elseif(func_num_args() > 1 && is_string(func_get_arg(0)) && is_array(func_get_arg(1)) && strpos(func_get_arg(0), ":") > -1)
+        {
+            $tmp = func_get_arg(0);
+            $data = func_get_arg(1);
+            preg_match_all('/\:([a-zA-Z0-9]+)/', $tmp, $matches);
+            foreach($matches[1] as $field)
+            {
+                $tmp = preg_replace('/(\:'.$field.')/', "'".$this->db->escape($data[$field])."'", $tmp);
+            }
+            $this->where[] = $tmp;
+        }
+        elseif(func_num_args() > 1 && is_string(func_get_arg(0)) && strpos(func_get_arg(0), "?") > -1)
+        {
+            $tmp = func_get_arg(0);
+            $count = substr_count($tmp, "?");
+            $broken = explode("?", $tmp);
+            $where = "";
+            for($i=0;$i<$count;$i++)
+            {
+                if($broken[$i] != "")
+                {
+                    $where .= $broken[$i]."'".$this->db->escape(func_get_arg($i+1))."' ";
+                }
+            }
+            $this->where[] = $where;
+        }
+        elseif(func_num_args() > 0 && is_array(func_get_arg(0)))
+        {
+            $where = "";
+            for($i=0;$i<func_num_args();$i++)
+            {
+                $arg = func_get_arg($i);
+                if(!is_array($arg))
+                {
+                    $this->error->Toss(__CLASS__."::".__FUNCTION__." Must be an array");
+                }
+                foreach($arg as $key => $value)
+                {
+                    if(is_array($value))
+                    {
+                        $where .= $key. " IN ('".implode("','", $value)."') AND ";
+                    } else {
+                        $where .= $key. " = '".$this->db->escape($value)."' AND ";
+                    }
+                }
+            }
+            $this->where[] = substr($where,0,-5);
+        }
         return $this;
     }
     
@@ -676,6 +501,7 @@ abstract class Model implements Iterator
      * @param string $join
      * @access public
      * @return $this
+     * @todo Need to figure out primary key thing...
      */
     public function joins($join)
     {
@@ -703,82 +529,6 @@ abstract class Model implements Iterator
     }
     
     /**
-     * Adds a where to {@link $where}
-     * @example http://www.deeplogik.com/sky/docs/examples/model
-     * @access public
-     * @return $this
-     */
-    public function where()
-    {
-        if(func_num_args() == 1 && is_string(func_get_arg(0)))
-        {
-            $this->where[] = func_get_arg(0);
-        }
-        if(func_num_args() == 1 && is_numeric(func_get_arg(0)))
-        {
-            if($this->model_type === M_TYPE_DB)
-                $this->where[] = $this->table_name.".".$this->primary_key." = '".$this->db->real_escape_string(func_get_arg(0))."'";
-            if($this->model_type === M_TYPE_DATA)
-                $this->where[] = $this->table_name.".".$this->primary_key." = '".$this->sqlite->escapeString(func_get_arg(0))."'";
-        }
-        if(func_num_args() > 1 && is_string(func_get_arg(0)) && strpos(func_get_arg(0), "?") > -1)
-        {
-            $tmp = func_get_arg(0);
-            $count = substr_count($tmp, "?");
-            $broken = explode("?", $tmp);
-            $where = "";
-            for($i=0;$i<$count;$i++)
-            {
-                if($broken[$i] != "")
-                {
-                    if($this->model_type === M_TYPE_DB)
-                        $where .= $broken[$i]."'".$this->db->real_escape_string(func_get_arg($i+1))."' ";
-                    if($this->model_type === M_TYPE_DATA)
-                        $where .= $broken[$i]."'".$this->sqlite->escapeString(func_get_arg($i+1))."' ";
-                }
-            }
-            $this->where[] = $where;
-        }
-        if(func_num_args() > 0 && is_array(func_get_arg(0)))
-        {
-            $where = "";
-            for($i=0;$i<func_num_args();$i++)
-            {
-                $arg = func_get_arg($i);
-                if(!is_array($arg))
-                {
-                    $this->error->Toss(__CLASS__."::".__FUNCTION__." Must be an array");
-                }
-                foreach($arg as $key => $value)
-                {
-                    if(is_array($value))
-                    {
-                        $where .= $key. " IN ('".implode("','", $value)."') AND ";
-                    } else {
-                        if($this->model_type === M_TYPE_DB)
-                            $where .= $key. " = '".$this->db->real_escape_string($value)."' AND ";
-                        if($this->model_type === M_TYPE_DATA)
-                            $where .= $key. " = '".$this->sqlite->escapeString($value)."' AND ";
-                    }
-                }
-            }
-            $this->where[] = substr($where,0,-5);
-        }
-        return $this;
-    }
-    
-    /**
-     * Sets up {@link $limit} to 1
-     * @access public
-     * @return $this
-     */
-    public function first()
-    {
-        $this->limit = 1;
-        return $this;
-    }
-    
-    /**
      * Sets up {@link $limit}
      * @example http://www.deeplogik.com/sky/docs/examples/model
      * @access public
@@ -786,11 +536,15 @@ abstract class Model implements Iterator
      */
     public function limit()
     {
-        if(func_num_args() == 1)
+        if(func_num_args() == 0)
+        {
+            $this->limit = 1;
+        }
+        elseif(func_num_args() == 1)
         {
             $this->limit = func_get_arg(0);
         }
-        if(func_num_args() == 2)
+        elseif(func_num_args() == 2)
         {
             $this->limit = array(
                 "offset" => func_get_arg(0),
@@ -801,226 +555,106 @@ abstract class Model implements Iterator
     }
     
     /**
-     * Creates where conditions from underscored string
-     * @access private
-     * @param string $name
-     * @param array &$values default array()
-     * @return string
+     * Adds an order by to {@link $orderby}
+     * @param string $by
+     * @access public
+     * @return $this
      */
-    private function create_conditions_from_underscored_string($name, &$values=array())
+    public function orderby($by)
     {
-        if (!$name)
-                return null;
-
-        $parts = preg_split('/(_and_|_or_)/i',$name,-1,PREG_SPLIT_DELIM_CAPTURE);
-        $num_values = count($values);
-        $conditions = array('');
-
-        for ($i=0,$j=0,$n=count($parts); $i<$n; $i+=2,++$j)
-        {
-            if ($i >= 2)
-                $conditions[0] .= preg_replace(array('/_and_/i','/_or_/i'),array(' AND ',' OR '),$parts[$i-1]);
-            if ($j < $num_values)
-            {
-                if (!is_null($values[$j]))
-                {
-                    $bind = is_array($values[$j]) ? ' IN(?)' : '=?';
-                    $conditions[] = $values[$j];
-                }
-                else
-                    $bind = ' IS NULL';
-            }
-            else
-                    $bind = ' IS NULL';
-            // map to correct name if $map was supplied
-            $name = $parts[$i];
-
-            $conditions[0] .= $name . $bind;
-        }
-        return $conditions;
+        $this->orderby[] = $by;
+        return $this;
+    }
+    
+    public function groupby($by)
+    {
+        $this->groupby[] = $by;
+        return $this;
     }
     
     /**
-     * Checks {@link $model_type} and runs according to it
+     * Runs query built by driver and executes it
      * @access public
      * @return $thi
      */
     public function run()
     {
-        $query = $this->buildQuery();
-        //@ToDo: Check for errors
-        if($this->model_type === M_TYPE_DB) // Database driven results
-        {
-            return $this->DatabaseDriver($query);
-        }
-        if($this->model_type === M_TYPE_DATA) // Data driven results
-        {
-            return $this->DataDriver($query);
-        }
-        if($this->model_type === M_TYPE_FILE) // File driven results
-        {
-            return $this->FileDriver($query);
-        }
-    }
-    
-    /**
-     * Data driven results
-     * @access private
-     * @param string $query
-     * @return object $this
-     */
-    private function DataDriver($query)
-    {
-        $r = $this->sqlite->query($query);
-        while($row = $r->fetchArray())
-        {
-            foreach($row as $key => $value)
-            {
-                if(!is_numeric($key))
-                {
-                    if(is_null($value))
-                        $this->$key = "NULL";
-                    else
-                        $this->$key = $value;
-                }
-            }
-            $this->array[] = clone $this;
-        }
-        return $this;
-    }
-    
-    /**
-     * File driven results
-     * @access private
-     * @param string $query
-     * @return object $this
-     */
-    private function FileDriver($query)
-    {
+        $query = $this->db->buildQuery(array(
+            'select' => $this->select,
+            'from' => $this->from,
+            'where' => $this->where,
+            'joins' => $this->joins,
+            'limit' => $this->limit,
+            'orderby' => $this->orderby,
+            'groupby' => $this->groupby
+        ));
+        $this->last_query = $query;
         
-    }
-    
-    /**
-     * Database driven results
-     * @access private
-     * @param string $query
-     * @return object $this
-     */
-    private function DatabaseDriver($query)
-    {
-        $r = $this->db->query($query);
-        while($row = $r->fetch_assoc())
+        $results = $this->db->runQuery($query);
+        if(count($results) == 0)
+            return $this;
+        for($i=0;$i<count($results);$i++)
         {
-            foreach($row as $key => $value)
+            foreach($results[$i] as $field => $value)
             {
-                if(is_null($value))
-                    $this->$key = "NULL";
-                else
-                    $this->$key = $value;
+                $this->$field = $value;
             }
             $this->array[] = clone $this;
         }
-        return $this;
-    }
-    
-    /**
-     * Adds to {@link $select}
-     * @access public
-     * @return $this
-     */
-    public function select()
-    {
-        $this->select = array();
-        for($i=0;$i<func_num_args();$i++)
+        foreach($results[0] as $field => $value)
         {
-            $this->select[] = func_get_arg($i);
+            $this->$field = $value;
         }
         return $this;
     }
     
-    /**
-     * Resets all [Query Builder] properties and runs query
-     * @access public
-     * @return object
-     */
-    public function all()
+    public function first()
     {
-        $this->select = array();
-        $this->where = array();
-        $this->groupby = array();
-        $this->orderby = array();
-        unset($this->limit);
-        return $this->run();
-    }
-    
-    /**
-     * Prints out built query
-     * @access public
-     * @return $this
-     */
-    public function printQuery()
-    {
-        echo $this->buildQuery();
+        $this->limit(1);
         return $this;
     }
     
-    /**
-     * Builds query from [Query Builder] properties
-     * @access private
-     * @return string
-     */
-    private function buildQuery()
+    public function last()
     {
-        $query = "SELECT ";
-        if(empty($this->select))
+        foreach($this->table_schema as $field => $detail)
         {
-            $this->select[] = $this->table_name.".*";
-        }
-        $query .= implode(',', $this->select);
-        $query .= " FROM ".$this->table_name." ";
-        if(!empty($this->joins))
-        {
-            foreach($this->joins as $value)
+            if($detail['Key'] == 'PRI')
             {
-                $query .= $value;
+                $pri = $field;
+                continue;
             }
         }
-        if(!empty($this->where))
-        {
-            $query .= " WHERE ";
-            $query .= implode(' AND ', $this->where);
-        }
-        if(!empty($this->groupby))
-        {
-            $query .= " GROUP BY ";
-            foreach($this->groupby as $key => $value)
-            {
-                $query .= $key." ".$value.",";
-            }
-            $query = substr($query, 0, -1);
-        }
-        if(!empty($this->orderby))
-        {
-            $query .= " ORDER BY ";
-            foreach($this->orderby as $value)
-            {
-                $query .= $value.",";
-            }
-            $query = substr($query, 0, -1);
-        }
-        if(!empty($this->limit))
-        {
-            $query .= " LIMIT ";
-            if(!is_array($this->limit))
-            {
-                $query .= $this->limit;
-            }
-            else
-            {
-                $query .= $this->limit["offset"].",".$this->limit["limit"];
-            }
-        }
-        return $query;
+        $this->limit(1)->orderby($pri.' DESC');
+        return $this;
     }
+}
+
+class Name extends Model2
+{
+    public $output_format = array(
+        'name' => 'Name is %s'
+    );
+    
+    public $input_format = array(
+        'name' => array(
+            'custom' => 'Capitalize'
+        )
+    );
+    
+    public function Capitalize($value)
+    {
+        return ucfirst($value);
+    }
+}
+
+$n = new Name();
+//$n->name = 'robert';
+//echo $n->name."\n";
+//var_dump($n);
+//var_dump($n->save());
+$r = $n->last()->run();
+foreach($r as $v)
+{
+    echo $v->name."\n";
 }
 ?>
