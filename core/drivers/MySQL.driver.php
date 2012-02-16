@@ -130,6 +130,9 @@ class MySQLDriver implements iDriver
     
     public function runQuery($query)
     {
+        require_once('TRLog/TRLog.class.php'); //NSLog
+        $TRLog = new TRLog(true); //NSLog
+        $TRLog->WriteLog("Query", $query); //NSLog
         $r = self::$db->query($query);
         $return = array();
         $i = 0;
@@ -145,6 +148,19 @@ class MySQLDriver implements iDriver
             $i++;
         }
         return $return;
+    }
+    
+    /**
+     * Deletes current model from database
+     * @access public
+     * @return bool
+     */
+    public function delete($field, $value)
+    {
+        $sql = "DELETE FROM `".$this->table_name."` ";
+        $where = "WHERE `".self::$db->real_escape_string($field)."` = '".self::$db->real_escape_string($value)."'";
+        
+        return $this->db->query($sql.$where);
     }
     
     public function save($data)

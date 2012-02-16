@@ -11,6 +11,8 @@ abstract class Model2 implements Iterator
     protected $table_name;
     protected $table_schema = array();
     protected $last_query;
+    private $run_at_get_flag = false;
+    private $run_this = array();
     
     /**
      * Relational property [this model has one on one relationship with]
@@ -98,7 +100,7 @@ abstract class Model2 implements Iterator
      */
     protected $groupby = array();
     
-    public function __construct($hash = array())
+    public function __construct($hash = array(), $runthis = false)
     {
         $this->driver = MODEL_DRIVER."Driver";
         $this->error = ErrorHandler::Singleton(true);
@@ -155,6 +157,12 @@ abstract class Model2 implements Iterator
                         $this->$field = NULL;
                 }
             }
+        }
+        
+        if($runthis !== false)
+        {
+            $this->run_at_get_flag = true;
+            $this->run_this = $runthis;
         }
     }
     
@@ -252,6 +260,21 @@ abstract class Model2 implements Iterator
      */
     public function __get( $name )
     {
+        if($this->run_at_get_flag === true)
+        {
+            $r = $this;
+            foreach($this->run_this as $method => $args)
+            {
+                $r = $r->$method($args);
+            }
+            $n = $r->run();
+            $array = $n->to_array();
+            foreach($array as $key => $value)
+            {
+                $this->$key = $value;
+            }
+            $this->run_at_get_flag = false;
+        }
         if(!isset($this->data[$name]))
         {
             $this->error->Toss(__CLASS__."::".__FUNCTION__." No field by the name [".$name."]", E_USER_NOTICE);
@@ -267,6 +290,11 @@ abstract class Model2 implements Iterator
             }
         }
         return $this->data[$name];
+    }
+    
+    public function to_array()
+    {
+        return $this->data;
     }
     
     /**
@@ -374,6 +402,17 @@ abstract class Model2 implements Iterator
     }
     
     /**
+     * Deletes current model from database
+     * @access public
+     * @return bool
+     */
+    public function delete()
+    {
+        $pri = $this->getPrimary();
+        return $this->db->delete($pri, $this->data[$pri]);
+    }
+    
+    /**
      * Saves current model in database
      * @access public
      * @return bool
@@ -395,7 +434,7 @@ abstract class Model2 implements Iterator
         $this->groupby = array();
         $this->orderby = array();
         unset($this->limit);
-        return $this->run();
+        return $this;
     }
     
     /**
@@ -597,6 +636,37 @@ abstract class Model2 implements Iterator
         {
             foreach($results[$i] as $field => $value)
             {
+                if(strpos($field, '_id'))
+                {
+                    $name = substr($field, 0, -3);
+                    if(isset($this->has_many[$name]))
+                    {
+                        $obj = new $name(array(), array(
+                            'where' => array(
+                                $this->has_many[$name] => $value
+                            )
+                        ));
+                        $this->$name = $obj;
+                    }
+                    elseif(isset($this->has_one[$name]))
+                    {
+                        $obj = new $name(array(), array(
+                            'where' => array(
+                                $this->has_one[$name] => $value
+                            )
+                        ));
+                        $this->$name = $obj;
+                    }
+                    elseif(in_array($name, $this->has_many) || in_array($name, $this->has_one))
+                    {
+                        $obj = new $name(array(), array(
+                            'where' => array(
+                                'id' => $value
+                            )
+                        ));
+                        $this->$name = $obj;
+                    }
+                }
                 $this->$field = $value;
             }
             $this->array[] = clone $this;
@@ -616,45 +686,61 @@ abstract class Model2 implements Iterator
     
     public function last()
     {
+        $pri = $this->getPrimary();
+        $this->limit(1)->orderby($pri.' DESC');
+        return $this;
+    }
+    
+    protected function getPrimary()
+    {
         foreach($this->table_schema as $field => $detail)
         {
             if($detail['Key'] == 'PRI')
             {
-                $pri = $field;
-                continue;
+                return $field;
             }
         }
-        $this->limit(1)->orderby($pri.' DESC');
-        return $this;
+        return NULL;
     }
 }
 
-class Name extends Model2
+class StudentClient extends Model2
+{
+    protected $table_name = 'student_client';
+    protected $has_many = array(
+        'student' => 'student_id',
+        'client' => 'client_id'
+    );
+    public $output_format = array(
+        'student_id' => 'Student ID: %s',
+        'client_id' => 'Client ID: %s'
+    );
+}
+
+class Student extends Model2
 {
     public $output_format = array(
-        'name' => 'Name is %s'
+        'student_id' => 'Student ID: %s'
     );
-    
-    public $input_format = array(
-        'name' => array(
-            'custom' => 'Capitalize'
-        )
-    );
-    
-    public function Capitalize($value)
-    {
-        return ucfirst($value);
-    }
 }
 
-$n = new Name();
-//$n->name = 'robert';
-//echo $n->name."\n";
-//var_dump($n);
-//var_dump($n->save());
-$r = $n->last()->run();
-foreach($r as $v)
+class Client extends Model2
 {
-    echo $v->name."\n";
+    public $output_format = array(
+        'client_id' => 'Client ID: %s'
+    );
 }
+
+require_once('TRLog/TRLog.class.php'); //NSLog
+$TRLog = new TRLog(); //NSLog
+
+$sc = new StudentClient();
+
+$sc->where(array('student_id' => '17951254'))->run();
+
+echo $sc->student_id."\n";
+echo $sc->student->firstname."\n";
+echo $sc->student->lastname."\n";
+echo $sc->client_id."\n";
+echo $sc->client->client_name."\n";
 ?>
