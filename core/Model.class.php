@@ -1,8 +1,5 @@
 <?php
-require_once(dirname(__FILE__).'/../configs/defines.php');
-import(ERROR_CLASS);
-import(CONFIGS_DIR.'/configure.php');
-abstract class Model2 implements Iterator
+abstract class Model implements Iterator
 {
     private $driver;
     private $error;
@@ -13,7 +10,7 @@ abstract class Model2 implements Iterator
     protected $last_query;
     private $run_at_get_flag = false;
     private $run_this = array();
-    
+
     /**
      * Relational property [this model has one on one relationship with]
      * @access protected
@@ -56,7 +53,7 @@ abstract class Model2 implements Iterator
      * @var array
      */
     private $array = array();
-    
+
     /**
      * [Query Builder] Holds select
      * @access protected
@@ -99,7 +96,7 @@ abstract class Model2 implements Iterator
      * @var array
      */
     protected $groupby = array();
-    
+
     public function __construct($hash = array(), $runthis = false)
     {
         $this->driver = MODEL_DRIVER."Driver";
@@ -133,7 +130,7 @@ abstract class Model2 implements Iterator
         } else {
             $this->error->Toss('No driver found for model! Model: '.get_class($this).' | Driver: '.MODEL_DRIVER, E_USER_ERROR);
         }
-        
+
         // Setting empty object
         if(empty($hash))
         {
@@ -158,14 +155,14 @@ abstract class Model2 implements Iterator
                 }
             }
         }
-        
+
         if($runthis !== false)
         {
             $this->run_at_get_flag = true;
             $this->run_this = $runthis;
         }
     }
-    
+
     /**
      * Creates where conditions from underscored string
      * @access private
@@ -205,7 +202,7 @@ abstract class Model2 implements Iterator
         }
         return $conditions;
     }
-    
+
     /**
      * Magic __call method
      * @access public
@@ -231,7 +228,7 @@ abstract class Model2 implements Iterator
             $this->error->Toss('No method name ['.$method.']');
         }
     }
-    
+
     /**
      * Magic setter sets up {@link $data}
      * @access public
@@ -250,7 +247,7 @@ abstract class Model2 implements Iterator
             $this->data[$name] = $value;
         }
     }
-    
+
     /** Magic getter
      * - gets {@link $data}
      * - gets {@link $table_name}
@@ -291,12 +288,12 @@ abstract class Model2 implements Iterator
         }
         return $this->data[$name];
     }
-    
+
     public function to_array()
     {
         return $this->data;
     }
-    
+
     /**
      * Validates before save using {@link $validate}
      * @access private
@@ -347,7 +344,7 @@ abstract class Model2 implements Iterator
         }
         return true;
     }
-    
+
     /**
      * Magic iterator method
      * Rewinds {@link $position} to 0
@@ -357,7 +354,7 @@ abstract class Model2 implements Iterator
     {
         $this->position = 0;
     }
-    
+
     /**
      * Magic iterator method
      * Returns currect {@link $position} value
@@ -368,7 +365,7 @@ abstract class Model2 implements Iterator
     {
         return $this->array[$this->position];
     }
-    
+
     /**
      * Magic iterator method
      * Returns {@link $position}
@@ -379,7 +376,7 @@ abstract class Model2 implements Iterator
     {
         return $this->position;
     }
-    
+
     /**
      * Magic iterator method
      * Increases {@link $position} by 1
@@ -389,7 +386,7 @@ abstract class Model2 implements Iterator
     {
         ++$this->position;
     }
-    
+
     /**
      * Magic iterator method
      * Checks if array[position] is set
@@ -400,7 +397,7 @@ abstract class Model2 implements Iterator
     {
         return isset($this->array[$this->position]);
     }
-    
+
     /**
      * Deletes current model from database
      * @access public
@@ -411,7 +408,7 @@ abstract class Model2 implements Iterator
         $pri = $this->getPrimary();
         return $this->db->delete($pri, $this->data[$pri]);
     }
-    
+
     /**
      * Saves current model in database
      * @access public
@@ -421,7 +418,7 @@ abstract class Model2 implements Iterator
     {
         return $this->db->save($this->data);
     }
-    
+
     /**
      * Resets all [Query Builder] properties and runs query
      * @access public
@@ -436,7 +433,7 @@ abstract class Model2 implements Iterator
         unset($this->limit);
         return $this;
     }
-    
+
     /**
      * Adds to {@link $select}
      * @access public
@@ -451,12 +448,12 @@ abstract class Model2 implements Iterator
         }
         return $this;
     }
-    
+
     public function from($from)
     {
         $this->from = $from;
     }
-    
+
     /**
      * Adds a where to {@link $where}
      * @example http://www.deeplogik.com/sky/docs/examples/model
@@ -534,7 +531,7 @@ abstract class Model2 implements Iterator
         }
         return $this;
     }
-    
+
     /**
      * Adds a join to {@link $join}
      * @param string $join
@@ -548,25 +545,25 @@ abstract class Model2 implements Iterator
         {
             $this->joins[] = $join;
         }
-        if(is_array($join))
-        {
-            foreach($join as $value)
-            {
-                if(in_array($value, $this->has_one))
-                {
-                    $obj = new $value();
-                    $this->joins[] = "INNER JOIN ".$obj->table_name." ON (".$obj->table_name.".".$obj->primary_key." = ".$this->table_name.".".$obj->primaryKey.")";
-                }
-                if(in_array($value, $this->has_many))
-                {
-                    $obj = new $value();
-                    $this->joins[] = "INNER JOIN ".$obj->table_name." ON (".$obj->table_name.".".$this->primary_key." = ".$this->table_name.".".$this->primaryKey.")";
-                }
-            }
-        }
+        //if(is_array($join))
+        //{
+        //    foreach($join as $value)
+        //    {
+        //        if(in_array($value, $this->has_one))
+        //        {
+        //            $obj = new $value();
+        //            $this->joins[] = "INNER JOIN ".$obj->table_name." ON (".$obj->table_name.".".$obj->primary_key." = ".$this->table_name.".".$obj->primaryKey.")";
+        //        }
+        //        if(in_array($value, $this->has_many))
+        //        {
+        //            $obj = new $value();
+        //            $this->joins[] = "INNER JOIN ".$obj->table_name." ON (".$obj->table_name.".".$this->primary_key." = ".$this->table_name.".".$this->primaryKey.")";
+        //        }
+        //    }
+        //}
         return $this;
     }
-    
+
     /**
      * Sets up {@link $limit}
      * @example http://www.deeplogik.com/sky/docs/examples/model
@@ -592,7 +589,7 @@ abstract class Model2 implements Iterator
         }
         return $this;
     }
-    
+
     /**
      * Adds an order by to {@link $orderby}
      * @param string $by
@@ -604,13 +601,13 @@ abstract class Model2 implements Iterator
         $this->orderby[] = $by;
         return $this;
     }
-    
+
     public function groupby($by)
     {
         $this->groupby[] = $by;
         return $this;
     }
-    
+
     /**
      * Runs query built by driver and executes it
      * @access public
@@ -628,7 +625,7 @@ abstract class Model2 implements Iterator
             'groupby' => $this->groupby
         ));
         $this->last_query = $query;
-        
+
         $results = $this->db->runQuery($query);
         if(count($results) == 0)
             return $this;
@@ -677,20 +674,20 @@ abstract class Model2 implements Iterator
         }
         return $this;
     }
-    
+
     public function first()
     {
         $this->limit(1);
         return $this;
     }
-    
+
     public function last()
     {
         $pri = $this->getPrimary();
         $this->limit(1)->orderby($pri.' DESC');
         return $this;
     }
-    
+
     protected function getPrimary()
     {
         foreach($this->table_schema as $field => $detail)
@@ -703,44 +700,4 @@ abstract class Model2 implements Iterator
         return NULL;
     }
 }
-
-class StudentClient extends Model2
-{
-    protected $table_name = 'student_client';
-    protected $has_many = array(
-        'student' => 'student_id',
-        'client' => 'client_id'
-    );
-    public $output_format = array(
-        'student_id' => 'Student ID: %s',
-        'client_id' => 'Client ID: %s'
-    );
-}
-
-class Student extends Model2
-{
-    public $output_format = array(
-        'student_id' => 'Student ID: %s'
-    );
-}
-
-class Client extends Model2
-{
-    public $output_format = array(
-        'client_id' => 'Client ID: %s'
-    );
-}
-
-require_once('TRLog/TRLog.class.php'); //NSLog
-$TRLog = new TRLog(); //NSLog
-
-$sc = new StudentClient();
-
-$sc->where(array('student_id' => '17951254'))->run();
-
-echo $sc->student_id."\n";
-echo $sc->student->firstname."\n";
-echo $sc->student->lastname."\n";
-echo $sc->client_id."\n";
-echo $sc->client->client_name."\n";
 ?>
