@@ -5,7 +5,7 @@ class MySQLDriver implements iDriver
     private static $db;
     private static $table_schema;
     private $table_name;
-    
+
     public function __construct()
     {
         if(!self::$db)
@@ -13,19 +13,19 @@ class MySQLDriver implements iDriver
             self::$db = new mysqli(DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_DATABASE);
         }
     }
-    
+
     public function setTableName($name)
     {
         $this->table_name = $name;
     }
-    
+
     public function getSchema()
     {
         if(!isset(self::$table_schema[$this->table_name]))
             $this->setSchema();
         return self::$table_schema[$this->table_name];
     }
-    
+
     public function setSchema()
     {
         if(!isset(self::$table_schema[$this->table_name]))
@@ -44,7 +44,7 @@ class MySQLDriver implements iDriver
         }
         return true;
     }
-    
+
     public function doesTableExist($class_name)
     {
         preg_match_all('/[A-Z][^A-Z]*/', $class_name, $strings);
@@ -53,7 +53,7 @@ class MySQLDriver implements iDriver
             $table_name = strtolower(implode('_', $strings[0]));
         else
             return false;
-        
+
         if($table_name)
         {
             $r = self::$db->query("SHOW TABLES");
@@ -68,12 +68,12 @@ class MySQLDriver implements iDriver
         }
         return false;
     }
-    
+
     public function escape($value)
     {
         return self::$db->real_escape_string($value);
     }
-    
+
     public function buildQuery($material)
     {
         $query = "SELECT ";
@@ -127,12 +127,9 @@ class MySQLDriver implements iDriver
         }
         return $query;
     }
-    
+
     public function runQuery($query)
     {
-        require_once('TRLog/TRLog.class.php'); //NSLog
-        $TRLog = new TRLog(true); //NSLog
-        $TRLog->WriteLog("Query", $query); //NSLog
         $r = self::$db->query($query);
         $return = array();
         $i = 0;
@@ -149,7 +146,7 @@ class MySQLDriver implements iDriver
         }
         return $return;
     }
-    
+
     /**
      * Deletes current model from database
      * @access public
@@ -159,10 +156,10 @@ class MySQLDriver implements iDriver
     {
         $sql = "DELETE FROM `".$this->table_name."` ";
         $where = "WHERE `".self::$db->real_escape_string($field)."` = '".self::$db->real_escape_string($value)."'";
-        
+
         return $this->db->query($sql.$where);
     }
-    
+
     public function save($data)
     {
         $where = "";
@@ -181,7 +178,7 @@ class MySQLDriver implements iDriver
             $query = 'UPDATE `'.$this->table_name.'` SET ';
             $where = ' WHERE `'.$pri.'` = "'.$data[$pri].'"';
         }
-        
+
         foreach($data as $field => $value)
         {
             if($field != $pri && $field != 'updated_at' && $field != 'created_at')

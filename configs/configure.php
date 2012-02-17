@@ -1,22 +1,22 @@
 <?php
 // Enviroment
-define('ENV', 'DEV');
+define('ENV', 'TEST');
 
 // Development Enviroment [DEV]
 $db_dev = array(
     'MODEL_DRIVER' => 'MySQL',
-    'DB_SERVER' => '127.0.0.1',
-    'DB_USERNAME' => 'root',
-    'DB_PASSWORD' => '',
-    'DB_DATABASE' => 'sky'
-);
-// Testing Enviroment [TEST]
-$db_test = array(
-    'MODEL_DRIVER' => 'MySQL',
     'DB_SERVER' => '10.10.0.6',
     'DB_USERNAME' => 'root',
     'DB_PASSWORD' => '',
-    'DB_DATABASE' => 'alans_db'
+    'DB_DATABASE' => 'ces'
+);
+// Testing Enviroment [TEST]
+$db_test = array(
+    'MODEL_DRIVER' => 'MongoDB',
+    'DB_SERVER' => 'localhost',
+    'DB_USERNAME' => 'root',
+    'DB_PASSWORD' => 'vision',
+    'DB_DATABASE' => 'test'
 );
 // Production Enviroment [PRO]
 $db_pro = array(

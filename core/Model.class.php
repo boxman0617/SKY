@@ -688,6 +688,11 @@ abstract class Model implements Iterator
         return $this;
     }
 
+    public function printQuery()
+    {
+        
+    }
+
     protected function getPrimary()
     {
         foreach($this->table_schema as $field => $detail)
