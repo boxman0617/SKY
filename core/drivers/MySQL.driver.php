@@ -1,11 +1,54 @@
 <?php
+/**
+ * Model Driver Class for MySQL database
+ *
+ * This class translates SKY's model class into MySQL
+ *
+ * LICENSE:
+ *
+ * This file may not be redistributed in whole or significant part, or
+ * used on a web site without licensing of the enclosed code, and
+ * software features.
+ * 
+ * @author Alan Tirado <root@deeplogik.com>
+ * @copyright 2012 DeepLogiK, All Rights Reserved
+ * @license http://www.deeplogik.com/sky/legal/license
+ * @link http://www.deeplogik.com/sky/index
+ * @version 1.0 Initial build
+ */
+
 import(CORE_DIR."/Driver.interface.php");
+
+/**
+ * MySQLDriver Driver Class Implements iDriver interface
+ * This class talks MySQL
+ * @package Sky.Driver
+ * @subpackage MySQL
+ */
 class MySQLDriver implements iDriver
 {
+    /**
+     * MySQLi's database instance
+     * @access static private
+     * @var object
+     */
     private static $db;
+    /**
+     * Schema of current table
+     * @access static private
+     * @var array
+     */
     private static $table_schema;
+    /**
+     * Model's table name
+     * @access private
+     * @var string
+     */
     private $table_name;
 
+    /**
+     * Sets up self::$db if not instantiated with mysqli object
+     */
     public function __construct()
     {
         if(!self::$db)
@@ -14,18 +57,30 @@ class MySQLDriver implements iDriver
         }
     }
 
+    /**
+     * Sets current table for object {@link $table_name}
+     * @param string $name
+     */
     public function setTableName($name)
     {
         $this->table_name = $name;
     }
 
+    /**
+     * Returns table's schema, if not set it will figure out the schema then return
+     * @return array self::$table_schema[$this->table_name]
+     */ 
     public function getSchema()
     {
         if(!isset(self::$table_schema[$this->table_name]))
             $this->setSchema();
         return self::$table_schema[$this->table_name];
     }
-
+    
+    /**
+     * Figures out table's schema and sets it {@link self::$table_schema}
+     * @return bool
+     */
     public function setSchema()
     {
         if(!isset(self::$table_schema[$this->table_name]))
@@ -45,6 +100,11 @@ class MySQLDriver implements iDriver
         return true;
     }
 
+    /**
+     * Checks to see if table exists in database
+     * @param string $class_name
+     * @return bool
+     */
     public function doesTableExist($class_name)
     {
         preg_match_all('/[A-Z][^A-Z]*/', $class_name, $strings);
@@ -69,11 +129,21 @@ class MySQLDriver implements iDriver
         return false;
     }
 
+    /**
+     * Escapes string value using mysqli's escape method
+     * @param string $value
+     * @return string
+     */
     public function escape($value)
     {
         return self::$db->real_escape_string($value);
     }
 
+    /**
+     * Builds MySQL query from Model's material
+     * @param array $material
+     * @return string
+     */
     public function buildQuery($material)
     {
         $query = "SELECT ";
@@ -93,7 +163,24 @@ class MySQLDriver implements iDriver
         if(!empty($material['where']))
         {
             $query .= " WHERE ";
-            $query .= implode(' AND ', $material['where']);
+            foreach($material['where'] as $where)
+            {
+                if(is_array($where))
+                {
+                    $query .= "`".$where['field']."` ".$where['operator'];
+                    if(is_array($where['value']))
+                    {
+                        $query .= " ('".implode("','", $where['value'])."') ";
+                    } else {
+                        $query .= " '".$this->escape($where['value'])."'";
+                    }
+                    $query .= ' AND ';
+                } else {
+                    $query .= implode(' AND ', $where);
+                    $query .= ' AND ';
+                }
+            }
+            $query = substr($query, 0, -4);
         }
         if(!empty($material['groupby']))
         {
@@ -128,6 +215,11 @@ class MySQLDriver implements iDriver
         return $query;
     }
 
+    /**
+     * Executes query on mysqli's query method
+     * @param string $query
+     * @return array
+     */
     public function runQuery($query)
     {
         $r = self::$db->query($query);
@@ -160,6 +252,11 @@ class MySQLDriver implements iDriver
         return $this->db->query($sql.$where);
     }
 
+    /**
+     * Saves current model's data to database
+     * @param array $data
+     * @return mixed
+     */
     public function save($data)
     {
         $where = "";

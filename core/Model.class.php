@@ -1,16 +1,87 @@
 <?php
+/**
+ * Model Core Class
+ *
+ * This class handles the data layer of your application.
+ * It allows for different back ends like MySQL and others.
+ *
+ * LICENSE:
+ *
+ * This file may not be redistributed in whole or significant part, or
+ * used on a web site without licensing of the enclosed code, and
+ * software features.
+ * 
+ * @author Alan Tirado <root@deeplogik.com>
+ * @copyright 2012 DeepLogiK, All Rights Reserved
+ * @license http://www.deeplogik.com/sky/legal/license
+ * @link http://www.deeplogik.com/sky/index
+ * @version 1.0 Initial build
+ * @version 1.1 Bug fixes
+ * @version 2.0 Logic upgrade and added drivers
+ * @package Sky.Core
+ */
+
+/**
+ * Model class
+ * This class handles the data layer of your application
+ * @package Sky.Core.Model
+ */
 abstract class Model implements Iterator
 {
+    /**
+     * Driver that will be used with this object
+     * @access private
+     * @var string
+     */
     private $driver;
+    /**
+     * Error Class Object
+     * @access private
+     * @var object
+     */
     private $error;
+    /**
+     * Driver Class Object
+     * @access private
+     * @var object
+     */
     private $db;
+    /**
+     * Data for model
+     * @access protected
+     * @var array
+     */
     protected $data = array();
+    /**
+     * Name of table
+     * @access protected
+     * @var string
+     */
     protected $table_name;
+    /**
+     * Schema of current table
+     * @access protected
+     * @var array
+     */
     protected $table_schema = array();
+    /**
+     * Last query ran
+     * @access protected
+     * @var string
+     */
     protected $last_query;
+    /**
+     * Flag to see if query should be ran at Model::__get()
+     * @access private
+     * @var bool
+     */
     private $run_at_get_flag = false;
+    /**
+     * Query to be ran at Model::__get()
+     * @access private
+     * @var array
+     */
     private $run_this = array();
-
     /**
      * Relational property [this model has one on one relationship with]
      * @access protected
@@ -53,7 +124,6 @@ abstract class Model implements Iterator
      * @var array
      */
     private $array = array();
-
     /**
      * [Query Builder] Holds select
      * @access protected
@@ -97,6 +167,11 @@ abstract class Model implements Iterator
      */
     protected $groupby = array();
 
+    /**
+     * Constructor sets up {@link $driver}, {@link $error}, and {@link $db}
+     * @param array $hash Will set up model object with hash values
+     * @param mixed $runthis Will set {@link $run_at_get_flag} to true and {@link $run_this}
+     */
     public function __construct($hash = array(), $runthis = false)
     {
         $this->driver = MODEL_DRIVER."Driver";
@@ -288,7 +363,11 @@ abstract class Model implements Iterator
         }
         return $this->data[$name];
     }
-
+    
+    /**
+     * Dumps current {@link $data} values as an array
+     * @return array $data
+     */
     public function to_array()
     {
         return $this->data;
@@ -448,10 +527,16 @@ abstract class Model implements Iterator
         }
         return $this;
     }
-
+    
+    /**
+     * Sets {@link $from}
+     * @return object $this
+     * @todo Decide whether to keep this or not
+     */
     public function from($from)
     {
         $this->from = $from;
+        return $this;
     }
 
     /**
@@ -468,18 +553,17 @@ abstract class Model implements Iterator
         }
         elseif(func_num_args() == 1 && is_array(func_get_arg(0)))
         {
-            $where = "";
             foreach(func_get_arg(0) as $key => $value)
             {
-                $where .= "`".$this->db->escape($key)."` ";
+                $operator = '=';
                 if(is_array($value))
-                {
-                    $where .= " IN ('".implode("','", $value)."') AND ";
-                } else {
-                    $where .= " = '".$value."' AND ";
-                }
+                    $operator = 'IN';
+                $this->where[] = array(
+                    'field' => $this->db->escape($key),
+                    'operator' => $operator,
+                    'value' => $value
+                );
             }
-            $this->where[] = substr($where, 0, -4);
         }
         elseif(func_num_args() > 1 && is_string(func_get_arg(0)) && is_array(func_get_arg(1)) && strpos(func_get_arg(0), ":") > -1)
         {
@@ -509,7 +593,6 @@ abstract class Model implements Iterator
         }
         elseif(func_num_args() > 0 && is_array(func_get_arg(0)))
         {
-            $where = "";
             for($i=0;$i<func_num_args();$i++)
             {
                 $arg = func_get_arg($i);
@@ -519,15 +602,16 @@ abstract class Model implements Iterator
                 }
                 foreach($arg as $key => $value)
                 {
+                    $operator = '=';
                     if(is_array($value))
-                    {
-                        $where .= $key. " IN ('".implode("','", $value)."') AND ";
-                    } else {
-                        $where .= $key. " = '".$this->db->escape($value)."' AND ";
-                    }
+                        $operator = 'IN';
+                    $this->where[] = array(
+                        'field' => $this->db->escape($key),
+                        'operator' => $operator,
+                        'value' => $value
+                    );
                 }
             }
-            $this->where[] = substr($where,0,-5);
         }
         return $this;
     }
@@ -675,12 +759,20 @@ abstract class Model implements Iterator
         return $this;
     }
 
+    /**
+     * Sets the query to only return the first result
+     * @return object $this
+     */
     public function first()
     {
         $this->limit(1);
         return $this;
     }
 
+    /**
+     * Sets the query to only return the last result
+     * @return object $this
+     */
     public function last()
     {
         $pri = $this->getPrimary();
@@ -688,11 +780,26 @@ abstract class Model implements Iterator
         return $this;
     }
 
+    /**
+     * Gets query from driver and prints it to screen
+     */
     public function printQuery()
     {
-        
+        echo $this->db->buildQuery(array(
+            'select' => $this->select,
+            'from' => $this->from,
+            'where' => $this->where,
+            'joins' => $this->joins,
+            'limit' => $this->limit,
+            'orderby' => $this->orderby,
+            'groupby' => $this->groupby
+        ));
     }
 
+    /**
+     * Figures out what the primary key of the table is and returns it
+     * @return mixed $field
+     */
     protected function getPrimary()
     {
         foreach($this->table_schema as $field => $detail)
