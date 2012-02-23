@@ -33,7 +33,7 @@ abstract class Model implements Iterator
      * @access private
      * @var string
      */
-    private $driver;
+    private $_driver;
     /**
      * Error Class Object
      * @access private
@@ -51,7 +51,7 @@ abstract class Model implements Iterator
      * @access protected
      * @var array
      */
-    protected $data = array();
+    protected $_data = array();
     /**
      * Name of table
      * @access protected
@@ -174,12 +174,12 @@ abstract class Model implements Iterator
      */
     public function __construct($hash = array(), $runthis = false)
     {
-        $this->driver = MODEL_DRIVER."Driver";
+        $this->_driver = MODEL_DRIVER."Driver";
         $this->error = ErrorHandler::Singleton(true);
         if(is_file(CORE_DIR."/drivers/".MODEL_DRIVER.".driver.php"))
         {
             import(CORE_DIR."/drivers/".MODEL_DRIVER.".driver.php");
-            $this->db = new $this->driver();
+            $this->db = new $this->_driver();
             if(!$this->db instanceof iDriver)
                 $this->error->Toss('Driver loaded is not an instance of iDriver interface!', E_USER_ERROR);
             if(isset($this->table_name))
@@ -314,12 +314,12 @@ abstract class Model implements Iterator
         {
             if(is_array($this->input_format[$name]))
             {
-                $this->data[$name] = call_user_func(array($this, $this->input_format[$name]['custom']), $value);
+                $this->_data[$name] = call_user_func(array($this, $this->input_format[$name]['custom']), $value);
             } else {
-                $this->data[$name] = sprintf($this->input_format[$name], $value);
+                $this->_data[$name] = sprintf($this->input_format[$name], $value);
             }
         } else {
-            $this->data[$name] = $value;
+            $this->_data[$name] = $value;
         }
     }
 
@@ -347,7 +347,7 @@ abstract class Model implements Iterator
             }
             $this->run_at_get_flag = false;
         }
-        if(!isset($this->data[$name]))
+        if(!isset($this->_data[$name]))
         {
             $this->error->Toss(__CLASS__."::".__FUNCTION__." No field by the name [".$name."]", E_USER_NOTICE);
             return null;
@@ -356,12 +356,12 @@ abstract class Model implements Iterator
         {
             if(is_array($this->output_format[$name]))
             {
-                return call_user_func(array($this, $this->output_format[$name]['custom']), $this->data[$name]);
+                return call_user_func(array($this, $this->output_format[$name]['custom']), $this->_data[$name]);
             } else {
-                return sprintf($this->output_format[$name], $this->data[$name]);
+                return sprintf($this->output_format[$name], $this->_data[$name]);
             }
         }
-        return $this->data[$name];
+        return $this->_data[$name];
     }
     
     /**
@@ -370,7 +370,7 @@ abstract class Model implements Iterator
      */
     public function to_array()
     {
-        return $this->data;
+        return $this->_data;
     }
 
     /**
@@ -384,29 +384,29 @@ abstract class Model implements Iterator
         {
             if(isset($params['required']) && $params['required']) // Check if required
             {
-                if(!isset($this->data[$field]))
+                if(!isset($this->_data[$field]))
                     return false;
             }
             if(isset($params['must_be'])) // Check for type
             {
-                if(isset($this->data[$field]))
+                if(isset($this->_data[$field]))
                 {
                     switch($params['must_be'])
                     {
                         case 'integer':
-                            if(!is_integer($this->data[$field]))
+                            if(!is_integer($this->_data[$field]))
                                 return false;
                             break;
                         case 'bool':
-                            if(!is_bool($this->data[$field]))
+                            if(!is_bool($this->_data[$field]))
                                 return false;
                             break;
                         case 'string':
-                            if(!is_string($this->data[$field]))
+                            if(!is_string($this->_data[$field]))
                                 return false;
                             break;
                         case 'float':
-                            if(!is_float($this->data[$field]))
+                            if(!is_float($this->_data[$field]))
                                 return false;
                             break;
                     }
@@ -416,7 +416,7 @@ abstract class Model implements Iterator
             {
                 if(method_exists($this, $params['custom']))
                 {
-                    if(!call_user_func(array($this, $params['custom']), $this->data[$field]))
+                    if(!call_user_func(array($this, $params['custom']), $this->_data[$field]))
                         return false;
                 }
             }
@@ -485,7 +485,7 @@ abstract class Model implements Iterator
     public function delete()
     {
         $pri = $this->getPrimary();
-        return $this->db->delete($pri, $this->data[$pri]);
+        return $this->db->delete($pri, $this->_data[$pri]);
     }
 
     /**
@@ -495,7 +495,7 @@ abstract class Model implements Iterator
      */
     public function save()
     {
-        return $this->db->save($this->data);
+        return $this->db->save($this->_data);
     }
 
     /**

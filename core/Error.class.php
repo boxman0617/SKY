@@ -64,7 +64,7 @@ class ErrorHandler
     private $level;
     private $core_error;
     private $error_log = ERROR_LOG_DIR;
-    private $message_mask = "[%s] {File: %s | Line: %d | Time: %s} %s\n";
+    private $message_mask = "[%s][%s] {File: %s | Line: %d | Time: %s} %s\n";
     public static $prefix = 'sky';
     public $garbage_collector_days = 5;
     private $errorTypes = array (
