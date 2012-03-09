@@ -33,13 +33,13 @@ abstract class Model implements Iterator
      * @access private
      * @var string
      */
-    private $_driver;
+    private $driver;
     /**
      * Error Class Object
      * @access private
      * @var object
      */
-    private $error;
+    private $_error;
     /**
      * Driver Class Object
      * @access private
@@ -166,6 +166,8 @@ abstract class Model implements Iterator
      * @var array
      */
     protected $groupby = array();
+	protected $db_array = null;
+	protected $_pre_data = array();
 
     /**
      * Constructor sets up {@link $driver}, {@link $error}, and {@link $db}
@@ -174,28 +176,31 @@ abstract class Model implements Iterator
      */
     public function __construct($hash = array(), $runthis = false)
     {
-        $this->_driver = MODEL_DRIVER."Driver";
-        $this->error = ErrorHandler::Singleton(true);
+        $this->driver = MODEL_DRIVER."Driver";
+        $this->_error = ErrorHandler::Singleton(true);
         if(is_file(CORE_DIR."/drivers/".MODEL_DRIVER.".driver.php"))
         {
             import(CORE_DIR."/drivers/".MODEL_DRIVER.".driver.php");
-            $this->db = new $this->_driver();
+			if(is_null($this->db_array))
+				$this->db = new $this->driver();
+			else
+				$this->db = new $this->driver($this->db_array);
             if(!$this->db instanceof iDriver)
-                $this->error->Toss('Driver loaded is not an instance of iDriver interface!', E_USER_ERROR);
+                $this->_error->Toss('Driver loaded is not an instance of iDriver interface!', E_USER_ERROR);
             if(isset($this->table_name))
             {
                 $this->db->setTableName($this->table_name);
                 $this->db->setSchema();
             } else {
                 if(!$this->db->doesTableExist(get_class($this)))
-                    $this->error->Toss('No table name specified. Please add property $table_name to model.', E_USER_ERROR);
+                    $this->_error->Toss('No table name specified. Please add property $table_name to model.', E_USER_ERROR);
                 else
                 {
                     preg_match_all('/[A-Z][^A-Z]*/', get_class($this), $strings);
                     if(isset($strings[0]))
                         $table_name = strtolower(implode('_', $strings[0]));
                     else
-                        $this->error->Toss('Error handling class name as table name.', E_USER_ERROR);
+                        $this->_error->Toss('Error handling class name as table name.', E_USER_ERROR);
                     $this->table_name = $table_name;
                     $this->db->setTableName($this->table_name);
                     $this->db->setSchema();
@@ -203,7 +208,7 @@ abstract class Model implements Iterator
             }
             $this->table_schema = $this->db->getSchema();
         } else {
-            $this->error->Toss('No driver found for model! Model: '.get_class($this).' | Driver: '.MODEL_DRIVER, E_USER_ERROR);
+            $this->_error->Toss('No driver found for model! Model: '.get_class($this).' | Driver: '.MODEL_DRIVER, E_USER_ERROR);
         }
 
         // Setting empty object
@@ -300,7 +305,7 @@ abstract class Model implements Iterator
             $obj = call_user_func_array(array($this, 'where'), $conditions);
             return $obj->run();
         } else {
-            $this->error->Toss('No method name ['.$method.']');
+            $this->_error->Toss('No method name ['.$method.']');
         }
     }
 
@@ -322,6 +327,16 @@ abstract class Model implements Iterator
             $this->_data[$name] = $value;
         }
     }
+	
+	public function __isset( $name )
+	{
+		return (isset($this->_data[$name]) && $this->_data[$name] !== NULL);
+	}
+	
+	public function __unset( $name )
+	{
+		$this->_data[$name] = NULL;
+	}
 
     /** Magic getter
      * - gets {@link $data}
@@ -349,7 +364,7 @@ abstract class Model implements Iterator
         }
         if(!isset($this->_data[$name]))
         {
-            $this->error->Toss(__CLASS__."::".__FUNCTION__." No field by the name [".$name."]", E_USER_NOTICE);
+            $this->_error->Toss(__CLASS__."::".__FUNCTION__." No field by the name [".$name."]", E_USER_NOTICE);
             return null;
         }
         if(isset($this->output_format[$name]))
@@ -363,6 +378,16 @@ abstract class Model implements Iterator
         }
         return $this->_data[$name];
     }
+	
+	public function get_raw($name)
+	{
+		if(!isset($this->_data[$name]))
+        {
+            $this->_error->Toss(__CLASS__."::".__FUNCTION__." No field by the name [".$name."]", E_USER_NOTICE);
+            return null;
+        }
+		return $this->_data[$name];
+	}
     
     /**
      * Dumps current {@link $data} values as an array
@@ -370,7 +395,12 @@ abstract class Model implements Iterator
      */
     public function to_array()
     {
-        return $this->_data;
+		$ret = array();
+		foreach($this->_data as $key => $v)
+        {
+			$ret[$key] = $this->$key;
+		}
+		return $ret;
     }
 
     /**
@@ -495,7 +525,23 @@ abstract class Model implements Iterator
      */
     public function save()
     {
-        return $this->db->save($this->_data);
+		$pri = $this->getPrimary();
+		$data = $this->_data;
+		if(!empty($this->_pre_data))
+		{
+			$tmp = array();
+			foreach($data as $field => $value)
+			{
+				if($field != 'updated_at' && $field != 'created_at' && $field != $pri && $value != $this->_pre_data[$field])
+				{
+					$tmp[$field] = $value;
+				}
+			}
+			$data = $tmp;
+		}
+        $ret = $this->db->save($data);
+		$this->_pre_data = $this->_data;
+		return $ret;
     }
 
     /**
@@ -509,7 +555,7 @@ abstract class Model implements Iterator
         $this->where = array();
         $this->groupby = array();
         $this->orderby = array();
-        unset($this->limit);
+        $this->limit = array();
         return $this;
     }
 
@@ -598,7 +644,7 @@ abstract class Model implements Iterator
                 $arg = func_get_arg($i);
                 if(!is_array($arg))
                 {
-                    $this->error->Toss(__CLASS__."::".__FUNCTION__." Must be an array");
+                    $this->_error->Toss(__CLASS__."::".__FUNCTION__." Must be an array");
                 }
                 foreach($arg as $key => $value)
                 {
@@ -794,7 +840,22 @@ abstract class Model implements Iterator
             'orderby' => $this->orderby,
             'groupby' => $this->groupby
         ));
+		return $this;
     }
+	
+	public function delete_set()
+	{
+		if(count($this->array) > 0)
+		{
+			$pri = $this->getPrimary();
+			$ids = array();
+			foreach($this->array as $obj)
+			{
+				$ids[] = $obj->$pri;
+			}
+			$this->db->delete($pri, $ids);
+		}
+	}
 
     /**
      * Figures out what the primary key of the table is and returns it

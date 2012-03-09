@@ -32,7 +32,7 @@ class MySQLDriver implements iDriver
      * @access static private
      * @var object
      */
-    private static $db;
+    private static $db = array();
     /**
      * Schema of current table
      * @access static private
@@ -45,15 +45,29 @@ class MySQLDriver implements iDriver
      * @var string
      */
     private $table_name;
+    
+    private $db_flag = false;
+    private $db_array = array();
+    private $server;
 
     /**
-     * Sets up self::$db if not instantiated with mysqli object
+     * Sets up self::$db[$this->server] if not instantiated with mysqli object
      */
-    public function __construct()
+    public function __construct($db_array = NULL)
     {
-        if(!self::$db)
+        if(is_null($db_array))
         {
-            self::$db = new mysqli(DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_DATABASE);
+            $this->server = DB_SERVER;
+            if(!isset(self::$db[$this->server]))
+                self::$db[$this->server] = new mysqli(DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_DATABASE);
+        }
+        else
+        {
+            $this->server = $db_array['DB_SERVER'];
+            $this->db_flag = true;
+            $this->db_array = $db_array;
+            if(!isset(self::$db[$this->server]))
+                self::$db[$this->server] = new mysqli($db_array['DB_SERVER'], $db_array['DB_USERNAME'], $db_array['DB_PASSWORD'], $db_array['DB_DATABASE']);
         }
     }
 
@@ -85,7 +99,7 @@ class MySQLDriver implements iDriver
     {
         if(!isset(self::$table_schema[$this->table_name]))
         {
-            $r = self::$db->query("DESCRIBE `".$this->table_name."`");
+            $r = self::$db[$this->server]->query("DESCRIBE `".$this->table_name."`");
             while($row = $r->fetch_assoc())
             {
                 self::$table_schema[$this->table_name][$row['Field']] = array(
@@ -116,10 +130,10 @@ class MySQLDriver implements iDriver
 
         if($table_name)
         {
-            $r = self::$db->query("SHOW TABLES");
+            $r = self::$db[$this->server]->query("SHOW TABLES");
             while($row = $r->fetch_assoc())
             {
-                if($row['Tables_in_'.DB_DATABASE] == $table_name)
+                if($row['Tables_in_'.(($this->db_flag) ? $this->db_array['DB_DATABASE'] : DB_DATABASE)] == $table_name)
                 {
                     $this->table_name = $table_name;
                     return true;
@@ -136,7 +150,7 @@ class MySQLDriver implements iDriver
      */
     public function escape($value)
     {
-        return self::$db->real_escape_string($value);
+        return self::$db[$this->server]->real_escape_string($value);
     }
 
     /**
@@ -176,8 +190,7 @@ class MySQLDriver implements iDriver
                     }
                     $query .= ' AND ';
                 } else {
-                    $query .= implode(' AND ', $where);
-                    $query .= ' AND ';
+                    $query .= $where.' AND ';
                 }
             }
             $query = substr($query, 0, -4);
@@ -222,7 +235,7 @@ class MySQLDriver implements iDriver
      */
     public function runQuery($query)
     {
-        $r = self::$db->query($query);
+        $r = self::$db[$this->server]->query($query);
         $return = array();
         $i = 0;
         while($row = $r->fetch_assoc())
@@ -247,9 +260,17 @@ class MySQLDriver implements iDriver
     public function delete($field, $value)
     {
         $sql = "DELETE FROM `".$this->table_name."` ";
-        $where = "WHERE `".self::$db->real_escape_string($field)."` = '".self::$db->real_escape_string($value)."'";
+        if(!is_array($value))
+            $value = array($value);
+        $where = "WHERE `".self::$db[$this->server]->real_escape_string($field)."` IN (";
+        foreach($value as $v)
+        {
+            $where .= "'".self::$db[$this->server]->real_escape_string($v)."',";
+        }
+        $where = substr($where, 0, -1);
+        $where .= ")";
 
-        return $this->db->query($sql.$where);
+        return self::$db[$this->server]->query($sql.$where);
     }
 
     /**
@@ -280,7 +301,7 @@ class MySQLDriver implements iDriver
         {
             if($field != $pri && $field != 'updated_at' && $field != 'created_at')
             {
-                $query .= "`".$field."` = '".self::$db->real_escape_string($value)."',";
+                $query .= "`".$field."` = '".self::$db[$this->server]->real_escape_string($value)."',";
             }
             elseif($field == 'created_at' && $data[$pri] === NULL)
             {
@@ -288,7 +309,7 @@ class MySQLDriver implements iDriver
             }
         }
         $query = substr($query,0,-1);
-        return self::$db->query($query.$where);
+        return self::$db[$this->server]->query($query.$where);
     }
 }
 ?>
