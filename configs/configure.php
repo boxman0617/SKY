@@ -9,6 +9,12 @@ define('AUTH_MODEL_PASSWORD', 'password');
 define('APP_LOG', LOG_DIR.'/app.log');
 define('CORE_LOG', LOG_DIR.'/core.log');
 define('LOGGING_ENABLED', true);
+define('TXT_MSG_ENABLED', true);
+$txt_groups = array(
+    'default' => array(
+        '1231231234' => 'att'
+    )
+);
 // Logging levels
 // @level 1 - Most info. Main core mechanics
 // @level 2 - Info at major parts of the core

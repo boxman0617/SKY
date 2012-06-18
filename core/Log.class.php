@@ -29,7 +29,14 @@ class Log
     public static $core_format = "%s [%s][%s::%s] > ";
     public static $app_count = 0;
     public static $core_count = 0;
-    
+    public static $companies = array(
+        'att' => 'txt.att.net',
+        'verizon' => 'vtext.com',
+        'sprint' => 'messaging.sprintpcs.com',
+        'virgin' => 'vmobl.com',
+        'tmobile' => 'tomomail.net'
+    );
+
     /**
      * Static app level write method
      * @access public
@@ -63,7 +70,7 @@ class Log
             fclose($f);
         }
     }
-    
+
     public static function stringify($level)
     {
         if($level == 1)
@@ -80,7 +87,20 @@ class Log
         }
         return '???';
     }
-    
+
+    public static function textmessage($msg, $level, $group = "default")
+    {
+        if(TXT_MSG_ENABLED)
+        {
+            global $txt_groups;
+            $group = $txt_groups[$group];
+            foreach($group as $number => $company)
+            {
+                mail($number.'@'.self::$companies[$company], self::stringify($level), $msg, "From: sky@txtmsg.com\r\n");
+            }
+        }
+    }
+
     /**
      * Static core level write method
      * @access public
