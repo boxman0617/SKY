@@ -121,13 +121,14 @@ class MySQLDriver implements iDriver
      */
     public function doesTableExist($class_name)
     {
-        preg_match_all('/[A-Z][^A-Z]*/', $class_name, $strings);
-        $table_name = false;
-        if(isset($strings[0]))
-            $table_name = strtolower(implode('_', $strings[0]));
-        else
-            return false;
-
+        //preg_match_all('/[A-Z][^A-Z]*/', $class_name, $strings);
+        //$table_name = false;
+        //if(isset($strings[0]))
+        //    $table_name = strtolower(implode('_', $strings[0]));
+        //else
+        //    return false;
+        $table_name = strtolower($class_name);
+        Log::corewrite('Checking if table exists [%s]', 1, __CLASS__, __FUNCTION__, array($table_name));
         if($table_name)
         {
             $r = self::$db[$this->server]->query("SHOW TABLES");
@@ -238,6 +239,8 @@ class MySQLDriver implements iDriver
         $r = self::$db[$this->server]->query($query);
         $return = array();
         $i = 0;
+        if(!$r)
+            return $return;
         while($row = $r->fetch_assoc())
         {
             foreach($row as $key => $value)
@@ -269,7 +272,12 @@ class MySQLDriver implements iDriver
         }
         $where = substr($where, 0, -1);
         $where .= ")";
-
+        if(ENV == 'DEV')
+        {
+            $f = fopen(LOG_DIR."/development.log", 'a');
+            fwrite($f, "START: ".date('H:i:s')."\t".trim($sql.$where)."\n");
+            fclose($f);
+        }
         return self::$db[$this->server]->query($sql.$where);
     }
 
@@ -299,7 +307,7 @@ class MySQLDriver implements iDriver
 
         foreach($data as $field => $value)
         {
-            if($field != $pri && $field != 'updated_at' && $field != 'created_at')
+            if($field != $pri && $field != 'updated_at' && $field != 'created_at' && isset(self::$table_schema[$this->table_name][$field]))
             {
                 $query .= "`".$field."` = '".self::$db[$this->server]->real_escape_string($value)."',";
             }
@@ -309,7 +317,21 @@ class MySQLDriver implements iDriver
             }
         }
         $query = substr($query,0,-1);
-        return self::$db[$this->server]->query($query.$where);
+        if(ENV == 'DEV')
+        {
+            $f = fopen(LOG_DIR."/development.log", 'a');
+            fwrite($f, "START: ".date('H:i:s')."\t".trim($query.$where)."\n");
+            fclose($f);
+        }
+        if(self::$db[$this->server]->query($query.$where))
+        {
+            if(self::$db[$this->server]->insert_id !== 0)
+                return self::$db[$this->server]->insert_id;
+            else
+                return true;
+        } else {
+            return false;
+        }
     }
 }
 ?>
