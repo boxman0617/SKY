@@ -131,13 +131,13 @@ abstract class Controller
      */
     public function __construct()
     {
+        Log::corewrite('Opening controller [%s]', 3, __CLASS__, __FUNCTION__, array(get_class($this)));
         Event::PublishActionHook('/Controller/before/__construct/', array($this));
         $this->error = ErrorHandler::Singleton(true);
-        foreach($_POST as $key => $value)
-        {
-            $this->params[$key] = $value;
-        }
+        Log::corewrite('Merging $_POST and ::$params', 1, __CLASS__, __FUNCTION__);
+        $this->params = array_merge($_POST, $this->params);
         Event::PublishActionHook('/Controller/after/__construct/', array($this));
+        Log::corewrite('At the end of method', 2, __CLASS__, __FUNCTION__);
     }
     
     /**
@@ -207,6 +207,8 @@ abstract class Controller
                 {
                     if(is_array($options['only']))
                     {
+                        foreach($options['only'] as $k => $v)
+                            $options['only'][$k] = strtolower($v);
                         if(in_array($this->method, $options['only']))
                         {
                             call_user_func(array($this, $filter));
@@ -243,6 +245,7 @@ abstract class Controller
      */
     public function HandleRequest($method, $pass = null)
     {
+        Log::corewrite('Handling request by [%s]', 3, __CLASS__, __FUNCTION__, array($method));
         Event::PublishActionHook('/Controller/before/HandleRequest/', array($this));
         $this->method = $method;
         $this->HandleBeforeFilters();
@@ -263,6 +266,7 @@ abstract class Controller
                 break;
         }
         Event::PublishActionHook('/Controller/after/HandleRequest/', array($this));
+        Log::corewrite('At the end of method', 2, __CLASS__, __FUNCTION__);
     }
     
     /**
@@ -339,18 +343,22 @@ abstract class Controller
      */
     protected function RedirectTo($url)
     {
+        Log::corewrite('Redirecting page', 3, __CLASS__, __FUNCTION__);
         if(is_array($url))
         {
             if(isset($url['action'])) // Use this controller and fire action
             {
+                Log::corewrite('Actions passed: [%s]', 1, __CLASS__, __FUNCTION__, array($url['action']));
                 $params = array();
                 if(isset($url['params']))
                     $params = $url['params'];
                 $this->HandleRequest($url['action'], $params);
             }
         } else {
+            Log::corewrite('URL passed: [%s]', 1, __CLASS__, __FUNCTION__, array($url));
             header('Location: '.$this->GetPageURL().$url);
         }
+        Log::corewrite('At end of method...', 2, __CLASS__, __FUNCTION__);
     }
     
     /**
@@ -401,6 +409,16 @@ abstract class Controller
         $smarty->cache_dir = SMARTY_CACHE_DIR;
         
         return $smarty;
+    }
+    
+    protected function RunTask($task, $params = array())
+    {
+        $params = array_reverse($params);
+        $params[] = 'a';
+        $params[] = 'a';
+        $params = array_values(array_reverse($params));
+        $t = new Task($params, false);
+        $t->HandleInput($task);
     }
 }
 ?>

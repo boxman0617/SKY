@@ -19,6 +19,7 @@
  * @version 1.1 Bug fixes
  * @version 2.0 Logic upgrade and added drivers
  * @package Sky.Core
+ * @todo: Simplyfy the find methods. Example: find() find_by_%() find_all()
  */
 
 /**
@@ -71,17 +72,13 @@ abstract class Model implements Iterator
      */
     protected $last_query;
     /**
-     * Flag to see if query should be ran at Model::__get()
-     * @access private
-     * @var bool
-     */
-    private $run_at_get_flag = false;
-    /**
      * Query to be ran at Model::__get()
      * @access private
      * @var array
      */
     private $run_this = array();
+    
+    protected $belongs_to = array();
     /**
      * Relational property [this model has one on one relationship with]
      * @access protected
@@ -166,81 +163,80 @@ abstract class Model implements Iterator
      * @var array
      */
     protected $groupby = array();
-	protected $db_array = null;
-	protected $_pre_data = array();
+    protected $db_array = null;
+    protected $_pre_data = array();
+    protected $_skip_format_input = false;
+    protected $encrypt_field = array();
 
     /**
      * Constructor sets up {@link $driver}, {@link $error}, and {@link $db}
      * @param array $hash Will set up model object with hash values
-     * @param mixed $runthis Will set {@link $run_at_get_flag} to true and {@link $run_this}
      */
-    public function __construct($hash = array(), $runthis = false)
+    public function __construct($hash = array())
     {
+        Log::corewrite('Starting Model [%s]', 3, __CLASS__, __FUNCTION__, array(get_class($this)));
         $this->driver = MODEL_DRIVER."Driver";
         $this->_error = ErrorHandler::Singleton(true);
         if(is_file(CORE_DIR."/drivers/".MODEL_DRIVER.".driver.php"))
         {
+            Log::corewrite('Found driver [%s]', 1, __CLASS__, __FUNCTION__, array(MODEL_DRIVER));
             import(CORE_DIR."/drivers/".MODEL_DRIVER.".driver.php");
-			if(is_null($this->db_array))
-				$this->db = new $this->driver();
-			else
-				$this->db = new $this->driver($this->db_array);
+            if(is_null($this->db_array))
+                    $this->db = new $this->driver();
+            else
+                    $this->db = new $this->driver($this->db_array);
             if(!$this->db instanceof iDriver)
                 $this->_error->Toss('Driver loaded is not an instance of iDriver interface!', E_USER_ERROR);
             if(isset($this->table_name))
             {
+                Log::corewrite('::$table_name is set [%s]', 1, __CLASS__, __FUNCTION__, array($this->table_name));
                 $this->db->setTableName($this->table_name);
                 $this->db->setSchema();
             } else {
+                Log::corewrite('::$table_name is NOT set. Attempting to create name out of class', 1, __CLASS__, __FUNCTION__);
                 if(!$this->db->doesTableExist(get_class($this)))
                     $this->_error->Toss('No table name specified. Please add property $table_name to model.', E_USER_ERROR);
                 else
                 {
-                    preg_match_all('/[A-Z][^A-Z]*/', get_class($this), $strings);
-                    if(isset($strings[0]))
-                        $table_name = strtolower(implode('_', $strings[0]));
-                    else
-                        $this->_error->Toss('Error handling class name as table name.', E_USER_ERROR);
+                    $table_name = strtolower(get_class($this));
                     $this->table_name = $table_name;
                     $this->db->setTableName($this->table_name);
                     $this->db->setSchema();
                 }
             }
             $this->table_schema = $this->db->getSchema();
+            Log::corewrite('Model was set properly [%s]', 2, __CLASS__, __FUNCTION__, array(get_class($this)));
         } else {
             $this->_error->Toss('No driver found for model! Model: '.get_class($this).' | Driver: '.MODEL_DRIVER, E_USER_ERROR);
         }
-
+        
         // Setting empty object
         if(empty($hash))
         {
+            Log::corewrite('Creating empty Model object', 1, __CLASS__, __FUNCTION__);
             foreach($this->table_schema as $field => $i)
             {
                 if(isset($i['Default']))
-                    $this->$field = $i['Default'];
+                    $this->_data[$field] = $i['Default'];
                 else
-                    $this->$field = NULL;
+                    $this->_data[$field] = NULL;
             }
         } else {
+            Log::corewrite('Hash was passed in. Filling Model...', 1, __CLASS__, __FUNCTION__);
             foreach($this->table_schema as $field => $i)
             {
                 if(isset($hash[$field]))
-                    $this->$field = $hash[$field];
+                    $this->_data[$field] = $hash[$field];
                 else
                 {
                     if(isset($i['Default']))
-                        $this->$field = $i['Default'];
+                        $this->_data[$field] = $i['Default'];
                     else
-                        $this->$field = NULL;
+                        $this->_data[$field] = NULL;
                 }
             }
         }
-
-        if($runthis !== false)
-        {
-            $this->run_at_get_flag = true;
-            $this->run_this = $runthis;
-        }
+        Log::corewrite('At end of method...', 2, __CLASS__, __FUNCTION__);
     }
 
     /**
@@ -300,7 +296,7 @@ abstract class Model implements Iterator
         if(substr($method, 0, 7) == 'find_by')
         {
             $options = substr($method, 8);
-            $fields = array_keys(self::$table_schema[$this->table_name]);
+            //$fields = array_keys(self::$table_schema[$this->table_name]);
             $conditions = $this->create_conditions_from_underscored_string($options, $args);
             $obj = call_user_func_array(array($this, 'where'), $conditions);
             return $obj->run();
@@ -315,28 +311,252 @@ abstract class Model implements Iterator
      */
     public function __set( $name, $value )
     {
-        if(isset($this->input_format[$name]))
+        Log::corewrite('Setting Model data [%s]', 3, __CLASS__, __FUNCTION__, array($name));
+        if(isset($this->input_format[$name]) && !$this->_skip_format_input)
         {
+            Log::corewrite('Has input format. Executing...', 1, __CLASS__, __FUNCTION__);
             if(is_array($this->input_format[$name]))
             {
                 $this->_data[$name] = call_user_func(array($this, $this->input_format[$name]['custom']), $value);
             } else {
                 $this->_data[$name] = sprintf($this->input_format[$name], $value);
             }
-        } else {
-            $this->_data[$name] = $value;
         }
+        elseif(in_array($name, $this->encrypt_field))
+        {
+            Log::corewrite('Need to encrypt field. Executing...', 1, __CLASS__, __FUNCTION__);
+            $this->_data[$name] = md5($value);
+        }
+        else
+        {
+            $this->_data[$name] = $value;
+            Log::corewrite('Data was set normally...', 1, __CLASS__, __FUNCTION__);
+        }
+        Log::corewrite('At the end of method...', 2, __CLASS__, __FUNCTION__);
     }
 	
-	public function __isset( $name )
-	{
-		return (isset($this->_data[$name]) && $this->_data[$name] !== NULL);
-	}
-	
-	public function __unset( $name )
-	{
-		$this->_data[$name] = NULL;
-	}
+    public function __isset( $name )
+    {
+            return (isset($this->_data[$name]) && $this->_data[$name] !== NULL);
+    }
+    
+    public function __unset( $name )
+    {
+            $this->_data[$name] = NULL;
+    }
+
+    private function singularize($word)
+    {
+        $singular = array (
+        '/(quiz)zes$/i' => '\1',
+        '/(matr)ices$/i' => '\1ix',
+        '/(vert|ind)ices$/i' => '\1ex',
+        '/^(ox)en/i' => '\1',
+        '/(alias|status)es$/i' => '\1',
+        '/([octop|vir])i$/i' => '\1us',
+        '/(cris|ax|test)es$/i' => '\1is',
+        '/(shoe)s$/i' => '\1',
+        '/(o)es$/i' => '\1',
+        '/(bus)es$/i' => '\1',
+        '/([m|l])ice$/i' => '\1ouse',
+        '/(x|ch|ss|sh)es$/i' => '\1',
+        '/(m)ovies$/i' => '\1ovie',
+        '/(s)eries$/i' => '\1eries',
+        '/([^aeiouy]|qu)ies$/i' => '\1y',
+        '/([lr])ves$/i' => '\1f',
+        '/(tive)s$/i' => '\1',
+        '/(hive)s$/i' => '\1',
+        '/([^f])ves$/i' => '\1fe',
+        '/(^analy)ses$/i' => '\1sis',
+        '/((a)naly|(b)a|(d)iagno|(p)arenthe|(p)rogno|(s)ynop|(t)he)ses$/i' => '\1\2sis',
+        '/([ti])a$/i' => '\1um',
+        '/(n)ews$/i' => '\1ews',
+        '/s$/i' => '',
+        );
+
+        $uncountable = array('equipment', 'information', 'rice', 'money', 'species', 'series', 'fish', 'sheep');
+
+        $irregular = array(
+        'person' => 'people',
+        'man' => 'men',
+        'child' => 'children',
+        'sex' => 'sexes',
+        'move' => 'moves');
+
+        $lowercased_word = strtolower($word);
+        foreach ($uncountable as $_uncountable){
+            if(substr($lowercased_word,(-1*strlen($_uncountable))) == $_uncountable){
+                return $word;
+            }
+        }
+
+        foreach ($irregular as $_plural=> $_singular){
+            if (preg_match('/('.$_singular.')$/i', $word, $arr)) {
+                return preg_replace('/('.$_singular.')$/i', substr($arr[0],0,1).substr($_plural,1), $word);
+            }
+        }
+
+        foreach ($singular as $rule => $replacement) {
+            if (preg_match($rule, $word)) {
+                return preg_replace($rule, $replacement, $word);
+            }
+        }
+
+        return $word;
+    }
+
+    private function pluralize($word)
+    {
+        $plural = array(
+        '/(quiz)$/i' => '1zes',
+        '/^(ox)$/i' => '1en',
+        '/([m|l])ouse$/i' => '1ice',
+        '/(matr|vert|ind)ix|ex$/i' => '1ices',
+        '/(x|ch|ss|sh)$/i' => '1es',
+        '/([^aeiouy]|qu)ies$/i' => '1y',
+        '/([^aeiouy]|qu)y$/i' => '1ies',
+        '/(hive)$/i' => '1s',
+        '/(?:([^f])fe|([lr])f)$/i' => '12ves',
+        '/sis$/i' => 'ses',
+        '/([ti])um$/i' => '1a',
+        '/(buffal|tomat)o$/i' => '1oes',
+        '/(bu)s$/i' => '1ses',
+        '/(alias|status)/i'=> '1es',
+        '/(octop|vir)us$/i'=> '1i',
+        '/(ax|test)is$/i'=> '1es',
+        '/s$/i'=> 's',
+        '/$/'=> 's');
+
+        $uncountable = array('equipment', 'information', 'rice', 'money', 'species', 'series', 'fish', 'sheep');
+
+        $irregular = array(
+        'person' => 'people',
+        'man' => 'men',
+        'child' => 'children',
+        'sex' => 'sexes',
+        'move' => 'moves');
+
+        $lowercased_word = strtolower($word);
+
+        foreach ($uncountable as $_uncountable){
+            if(substr($lowercased_word,(-1*strlen($_uncountable))) == $_uncountable){
+                return $word;
+            }
+        }
+
+        foreach ($irregular as $_plural=> $_singular){
+            if (preg_match('/('.$_plural.')$/i', $word, $arr)) {
+                return preg_replace('/('.$_plural.')$/i', substr($arr[0],0,1).substr($_singular,1), $word);
+            }
+        }
+
+        foreach ($plural as $rule => $replacement) {
+            if (preg_match($rule, $word)) {
+                return preg_replace($rule, $replacement, $word);
+            }
+        }
+        return false;
+
+    }
+    
+    // @ToDo: Make this more efficient
+    private function FindModel($name, $plural = true, $overwrite = null)
+    {
+        if($plural)
+            $name = $this->pluralize($name);
+
+        if(!is_null($overwrite))
+            $name = $overwrite;
+        Log::corewrite('Finding Model out of field [%s]', 3, __CLASS__, __FUNCTION__, array($name));
+        $files = scandir(MODEL_DIR);
+        $class = null;
+        foreach($files as $file)
+        {
+            if($file == "." || $file == ".." || substr($file, 0, 1) == '.')
+                continue;
+            preg_match('/([a-zA-Z]*)\.model\.php/', $file, $m);
+            Log::corewrite('Matching file names to regex [%s][%s][%s]', 1, __CLASS__, __FUNCTION__, array($file, $m[1], $name));
+            if(strtolower($m[1]) == $name)
+            {
+                $class = $m[1];
+                Log::corewrite('Found matching Model [%s]', 1, __CLASS__, __FUNCTION__, array($class));
+                break;
+            }
+        }
+        Log::corewrite('At the end of method...', 2, __CLASS__, __FUNCTION__);
+        return $class;
+    }
+    
+    private function _getBelongsTo($name)
+    {
+        Log::corewrite('Getting BelongsTo data [%s]', 3, __CLASS__, __FUNCTION__, array($name));
+        if(isset($this->belongs_to[$name]['table']))
+            $class = $this->FindModel($name, false, $this->belongs_to[$name]['table']);
+        else
+            $class = $this->FindModel($name);
+        if($class != null)
+        {
+            $PRI = $this->getPrimary();
+            $obj = new $class();
+            if(is_array($this->belongs_to[$name]))
+                $ON = (isset($this->belongs_to[$name]['on']) ? $this->belongs_to[$name]['on'] : $name.'_id');
+            else
+                $ON = $name.'_id';
+            Log::corewrite('At the end of method...', 2, __CLASS__, __FUNCTION__, array($name));
+            return $obj->joins('LEFT JOIN `'.$this->table_name.'` ON (`'.$this->table_name.'`.`'.$ON.'` = `'.((isset($this->belongs_to[$name]['table'])) ? $this->belongs_to[$name]['table'] : $name.'s').'`.`id`)')
+                ->where('`'.$this->table_name.'`.`'.$PRI.'` = ?', $this->_data[$PRI])
+                ->run();
+        } else {
+            $this->_error->Toss(__CLASS__."::".__FUNCTION__." No Model by the name [".$name."]", E_USER_NOTICE);
+            return null;
+        }
+    }
+    
+    private function _getHasOne($name)
+    {
+        Log::corewrite('Getting HasOne data [%s]', 3, __CLASS__, __FUNCTION__, array($name));
+        if(isset($this->has_one[$name]['table']))
+            $class = $this->FindModel($name, false, $this->has_one[$name]['table']);
+        else
+            $class = $this->FindModel($name);
+        if($class != null)
+        {
+            $PRI = $this->getPrimary();
+            $obj = new $class();
+            if(is_array($this->has_one[$name]))
+                $ON = (isset($this->has_one[$name]['on']) ? $this->has_one[$name]['on'] : $this->singularize($this->table_name).'_id');
+            else
+                $ON = $this->singularize($this->table_name).'_id';
+            Log::corewrite('At the end of method...', 2, __CLASS__, __FUNCTION__, array($name));
+            return $obj->where('`'.$ON.'` = ?', $this->_data[$PRI])->run();
+        } else {
+            $this->_error->Toss(__CLASS__."::".__FUNCTION__." No Model by the name [".$name."]", E_USER_NOTICE);
+            return null;
+        }
+    }
+    
+    private function _getHasMany($name)
+    {
+        Log::corewrite('Getting HasMany data [%s]', 3, __CLASS__, __FUNCTION__, array($name));
+        if(isset($this->has_many[$name]['table']))
+            $class = $this->FindModel($name, false, $this->has_many[$name]['table']);
+        else
+            $class = $this->FindModel($name, false);
+        if($class != null)
+        {
+            $PRI = $this->getPrimary();
+            $obj = new $class();
+            if(is_array($this->has_many[$name]))
+                $ON = (isset($this->has_many[$name]['on']) ? $this->has_many[$name]['on'] : $this->singularize($this->table_name).'_id');
+            else
+                $ON = $this->singularize($this->table_name).'_id';
+            Log::corewrite('At the end of method...', 2, __CLASS__, __FUNCTION__, array($name));
+            return $obj->where('`'.$ON.'` = ?', $this->_data[$PRI])->run();
+        } else {
+            $this->_error->Toss(__CLASS__."::".__FUNCTION__." No Model by the name [".$name."]", E_USER_NOTICE);
+            return null;
+        }
+    }
 
     /** Magic getter
      * - gets {@link $data}
@@ -347,28 +567,32 @@ abstract class Model implements Iterator
      */
     public function __get( $name )
     {
-        if($this->run_at_get_flag === true)
-        {
-            $r = $this;
-            foreach($this->run_this as $method => $args)
-            {
-                $r = $r->$method($args);
-            }
-            $n = $r->run();
-            $array = $n->to_array();
-            foreach($array as $key => $value)
-            {
-                $this->$key = $value;
-            }
-            $this->run_at_get_flag = false;
-        }
+        Log::corewrite('Getting data from Model [%s]', 3, __CLASS__, __FUNCTION__, array($name));
         if(!isset($this->_data[$name]))
         {
-            $this->_error->Toss(__CLASS__."::".__FUNCTION__." No field by the name [".$name."]", E_USER_NOTICE);
-            return null;
+            Log::corewrite('No data found. Checking associations...', 1, __CLASS__, __FUNCTION__);
+            if(isset($this->belongs_to[$name]))
+            {
+                return $this->_getBelongsTo($name);
+            }
+            elseif(isset($this->has_one[$name]))
+            {
+                return $this->_getHasOne($name);
+            }
+            elseif(isset($this->has_many[$name]))
+            {
+                return $this->_getHasMany($name);
+            }
+            else
+            {
+                $this->_error->Toss(__CLASS__."::".__FUNCTION__." No field by the name [".$name."] in Model [".get_class($this)."]", E_USER_NOTICE);
+                return null;
+            }
         }
+        Log::corewrite('Found data. Checking format output...', 2, __CLASS__, __FUNCTION__);
         if(isset($this->output_format[$name]))
         {
+            Log::corewrite('Calling formating', 1, __CLASS__, __FUNCTION__);
             if(is_array($this->output_format[$name]))
             {
                 return call_user_func(array($this, $this->output_format[$name]['custom']), $this->_data[$name]);
@@ -376,18 +600,53 @@ abstract class Model implements Iterator
                 return sprintf($this->output_format[$name], $this->_data[$name]);
             }
         }
+        Log::corewrite('At the end of method', 2, __CLASS__, __FUNCTION__);
         return $this->_data[$name];
     }
 	
-	public function get_raw($name)
-	{
-		if(!isset($this->_data[$name]))
+    public function get_raw($name)
+    {
+            if(!isset($this->_data[$name]))
+    {
+        $this->_error->Toss(__CLASS__."::".__FUNCTION__." No field by the name [".$name."]", E_USER_NOTICE);
+        return null;
+    }
+            return $this->_data[$name];
+    }
+    
+    public function find()
+    {
+        if(func_num_args() == 1 && is_numeric(func_get_arg(0)))
         {
-            $this->_error->Toss(__CLASS__."::".__FUNCTION__." No field by the name [".$name."]", E_USER_NOTICE);
-            return null;
+            $pri = $this->getPrimary();
+            $arg = func_get_arg(0);
+            return $this->where($pri.' = ?', $arg);
         }
-		return $this->_data[$name];
-	}
+        elseif(func_num_args() == 1 && is_array(func_get_arg(0)))
+        {
+            $arg = func_get_arg(0);
+            $obj = $this;
+            if(isset($arg['where']))
+                $obj = $obj->where($arg['where']);
+            if(isset($arg['limit']))
+                $obj = $obj->limit($arg['limit']);
+            return $obj;
+        }
+    }
+    
+    public function find_all()
+    {
+        return $obj->all()->run();
+    }
+    
+    public function fill($data)
+    {
+        foreach($data as $field => $value)
+        {
+            $this->$field = $value;
+        }
+        return $this;
+    }
     
     /**
      * Dumps current {@link $data} values as an array
@@ -395,12 +654,31 @@ abstract class Model implements Iterator
      */
     public function to_array()
     {
-		$ret = array();
-		foreach($this->_data as $key => $v)
+        Log::corewrite('Turning data into an array', 3, __CLASS__, __FUNCTION__);
+        if(empty($this->output_format))
         {
-			$ret[$key] = $this->$key;
-		}
-		return $ret;
+            Log::corewrite('Returning fast data', 1, __CLASS__, __FUNCTION__);
+            return $this->_data;
+        }
+        $ret = $this->_data;
+        Log::corewrite('Returning slow data', 2, __CLASS__, __FUNCTION__);
+        foreach($this->output_format as $field => $value)
+        {
+            Log::corewrite('Formatted output [%s]', 1, __CLASS__, __FUNCTION__, array($field));
+            $ret[$field] = $this->$field;
+        }
+        return $ret;
+    }
+
+    public function to_set()
+    {
+        Log::corewrite('Turning data into a set', 3, __CLASS__, __FUNCTION__);
+        $ret = array();
+        foreach($this->array as $i)
+        {
+            $ret[] = $i->to_array();
+        }
+        return $ret;
     }
 
     /**
@@ -514,8 +792,65 @@ abstract class Model implements Iterator
      */
     public function delete()
     {
+        Log::corewrite('Deleting record', 3, __CLASS__, __FUNCTION__);
         $pri = $this->getPrimary();
-        return $this->db->delete($pri, $this->_data[$pri]);
+        foreach($this->has_one as $model => $options)
+        {
+            if(is_array($options) && isset($options['dependent']))
+            {
+                $this->_deleteHasOne($model);
+            }
+        }
+        
+        foreach($this->has_many as $model => $options)
+        {
+            if(is_array($options) && isset($options['dependent']))
+            {
+                $this->_deleteHasMany($model);
+            }
+        }
+        Log::corewrite('At the end of method', 2, __CLASS__, __FUNCTION__);
+        $ret = $this->db->delete($pri, $this->_data[$pri]);
+        return $ret;
+    }
+    
+    private function _deleteHasOne($name)
+    {
+        $class = $this->FindModel($name);
+        if($class != null)
+        {
+            $PRI = $this->getPrimary();
+            $obj = new $class();
+            if(is_array($this->has_one[$name]))
+                $ON = (isset($this->has_one[$name]['on']) ? $this->has_one[$name]['on'] : $this->singularize($this->table_name).'_id');
+            else
+                $ON = $this->singularize($this->table_name).'_id';
+            $r = $obj->where('`'.$ON.'` = ?', $this->$PRI)->run();
+            return $r->delete();
+        } else {
+            $this->_error->Toss(__CLASS__."::".__FUNCTION__." No Model by the name [".$name."]", E_USER_NOTICE);
+            return null;
+        }
+    }
+    
+    private function _deleteHasMany($name)
+    {
+        $class = $this->FindModel($name, false);
+        if($class != null)
+        {
+            $PRI = $this->getPrimary();
+            $obj = new $class();
+            if(is_array($this->has_many[$name]))
+                $ON = (isset($this->has_many[$name]['on']) ? $this->has_many[$name]['on'] : $this->singularize($this->table_name).'_id');
+            else
+                $ON = $this->singularize($this->table_name).'_id';
+            $r = $obj->where('`'.$ON.'` = ?', $this->$PRI)->run();
+            if(isset($r->$ON))
+                $r->delete_set();
+        } else {
+            $this->_error->Toss(__CLASS__."::".__FUNCTION__." No Model by the name [".$name."]", E_USER_NOTICE);
+            return null;
+        }
     }
 
     /**
@@ -525,23 +860,53 @@ abstract class Model implements Iterator
      */
     public function save()
     {
-		$pri = $this->getPrimary();
-		$data = $this->_data;
-		if(!empty($this->_pre_data))
-		{
-			$tmp = array();
-			foreach($data as $field => $value)
-			{
-				if($field != 'updated_at' && $field != 'created_at' && $field != $pri && $value != $this->_pre_data[$field])
-				{
-					$tmp[$field] = $value;
-				}
-			}
-			$data = $tmp;
-		}
+        Log::corewrite('Saving record', 3, __CLASS__, __FUNCTION__);
+        $pri = $this->getPrimary();
+        $data = $this->_data;
+        if(!empty($this->_pre_data))
+        {
+                $tmp = array();
+                foreach($data as $field => $value)
+                {
+                        if($field != 'updated_at' && $field != 'created_at' && $field != $pri && $value != $this->_pre_data[$field])
+                        {
+                                $tmp[$field] = $value;
+                        }
+                }
+                $data = $tmp;
+        }
+        
         $ret = $this->db->save($data);
-		$this->_pre_data = $this->_data;
-		return $ret;
+        $this->_pre_data = $this->_data;
+        Log::corewrite('At end of method', 2, __CLASS__, __FUNCTION__);
+        
+        if(is_numeric($ret))
+        {
+            foreach($this->has_one as $table => $options)
+            {
+                if(is_array($options) && isset($options['create']))
+                {
+                    $this->_createHasOne($table, $ret);
+                }
+            }
+            
+        }
+        return $ret;
+    }
+    
+    private function _createHasOne($name, $id)
+    {
+        $class = $this->FindModel($name);
+        if($class != null)
+        {
+            $obj = new $class();
+            $FK = strtolower($this->singularize(get_class($this)).'_id');
+            $obj->$FK = $id;
+            return $obj->save();
+        } else {
+            $this->_error->Toss(__CLASS__."::".__FUNCTION__." No Model by the name [".$name."]", E_USER_NOTICE);
+            return false;
+        }
     }
 
     /**
@@ -593,6 +958,7 @@ abstract class Model implements Iterator
      */
     public function where()
     {
+        Log::corewrite('Adding where clause to query', 2, __CLASS__, __FUNCTION__);
         if(func_num_args() == 1 && is_string(func_get_arg(0)))
         {
             $this->where[] = func_get_arg(0);
@@ -625,6 +991,7 @@ abstract class Model implements Iterator
         elseif(func_num_args() > 1 && is_string(func_get_arg(0)) && strpos(func_get_arg(0), "?") > -1)
         {
             $tmp = func_get_arg(0);
+            Log::corewrite('Passed ? where clause [%s]', 1, __CLASS__, __FUNCTION__, array($tmp));
             $count = substr_count($tmp, "?");
             $broken = explode("?", $tmp);
             $where = "";
@@ -675,22 +1042,6 @@ abstract class Model implements Iterator
         {
             $this->joins[] = $join;
         }
-        //if(is_array($join))
-        //{
-        //    foreach($join as $value)
-        //    {
-        //        if(in_array($value, $this->has_one))
-        //        {
-        //            $obj = new $value();
-        //            $this->joins[] = "INNER JOIN ".$obj->table_name." ON (".$obj->table_name.".".$obj->primary_key." = ".$this->table_name.".".$obj->primaryKey.")";
-        //        }
-        //        if(in_array($value, $this->has_many))
-        //        {
-        //            $obj = new $value();
-        //            $this->joins[] = "INNER JOIN ".$obj->table_name." ON (".$obj->table_name.".".$this->primary_key." = ".$this->table_name.".".$this->primaryKey.")";
-        //        }
-        //    }
-        //}
         return $this;
     }
 
@@ -745,6 +1096,7 @@ abstract class Model implements Iterator
      */
     public function run()
     {
+        Log::corewrite('Running query...', 3, __CLASS__, __FUNCTION__);
         $query = $this->db->buildQuery(array(
             'select' => $this->select,
             'from' => $this->from,
@@ -755,53 +1107,29 @@ abstract class Model implements Iterator
             'groupby' => $this->groupby
         ));
         $this->last_query = $query;
-
+        if(ENV == 'DEV')
+        {
+            $f = fopen(LOG_DIR."/development.log", 'a');
+            fwrite($f, "START: ".date('H:i:s')."\t".trim($query)."\n");
+            fclose($f);
+        }
         $results = $this->db->runQuery($query);
         if(count($results) == 0)
             return $this;
+        Log::corewrite('Results were found [%s]', 1, __CLASS__, __FUNCTION__, array(count($results)));
         for($i=0;$i<count($results);$i++)
         {
             foreach($results[$i] as $field => $value)
             {
-                if(strpos($field, '_id'))
-                {
-                    $name = substr($field, 0, -3);
-                    if(isset($this->has_many[$name]))
-                    {
-                        $obj = new $name(array(), array(
-                            'where' => array(
-                                $this->has_many[$name] => $value
-                            )
-                        ));
-                        $this->$name = $obj;
-                    }
-                    elseif(isset($this->has_one[$name]))
-                    {
-                        $obj = new $name(array(), array(
-                            'where' => array(
-                                $this->has_one[$name] => $value
-                            )
-                        ));
-                        $this->$name = $obj;
-                    }
-                    elseif(in_array($name, $this->has_many) || in_array($name, $this->has_one))
-                    {
-                        $obj = new $name(array(), array(
-                            'where' => array(
-                                'id' => $value
-                            )
-                        ));
-                        $this->$name = $obj;
-                    }
-                }
-                $this->$field = $value;
+                $this->_data[$field] = $value;
             }
             $this->array[] = clone $this;
         }
         foreach($results[0] as $field => $value)
         {
-            $this->$field = $value;
+            $this->_data[$field] = $value;
         }
+        Log::corewrite('At the end of method...', 2, __CLASS__, __FUNCTION__);
         return $this;
     }
 
@@ -863,13 +1191,22 @@ abstract class Model implements Iterator
      */
     protected function getPrimary()
     {
+        Log::corewrite('Getting table primary key', 3, __CLASS__, __FUNCTION__);
+        if(isset($this->table_schema['id']) && $this->table_schema['id']['Key'] == 'PRI')
+        {
+            Log::corewrite('Found fast primary key [%s]', 1, __CLASS__, __FUNCTION__, array('id'));
+            return 'id';
+        }
         foreach($this->table_schema as $field => $detail)
         {
+            Log::corewrite('Field [%s]', 1, __CLASS__, __FUNCTION__, array($field));
             if($detail['Key'] == 'PRI')
             {
+                Log::corewrite('Found primary key [%s]', 1, __CLASS__, __FUNCTION__, array($field));
                 return $field;
             }
         }
+        Log::corewrite('No primary key found', 2, __CLASS__, __FUNCTION__);
         return NULL;
     }
 }

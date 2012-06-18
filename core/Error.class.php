@@ -64,7 +64,7 @@ class ErrorHandler
     private $level;
     private $core_error;
     private $error_log = ERROR_LOG_DIR;
-    private $message_mask = "[%s][%s] {File: %s | Line: %d | Time: %s} %s\n";
+    private $message_mask = "[%s] {File: %s | Line: %d | Time: %s} %s\n";
     public static $prefix = 'sky';
     public $garbage_collector_days = 5;
     private $errorTypes = array (
@@ -85,19 +85,18 @@ class ErrorHandler
         E_USER_NOTICE => 'User Notice',
         E_STRICT => 'Strict Error',
     );
-    
+
     public function __construct()
     {
         $this->log_level = ERROR_LOG_LEVEL;
         $this->mail_level = ERROR_REPORT_LEVEL;
         $this->print_level = ERROR_PRINT_LEVEL;
         $this->crash_level = ERROR_CRASH_LEVEL;
-        
         $this->level = error_reporting();
         set_error_handler(array($this, 'HandleError'));
         register_shutdown_function(array($this, 'ShutDownFunction'));
     }
-    
+
     public static function Singleton()
     {
         if (!isset(self::$instance))
@@ -107,12 +106,12 @@ class ErrorHandler
         }
         return self::$instance;
     }
-    
+
     public function __destruct()
     {
             restore_error_handler();
     }
-    
+
     public function Toss($error, $level = E_USER_ERROR)
     {
         $d = debug_backtrace();
@@ -125,7 +124,7 @@ class ErrorHandler
         }
         $this->HandleError($level, $error, $out['file'], $out['line'], $d);
     }
-    
+
     public function HandleError($error_level, $error_message, $error_file = '', $error_line = 0, $error_context = '')
     {
         if($this->report)
@@ -149,7 +148,7 @@ class ErrorHandler
 		}
         }
     }
-    
+
     private function LogError($level, $message, $file, $line)
     {
         $f = fopen($this->error_log.self::$prefix."_error_".date('mdY').".log", 'a');
@@ -157,16 +156,16 @@ class ErrorHandler
         fwrite($f, $formatted_message);
         fclose($f);
     }
-    
+
     private function EmailError($level, $message, $file, $line, $context)
     {
-        
+
     }
-    
+
     private function PrintError($level, $message, $file, $line, $context)
     {
-        if ($file == '' && $line == '')
-        {
+        //if ($file == '' && $line == '')
+        //{
             $d = $this->ParentTrace();
             if (isset($d[0]['file']))
             {
@@ -176,10 +175,10 @@ class ErrorHandler
             {
                 $line = $d[0]['line'];
             }
-        }
-        
+        //}
+
         printf($this->message_mask, $this->ToString($level), $file, $line, date('H:i:s'), $message);
-        
+
         if (function_exists('xdebug_is_enabled') && xdebug_is_enabled())
         {
                 ini_set('xdebug.collect_vars', 'on');
@@ -189,12 +188,12 @@ class ErrorHandler
                 xdebug_print_function_stack( $this->ToString($level)." - ".$message."\n" );
         }
     }
-    
+
     private function ParentTrace()
     {
         $trace = debug_backtrace();
-        
-        // filter out error class stuff. 
+
+        // filter out error class stuff.
         if (count($trace) > 2)
         {
             $trace2 = array();
@@ -208,7 +207,7 @@ class ErrorHandler
             }
             $trace = $trace2;
         }
-        
+
         if (!isset($trace[0]['file']))
         {
             $trace[0]['file'] = __FILE__;
@@ -219,7 +218,7 @@ class ErrorHandler
         }
         return $trace;
     }
-    
+
     private function ToString($error_level)
     {
         if(isset($this->errorTypes[$error_level]))
@@ -228,28 +227,28 @@ class ErrorHandler
         }
         return null;
     }
-    
+
     public function ShutDownFunction()
     {
-	if(round(rand(0, 10)) < 5)
-		return false;
+    	if(round(rand(0, 10)) < 5)
+    		return false;
         $files = scandir($this->error_log);
-	foreach($files as $file)
-	{
-		if($file != '.' && $file != '..')
-		{
-			preg_match('/'.self::$prefix.'_error_(\d+).log/', $file, $date);
-			preg_match('/(\d{2})(\d{2})(\d{4})/', $date[1], $mdy);
-			$today = date('Y-m-d');
-			$end = date('Y-m-d', strtotime($mdy[3].'-'.$mdy[1].'-'.$mdy[2]));
-			$d_today = new DateTime($today);
-			$d_end = new DateTime($end);
-			$diff = $d_today->diff($d_end);
-			if($diff->format('%d') >= $this->garbage_collector_days)
-				unlink($this->error_log.'/'.$file);
-		}
-	}
-	return true;
+    	foreach($files as $file)
+    	{
+    		if($file != '.' && $file != '..')
+    		{
+    			//preg_match('/'.self::$prefix.'_error_(\d+).log/', $file, $date);
+    			//preg_match('/(\d{2})(\d{2})(\d{4})/', $date[1], $mdy);
+    			//$today = date('Y-m-d');
+    			//$end = date('Y-m-d', strtotime($mdy[3].'-'.$mdy[1].'-'.$mdy[2]));
+    			//$d_today = new DateTime($today);
+    			//$d_end = new DateTime($end);
+    			//$diff = $d_today->diff($d_end);
+    			//if($diff->format('%d') >= $this->garbage_collector_days)
+    			//	unlink($this->error_log.'/'.$file);
+    		}
+    	}
+    	return true;
     }
 }
 ?>

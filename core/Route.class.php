@@ -102,10 +102,12 @@ class Route
      */
     public function __construct()
     {
+        Log::corewrite('Opening routes', 3, __CLASS__, __FUNCTION__);
         Event::PublishActionHook('/Route/before/__construct/');
         $this->error = ErrorHandler::Singleton(true);
         if(isset($_REQUEST['REQUEST_METHOD']))
         {
+            Log::corewrite('Conveting DRY method', 1, __CLASS__, __FUNCTION__);
             switch($_REQUEST['REQUEST_METHOD'])
             {
                 case 'PUT':
@@ -117,9 +119,11 @@ class Route
             }
             unset($_REQUEST['REQUEST_METHOD']);
         } else {
+            Log::corewrite('Assigning DRY method', 1, __CLASS__, __FUNCTION__);
             $this->REQUEST_METHOD = $_SERVER['REQUEST_METHOD'];
         }
         Event::PublishActionHook('/Route/after/__construct/');
+        Log::corewrite('At the end of method', 2, __CLASS__, __FUNCTION__);
     }
     
     /**
@@ -142,6 +146,7 @@ class Route
     {
         $session = Session::getInstance();
         $id = $session->getSessionId();
+        Log::corewrite("Creating Hash [%s] [%s]", 1, __CLASS__, __FUNCTION__, array($id, $salt));
         return md5($id.$salt);
     }
     
@@ -304,6 +309,10 @@ class Route
             }
             if($_POST['token'] != Route::CreateHash(Route::GetSalt()))
             {
+                Log::corewrite('Authorized token incorrect [%s] = [%s]', 1, __CLASS__, __FUNCTION__, array($_POST['token'], Route::CreateHash(Route::GetSalt())));
+                $session = Session::getInstance();
+                $id = $session->getSessionId();
+                Log::corewrite('Getting stats [%s] [%s]', 1, __CLASS__, __FUNCTION__, array($id, self::$salt));
                 $this->error->Toss('Not Authorized! [Incorrect token]', E_USER_ERROR);
             }
         }
@@ -318,12 +327,15 @@ class Route
      */
     public function Follow()
     {
+        Log::corewrite('Following routes', 3, __CLASS__, __FUNCTION__);
         Event::PublishActionHook('/Route/before/Follow/');
         $this->status = STATUS_NOTFOUND;
         //$this->CreateRouteAliases();
         $query = rtrim($_REQUEST['query'], '/');
+        Log::corewrite('Trimming query string [%s]', 1, __CLASS__, __FUNCTION__, array($query));
         if($query == "") //Home#Index
         {
+            Log::corewrite('Empty query, accesing Home#Index', 1, __CLASS__, __FUNCTION__);
             $tmp = explode('#', $this->home);
             $class = strtolower(ucfirst($tmp[0]));
             import(CONTROLLER_DIR.'/'.strtolower($tmp[0]).'.controller.php');
@@ -335,6 +347,7 @@ class Route
         } else {
             if(isset($this->matches[$this->REQUEST_METHOD.'_'.$query])) //Direct match
             {
+                Log::corewrite('Found direct route match', 1, __CLASS__, __FUNCTION__);
                 $this->SecurePOST($this->REQUEST_METHOD);
                 $tmp = explode('#', $this->matches[$this->REQUEST_METHOD.'_'.$query]['CONTROLLER_ACTION']);
                 $class = strtolower(ucfirst($tmp[0]));
@@ -345,7 +358,9 @@ class Route
                 Event::PublishActionHook('/Route/after/Follow/DirectMatchRequest/', array($obj));
                 $this->status = STATUS_FOUND;
             } else { //Indirect match (conversion needed)
+                Log::corewrite('Converting indirect route match', 1, __CLASS__, __FUNCTION__);
                 $tmp = explode('/', $query);
+                Log::corewrite('Looking for match index [%s]',1 , __CLASS__, __FUNCTION__, array(count($tmp)));
                 if(!isset($this->match_index[count($tmp)]))
                 {
                     $this->status = STATUS_NOTFOUND;
@@ -355,27 +370,39 @@ class Route
                 {
                     $pos_matches = $this->match_index[count($tmp)];
                 }
+                $closest = array();
+                $q_tmp = $this->REQUEST_METHOD.'_'.$query;
                 foreach($pos_matches as $url)
                 {
-                    if(preg_match('/'.$this->REQUEST_METHOD.'_'.$tmp[0].'/', $url))
+                    for($i = 0; $i < strlen($q_tmp); $i++)
                     {
-                        if(strpos($url, ':'))
-                        {
-                            $this->SecurePOST($this->REQUEST_METHOD);
-                            $info = $this->matches[$url];
-                            $CA = explode('#', $info['CONTROLLER_ACTION']);
-                            $class = strtolower(ucfirst($CA[0]));
-                            import(CONTROLLER_DIR.'/'.strtolower($CA[0]).'.controller.php');
-                            $obj = new $class();
-                            Event::PublishActionHook('/Route/before/Follow/IndirectMatchRequest/', array($obj));
-                            $obj->HandleRequest(strtolower(ucfirst($CA[1])), $tmp[1]);
-                            Event::PublishActionHook('/Route/after/Follow/IndirectMatchRequest/', array($obj));
-                            $this->status = STATUS_FOUND;
-                            return true;
-                        }
+                        if($q_tmp[$i] == $url[$i])
+                            $closest[$url] = $i;
+                        else
+                            break;
                     }
                 }
+                $key = array_keys($closest, max($closest));
+                $url = $key[0];
+                Log::corewrite('Matched [%s]',1 , __CLASS__, __FUNCTION__, array($url));
+                if(strpos($url, ':'))
+                {
+                    Log::corewrite('Found : in url',1 , __CLASS__, __FUNCTION__);
+                    $this->SecurePOST($this->REQUEST_METHOD);
+                    $info = $this->matches[$url];
+                    $CA = explode('#', $info['CONTROLLER_ACTION']);
+                    $class = strtolower(ucfirst($CA[0]));
+                    import(CONTROLLER_DIR.'/'.strtolower($CA[0]).'.controller.php');
+                    $obj = new $class();
+                    Event::PublishActionHook('/Route/before/Follow/IndirectMatchRequest/', array($obj));
+                    $obj->HandleRequest(strtolower(ucfirst($CA[1])), $tmp[count($tmp) - 1]);
+                    Event::PublishActionHook('/Route/after/Follow/IndirectMatchRequest/', array($obj));
+                    $this->status = STATUS_FOUND;
+                    Log::corewrite('At the end of method', 2, __CLASS__, __FUNCTION__);
+                    return true;
+                }
             }
+            Log::corewrite('At the end of method', 2, __CLASS__, __FUNCTION__);
         }
         
         if($this->status == STATUS_NOTFOUND)

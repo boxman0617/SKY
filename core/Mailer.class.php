@@ -59,7 +59,7 @@ abstract class Mailer
     
     protected $params;
     
-    public function __construct($params)
+    public function __construct($params = array())
     {
         Event::PublishActionHook('/Mailer/before/__construct/', array($this));
         $this->error = ErrorHandler::Singleton(true);

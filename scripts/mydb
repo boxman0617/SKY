@@ -4,11 +4,8 @@ require_once(dirname(__FILE__).'/../configs/defines.php');
 require_once(dirname(__FILE__).'/../configs/configure.php');
 import(PRELOADER);
 import(PREIMPORTS);
-import(CORE_DIR.'/Task.class.php');
+import(CORE_DIR.'/DBBuild.class.php');
 
-$task = new Task($argv);
-if(isset($argv[1]))
-    $task->HandleInput($argv[1]);
-else
-    $task->ShowTasks();
+$build = new DBBuild($argv);
+$build->HandleInput();
 ?>

@@ -79,25 +79,106 @@ class Task
      */
     public $taskfiles = array();
     
+    protected $verbose;
+    
     /**
      * Constructor sets up {@link $params} and {@link $taskfiles}
      */
-    public function __construct($params)
+    public function __construct($params, $verbose = true)
     {
+        Log::corewrite('Starting up tasks', 3, __CLASS__, __FUNCTION__);
+        $this->verbose = $verbose;
         unset($params[0], $params[1]);
         foreach($params as $p)
         {
             $tmp = explode("=", $p);
+            Log::corewrite('Defining [%s]', 1, __CLASS__, __FUNCTION__, array($tmp[0]));
             if(!defined(strtoupper($tmp[0])))
                 define(strtoupper($tmp[0]), $tmp[1]);
         }
         $files = scandir(TASKS_DIR);
         foreach($files as $file)
         {
+            Log::corewrite('Getting task file [%s]', 1, __CLASS__, __FUNCTION__, array($file));
             if(strpos($file, '.task'))
             {
                 $this->taskfiles[] = $file;
             }
+        }
+        Log::corewrite('At the end of method...', 2, __CLASS__, __FUNCTION__);
+    }
+    
+    public function ShowTasks()
+    {
+        $class_schema = array();
+        $function_schema = array();
+        foreach($this->taskfiles as $file)
+        {
+            $content = file_get_contents(TASKS_DIR.'/'.$file);
+            preg_match_all('/class\s([a-zA-Z_]+)/', $content, $classes);
+            if(!empty($classes[1]))
+            {
+                import(TASKS_DIR.'/'.$file);
+                foreach($classes[1] as $class)
+                {
+                    $class_schema[$class] = get_class_methods($class);
+                }
+            }
+        }
+        $tmp_func = array();
+        foreach($this->taskfiles as $file)
+        {
+            $content = file_get_contents(TASKS_DIR.'/'.$file);
+            preg_match_all('/function\s([a-zA-Z_]+)\(\)/', $content, $functions);
+            if(isset($functions[1]))
+            {
+                foreach($functions[1] as $func)
+                    $tmp_func[] = $func;
+            }
+        }
+        
+        foreach($tmp_func as $k => $f)
+        {
+            foreach($class_schema as $c => $m)
+            {
+                if(in_array($f, $m))
+                    unset($tmp_func[$k]);
+            }
+        }
+        $function_schema = array_values($tmp_func);
+        
+        $task_desc = array();
+        foreach($this->taskfiles as $file)
+        {
+            $content = file_get_contents(TASKS_DIR.'/'.$file);
+            preg_match_all('/\/\*\sTASK_DESCRIPTION:\s\[([a-zA-Z]+)\]\s([a-zA-Z0-9\ -]+)\*\//', $content, $desc);
+            if(isset($desc[1]) && !empty($desc[1]))
+            {
+                foreach($desc[1] as $k => $v)
+                {
+                    $task_desc[$v] = $desc[2][$k];
+                }
+            }
+        }
+        
+        echo "in (".getcwd()."):\n";
+        echo "Available tasks:\n";
+        foreach($class_schema as $class => $methods)
+        {
+            foreach($methods as $m)
+            {
+                echo " ".$class.":".$m;
+                if(isset($task_desc[$m]))
+                    echo " - ".$task_desc[$m];
+                echo "\n";
+            }
+        }
+        foreach($function_schema as $f)
+        {
+            echo " ".$f;
+            if(isset($task_desc[$f]))
+                echo " - ".$task_desc[$f];
+            echo "\n";
         }
     }
     
@@ -112,6 +193,7 @@ class Task
      */
     public function HandleInput($input)
     {
+        Log::corewrite('Handling input [%s]', 3, __CLASS__, __FUNCTION__, array($input));
         $this->STDIN = trim($input);
         if(strpos($this->STDIN, ":"))
         {
@@ -142,7 +224,8 @@ class Task
         $this->user_classes = $classes;
         $this->user_functions = $func['user'];
         
-        echo "in (".getcwd()."):\n";
+        if($this->verbose)
+            echo "in (".getcwd()."):\n";
         
         if($this->namespace != "global")
         {

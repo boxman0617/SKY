@@ -1,6 +1,19 @@
 <?php
 // Enviroment
 define('ENV', 'DEV');
+// Auth Table/Model
+define('AUTH_MODEL', 'users');
+define('AUTH_MODEL_USERNAME', 'username');
+define('AUTH_MODEL_PASSWORD', 'password');
+// Log system options
+define('APP_LOG', LOG_DIR.'/app.log');
+define('CORE_LOG', LOG_DIR.'/core.log');
+define('LOGGING_ENABLED', true);
+// Logging levels
+// @level 1 - Most info. Main core mechanics
+// @level 2 - Info at major parts of the core
+// @level 3 - Startup info for methods
+define('LOG_LEVEL', 1);
 
 // Development Enviroment [DEV]
 $db_dev = array(
@@ -8,15 +21,15 @@ $db_dev = array(
     'DB_SERVER' => 'localhost',
     'DB_USERNAME' => 'root',
     'DB_PASSWORD' => '',
-    'DB_DATABASE' => 'sky'
+    'DB_DATABASE' => 'sky_dev'
 );
 // Testing Enviroment [TEST]
 $db_test = array(
-    'MODEL_DRIVER' => 'MongoDB',
+    'MODEL_DRIVER' => 'MySQL',
     'DB_SERVER' => 'localhost',
     'DB_USERNAME' => 'root',
-    'DB_PASSWORD' => 'vision',
-    'DB_DATABASE' => 'test'
+    'DB_PASSWORD' => '',
+    'DB_DATABASE' => 'sky_test'
 );
 // Production Enviroment [PRO]
 $db_pro = array(
@@ -24,7 +37,7 @@ $db_pro = array(
     'DB_SERVER' => '',
     'DB_USERNAME' => '',
     'DB_PASSWORD' => '',
-    'DB_DATABASE' => ''
+    'DB_DATABASE' => 'sky'
 );
 
 switch (ENV)
