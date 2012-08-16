@@ -20,11 +20,11 @@ class Home extends Controller
     
     public function AddCSS()
     {
-        if(isset($this->smarty_assign['css']))
+        if(isset($this->variables['css']))
         {
-            $smart_assign = $this->smarty_assign['css'];
-            $smart_assign[] = '/public/stylesheet/test.css';
-            $this->Assign('css', $smart_assign);
+            $variables = $this->variables['css'];
+            $variables[] = '/public/stylesheet/test.css';
+            $this->Assign('css', $variables);
         } else {
             $this->Assign('css', array(
                 '/public/stylesheet/test.css'

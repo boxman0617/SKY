@@ -45,12 +45,6 @@ abstract class Mailer
      */
     private $variables = array();
     /**
-     * Smarty Instance
-     * @access private
-     * @var object
-     */
-    private $smarty_instance;
-    /**
      * Method to render
      * @access private
      * @var string

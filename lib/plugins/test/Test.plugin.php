@@ -3,15 +3,14 @@ class Plugin_Test
 {
     public function IncludeCSS($obj)
     {
-        $smarty_assign = $obj->smarty_assign;
-        if(isset($smarty_assign['css']))
+        $variables = $obj->variables;
+        if(isset($variables['css']))
         {
-            $smarty_assign['css'][] = '/lib/plugins/test/test.css';
-            $obj->smarty_assign = $smarty_assign;
+            $variables['css'][] = '/lib/plugins/test/test.css';
+            $obj->variables = $variables;
         }   
         else
             $obj->Assign('css', array('/lib/plugins/test/test.css'));
-            
     }
     public function AddSomething()
     {
