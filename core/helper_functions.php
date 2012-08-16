@@ -1,5 +1,0 @@
-<?php
-//Helper functions
-
-
-?>

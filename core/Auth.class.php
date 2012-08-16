@@ -18,7 +18,7 @@ class Auth implements iAuth
         'username' => 'username',
         'password' => 'password'
     );
-    
+
     public function __construct()
     {
         $this->session = Session::getInstance();
@@ -26,7 +26,7 @@ class Auth implements iAuth
         $this->map['username'] = AUTH_MODEL_USERNAME;
         $this->map['password'] = AUTH_MODEL_PASSWORD;
     }
-    
+
     public function LogIn($username, $password)
     {
         Log::corewrite('Logging in [%s] [%s]', 3, __CLASS__, __FUNCTION__, array($username, $password));
@@ -54,18 +54,18 @@ class Auth implements iAuth
             return false;
         }
     }
-    
+
     public function LogOut()
     {
         $this->session->destroy();
         return true;
     }
-    
+
     public function IsLoggedIn()
     {
         return isset($this->session->user_id);
     }
-    
+
     public function WhoAmI()
     {
         if($this->IsLoggedIn())

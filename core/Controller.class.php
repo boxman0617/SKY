@@ -18,6 +18,7 @@
  * @version 1.0 Initial build
  * @version 1.1 Added ability to change main layout by child controller or controller action
  * @version 1.1.2 Fixed DRYRunFilter method
+ * @version 2.0.0 Removed SMARTY
  * @package Sky.Core
  */
 
@@ -245,8 +246,11 @@ abstract class Controller
                 {
                     if(is_array($options['only']))
                     {
-                        foreach($options['only'] as $k => $v)
-                            $options['only'][$k] = strtolower($v);
+                        function Lower($v)
+                        {
+                            return strtolower($v);
+                        }
+                        $options['only'] = array_map('Lower', $options['only']);
                         if(in_array($this->method, $options['only']))
                         {
                             call_user_func(array($this, $filter));

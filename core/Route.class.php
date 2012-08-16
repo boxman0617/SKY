@@ -319,7 +319,20 @@ class Route
         Event::PublishActionHook('/Route/after/SecurePOST/');
         return true;
     }
-    
+
+    private function RunFollow($controller_action, $hook)
+    {
+        $this->SecurePOST($this->REQUEST_METHOD);
+        $tmp = explode('#', $controller_action);
+        $class = strtolower(ucfirst($tmp[0]));
+        import(CONTROLLER_DIR.'/'.strtolower($tmp[0]).'.controller.php');
+        $obj = new $class();
+        Event::PublishActionHook('/Route/before/Follow/'.$hook.'/', array($obj));
+        $obj->HandleRequest(strtolower(ucfirst($tmp[1])));
+        Event::PublishActionHook('/Route/after/Follow/'.$hook.'/', array($obj));
+        $this->status = STATUS_FOUND;
+    }
+
     /**
      * Follow URL match
      * @access public
@@ -336,27 +349,12 @@ class Route
         if($query == "") //Home#Index
         {
             Log::corewrite('Empty query, accesing Home#Index', 1, __CLASS__, __FUNCTION__);
-            $tmp = explode('#', $this->home);
-            $class = strtolower(ucfirst($tmp[0]));
-            import(CONTROLLER_DIR.'/'.strtolower($tmp[0]).'.controller.php');
-            $obj = new $class();
-            Event::PublishActionHook('/Route/before/Follow/HomeRequest/', array($obj));
-            $obj->HandleRequest(strtolower(ucfirst($tmp[1])));
-            Event::PublishActionHook('/Route/after/Follow/HomeRequest/', array($obj));
-            $this->status = STATUS_FOUND;
+            $this->RunFollow($this->home, 'HomeRequest');
         } else {
             if(isset($this->matches[$this->REQUEST_METHOD.'_'.$query])) //Direct match
             {
                 Log::corewrite('Found direct route match', 1, __CLASS__, __FUNCTION__);
-                $this->SecurePOST($this->REQUEST_METHOD);
-                $tmp = explode('#', $this->matches[$this->REQUEST_METHOD.'_'.$query]['CONTROLLER_ACTION']);
-                $class = strtolower(ucfirst($tmp[0]));
-                import(CONTROLLER_DIR.'/'.strtolower($tmp[0]).'.controller.php');
-                $obj = new $class();
-                Event::PublishActionHook('/Route/before/Follow/DirectMatchRequest/', array($obj));
-                $obj->HandleRequest(strtolower(ucfirst($tmp[1])));
-                Event::PublishActionHook('/Route/after/Follow/DirectMatchRequest/', array($obj));
-                $this->status = STATUS_FOUND;
+                $this->RunFollow($this->matches[$this->REQUEST_METHOD.'_'.$query]['CONTROLLER_ACTION'], 'DirectMatchRequest');
             } else { //Indirect match (conversion needed)
                 Log::corewrite('Converting indirect route match', 1, __CLASS__, __FUNCTION__);
                 $tmp = explode('/', $query);

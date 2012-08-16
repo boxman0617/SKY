@@ -55,7 +55,7 @@ class Plugin
                 }
                 if(!isset(self::$plugin[$name]['dir']))
                     self::$plugin[$name]['dir'] = PLUGINS_DIR.'/'.$name;
-                
+
                 require_once(self::$plugin[$name]['dir'].'/init.php');
             } else {
                 unset(self::$plugin[$name]);
