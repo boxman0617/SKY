@@ -21,7 +21,6 @@
  * @package Sky.Core
  */
 
-import(SMARTY_CLASS);
 import(MODEL_CLASS);
 
 /**
@@ -29,7 +28,7 @@ import(MODEL_CLASS);
  */
 define('RENDER_NONE', 0);
 /**
- * Constant RENDER_HTML, tells controller to render HTML Smarty Template
+ * Constant RENDER_HTML, tells controller to render HTML page
  */
 define('RENDER_HTML', 1);
 /**
@@ -89,17 +88,17 @@ abstract class Controller
      */
     private $method;
     /**
-     * Variables to pass to Smarty
+     * Variables to pass to HTML page
      * @access protected
      * @var array
      */
-    public $smarty_assign = array();
+    public $variables = array();
     /**
      * Layout name
      * @access protected
      * @var string
      */
-    protected $layout = 'layout/layout.view.sky';
+    protected $layout = 'layout/layout.view.php';
     /**
      * $_POST params
      * @access public
@@ -125,6 +124,7 @@ abstract class Controller
      * @var array
      */
     protected $after_filter = array();
+    public static $_variables = array();
     
     /**
      * Constructor sets up {@link $error} and {@link $params}
@@ -170,8 +170,46 @@ abstract class Controller
 			$this->Assign('MAIN_PAGE', $params['view']);
 			return true;
 		}
+        if(isset($params['file']))
+        {
+            $this->GetFile($params['file']);
+        }
     }
-    
+
+    protected function GetFile($filename)
+    {
+        // required for IE, otherwise Content-disposition is ignored
+        if(ini_get('zlib.output_compression'))
+            ini_set('zlib.output_compression', 'Off');
+        $file_extension = strtolower(substr(strrchr($filename,"."),1));
+
+        switch( $file_extension )
+        {
+          case "pdf": $ctype="application/pdf"; break;
+          case "exe": $ctype="application/octet-stream"; break;
+          case "zip": $ctype="application/zip"; break;
+          case "doc": $ctype="application/msword"; break;
+          case "xls": $ctype="application/vnd.ms-excel"; break;
+          case "ppt": $ctype="application/vnd.ms-powerpoint"; break;
+          case "gif": $ctype="image/gif"; break;
+          case "png": $ctype="image/png"; break;
+          case "jpeg":
+          case "jpg": $ctype="image/jpg"; break;
+          default: $ctype="application/force-download";
+        }
+        header("Pragma: public"); // required
+        header("Expires: 0");
+        header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
+        header("Cache-Control: private",false); // required for certain browsers
+        header("Content-Type: $ctype");
+        // change, added quotes to allow spaces in filenames, by Rajkumar Singh
+        header("Content-Disposition: attachment; filename=\"".basename($filename)."\";" );
+        header("Content-Transfer-Encoding: binary");
+        header("Content-Length: ".filesize($filename));
+        readfile("$filename");
+        $this->render = RENDER_NONE;
+    }
+
     /**
      * Sets up {@link $layout}
      * @access protected
@@ -299,37 +337,89 @@ abstract class Controller
     }
     
     /**
-     * Renders data using Smarty
+     * Renders data HTML page
      * @access protected
      */
     protected function RenderHTML()
     {
-        $s_tpl = $this->StartSmarty();
-        Event::PublishActionHook('/Controller/before/RenderHTML/', array($this, $s_tpl));
-        $s_tpl->assign('MAIN_DIR', strtolower(get_class($this)));
-        $s_tpl->assign('MAIN_PAGE', strtolower($this->method));
-        $s_tpl->assign('secure_post', Route::CreateHash(Route::GetSalt()));
+        Event::PublishActionHook('/Controller/before/RenderHTML/', array($this));
+        foreach(self::$_variables as $name => $value)
+        {
+            $$name = $value;
+        }
+        self::$_variables['_MAIN_DIR'] = strtolower(get_class($this));
+        self::$_variables['_MAIN_PAGE'] = strtolower($this->method);
+        self::$_variables['_secure_post'] = Route::CreateHash(Route::GetSalt());
+        include_once(VIEW_DIR.'/'.$this->layout);
+        $this->render_status = RENDERED;
+        Event::PublishActionHook('/Controller/after/RenderHTML/', array($this));
+    }
+
+    public static function yield()
+    {
+        foreach(self::$_variables as $name => $value)
+        {
+            $$name = $value;
+        }
+        include_once(VIEW_DIR.'/'.self::$_variables['_MAIN_DIR'].'/'.self::$_variables['_MAIN_PAGE'].'.view.php');
+    }
+
+    public static function SecurePost()
+    {
+        if(isset(self::$_variables['_secure_post']))
+            return self::$_variables['_secure_post'];
+        else
+            return Route::CreateHash(Route::GetSalt());
+    }
+
+    public static function DisplayFlash()
+    {
         $session = Session::getInstance();
         if(isset($session->flash))
-            $s_tpl->assign('flash', $session->flash);
-        foreach($this->smarty_assign as $name => $value)
         {
-            $s_tpl->assign($name, $value);
+            if(!isset($params['type']))
+                $params['type'] = 'info';
+
+            switch($params['type'])
+            {
+                case 'info':
+                    $flash = '<div style="background-image: url(\'/core/images/info.png\'); background-repeat: no-repeat; background-position: 10px center; font-weight: bold; background-color: #BDE5F8; border: 1px solid #00529B; padding:15px 10px 15px 50px; color: #00529B; margin: 10px 0px; font-family:Arial, Helvetica, sans-serif; font-size:13px;">';
+                    break;
+                case 'warning':
+                    $flash = '<div style="background-image: url(\'/core/images/warning.png\'); background-repeat: no-repeat; background-position: 10px center; font-weight: bold; background-color: #FEEFB3; border: 1px solid #9F6000; padding:15px 10px 15px 50px; color: #9F6000; margin: 10px 0px; font-family:Arial, Helvetica, sans-serif; font-size:13px;">';
+                    break;
+                case 'success':
+                    $flash = '<div style="background-image: url(\'/core/images/success.png\'); background-repeat: no-repeat; background-position: 10px center; font-weight: bold; background-color: #DFF2BF; border: 1px solid #4F8A10; padding:15px 10px 15px 50px; color: #4F8A10; margin: 10px 0px; font-family:Arial, Helvetica, sans-serif; font-size:13px;">';
+                    break;
+                case 'error':
+                    $flash = '<div style="background-image: url(\'/core/images/error.png\'); background-repeat: no-repeat; background-position: 10px center; font-weight: bold; background-color: #FFBABA; border: 1px solid #D8000C; padding:15px 10px 15px 50px; color: #D8000C; margin: 10px 0px; font-family:Arial, Helvetica, sans-serif; font-size:13px;">';
+                    break;
+                default:
+                    $flash = '<div style="background-image: url(\'/core/images/info.png\'); background-repeat: no-repeat; background-position: 10px center; font-weight: bold; background-color: #BDE5F8; border: 1px solid #00529B; padding:15px 10px 15px 50px; color: #00529B; margin: 10px 0px; font-family:Arial, Helvetica, sans-serif; font-size:13px;">';
+            }
+            $flash .= $session->flash;
+            $flash .= '</div>';
+            return $flash;
         }
-        
-        $s_tpl->display($this->layout);
-        $this->render_status = RENDERED;
-        Event::PublishActionHook('/Controller/after/RenderHTML/', array($this, $s_tpl));
     }
-    
+
+    public static function MethodPut()
+    {
+        $div = '<div style="display: none">';
+        $div .= '<input type="hidden" value="PUT" name="REQUEST_METHOD"/>';
+        $div .= '<input type="hidden" value="'.Route::CreateHash(Route::GetSalt()).'" name="token"/>';
+        $div .= '</div>';
+        return $div;
+    }
+
     /**
-     * Sets up {@link $smarty_assign}
+     * Sets up {@link $_variables}
      * @access public
      */
     public function Assign($name, $value)
     {
         Event::PublishActionHook('/Controller/before/Assign/', array($this));
-        $this->smarty_assign[$name] = $value;
+        self::$_variables[$name] = $value;
         Event::PublishActionHook('/Controller/after/Assign/', array($this));
     }
     
@@ -393,24 +483,7 @@ abstract class Controller
         }
         return $domain[0];
     }
-    
-    /**
-     * Initializes Smarty class
-     * @access protected
-     * @return object Smarty instance
-     */
-    protected function StartSmarty()
-    {
-        $smarty = new Smarty();
-        
-        $smarty->template_dir = SMARTY_TEMPLATE_DIR;
-        $smarty->compile_dir = SMARTY_COMPILE_DIR;
-        $smarty->config_dir = SMARTY_CONFIG_DIR;
-        $smarty->cache_dir = SMARTY_CACHE_DIR;
-        
-        return $smarty;
-    }
-    
+
     protected function RunTask($task, $params = array())
     {
         $params = array_reverse($params);

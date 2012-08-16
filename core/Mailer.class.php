@@ -43,7 +43,7 @@ abstract class Mailer
      * @access private
      * @var array
      */
-    private $smarty_assign = array();
+    private $variables = array();
     /**
      * Smarty Instance
      * @access private
@@ -75,13 +75,16 @@ abstract class Mailer
     protected function Mail(Email $email)
     {
         Event::PublishActionHook('/Mailer/before/Mail/', array($this, $email));
-        foreach($this->smarty_assign as $key => $value)
+        foreach($this->variables as $key => $value)
         {
-            $this->smarty_instance->assign($key, $value);
+            $$key = $value;
         }
-        
-        $message = $this->smarty_instance->fetch(strtolower(get_class($this)).'/'.strtolower($this->method_name).'.view.sky', null, null, null, false);
-        
+
+        ob_start();
+        include_once(VIEW_DIR.'/'.strtolower(get_class($this)).'/'.strtolower($this->method_name).'.view.php');
+        $message = ob_get_contents();
+        ob_end_clean();
+
         $headers = "MIME-Version: 1.0\r\n";
         $headers .= "Content-Type: text/html; charset=ISO-8859-1\r\n";
         $headers .= $email->header;
@@ -101,7 +104,6 @@ abstract class Mailer
     public function Deliver($method)
     {
         Event::PublishActionHook('/Mailer/before/Deliver/', array($this, $method));
-        $this->StartSmarty();
         $this->method_name = $method;
         call_user_func(array($this, $method));
         Event::PublishActionHook('/Mailer/after/Deliver/', array($this, $method));
@@ -114,24 +116,8 @@ abstract class Mailer
     protected function Assign($name, $value)
     {
         Event::PublishActionHook('/Mailer/before/Assign/', array($this, $name, $value));
-        $this->smarty_assign[$name] = $value;
+        $this->variables[$name] = $value;
         Event::PublishActionHook('/Mailer/after/Assign/', array($this, $name, $value));
-    }
-    
-    /**
-     * Initializes Smarty class, sets up {@link $smarty_instance}
-     * @access protected
-     */
-    protected function StartSmarty()
-    {
-        $smarty = new Smarty();
-        
-        $smarty->template_dir = SMARTY_TEMPLATE_DIR;
-        $smarty->compile_dir = SMARTY_COMPILE_DIR;
-        $smarty->config_dir = SMARTY_CONFIG_DIR;
-        $smarty->cache_dir = SMARTY_CACHE_DIR;
-        
-        $this->smarty_instance = $smarty;
     }
 }
 ?>

@@ -1,7 +1,7 @@
 <?php
 require_once(dirname(__FILE__).'/defines.php');
 import(PREIMPORTS);
-import(ROUTES_CLASS);
+import(ROUTE_CLASS);
 
 $routes = new Route(); //Example
 

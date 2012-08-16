@@ -25,13 +25,6 @@ foreach($core_classes as $class)
     }
 }
 
-define('SMARTY_LOC', DIR_ROOT.'/../core/smarty');
-define('SMARTY_CLASS', SMARTY_LOC.'/Smarty.class.php');
-define("SMARTY_TEMPLATE_DIR", VIEW_DIR);
-define("SMARTY_COMPILE_DIR", '/tmp/');
-define("SMARTY_CONFIG_DIR", CONFIGS_DIR);
-define("SMARTY_CACHE_DIR", '/tmp/');
-
 define('LOG_DIR', DIR_ROOT.'/../log');
 define('ERROR_LOG_DIR', DIR_ROOT.'/../log/error/');
 $_IMPORTS = array();
