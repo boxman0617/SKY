@@ -459,7 +459,6 @@ abstract class Model implements Iterator
 
     }
     
-    // @ToDo: Make this more efficient
     private function FindModel($name, $plural = true, $overwrite = null)
     {
         if($plural)
@@ -468,22 +467,17 @@ abstract class Model implements Iterator
         if(!is_null($overwrite))
             $name = $overwrite;
         Log::corewrite('Finding Model out of field [%s]', 3, __CLASS__, __FUNCTION__, array($name));
-        $files = scandir(MODEL_DIR);
+        $file_list = implode(scandir(MODEL_DIR), '^');
+        Log::corewrite('File list: [%s]', 3, __CLASS__, __FUNCTION__, array(strtolower($file_list)));
         $class = null;
-        foreach($files as $file)
-        {
-            if($file == "." || $file == ".." || substr($file, 0, 1) == '.')
-                continue;
-            preg_match('/([a-zA-Z]*)\.model\.php/', $file, $m);
-            Log::corewrite('Matching file names to regex [%s][%s][%s]', 1, __CLASS__, __FUNCTION__, array($file, $m[1], $name));
-            if(strtolower($m[1]) == $name)
-            {
-                $class = $m[1];
-                Log::corewrite('Found matching Model [%s]', 1, __CLASS__, __FUNCTION__, array($class));
-                break;
-            }
-        }
-        Log::corewrite('At the end of method...', 2, __CLASS__, __FUNCTION__);
+        Log::corewrite('Looking for [%s] in list [%s]', 3, __CLASS__, __FUNCTION__, array(
+            $name.'.model.php',
+            var_export(strpos(strtolower($file_list), $name.'.model.php'), true)
+        ));
+        if(strpos(strtolower($file_list), $name.'.model.php'))
+            $class = ucfirst($name);
+
+        Log::corewrite('At the end of method... [%s]', 2, __CLASS__, __FUNCTION__, array(var_export($class, true)));
         return $class;
     }
     
