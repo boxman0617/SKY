@@ -1,0 +1,28 @@
+>========CORE=LOG===========> 01-23-2013 13:32:56
+13:32:56 [INFCORE][Route::__construct] > Opening routes
+13:32:56 [MASCORE][Route::__construct] > Assigning DRY method
+13:32:56 [MIDCORE][Route::__construct] > At the end of method
+13:32:56 [INFCORE][Route::Follow] > Following routes
+13:32:56 [MASCORE][Route::Follow] > Trimming query string []
+13:32:56 [MASCORE][Route::Follow] > Empty query, accesing Home#Index
+13:32:56 [INFCORE][Controller::__construct] > Opening controller [Home]
+13:32:56 [MASCORE][Controller::__construct] > Merging $_POST and ::$params
+13:32:56 [MIDCORE][Controller::__construct] > At the end of method
+13:32:56 [INFCORE][Controller::HandleRequest] > Handling request by [index]
+13:32:56 [MASCORE][Route::CreateHash] > Creating Hash [j5gk6sfus13su1ng4prnrnar52] [SKY]
+13:32:56 [MIDCORE][Controller::HandleRequest] > At the end of method
+>========CORE=LOG===========> 01-23-2013 13:33:00
+13:33:00 [INFCORE][Route::__construct] > Opening routes
+13:33:00 [MASCORE][Route::__construct] > Assigning DRY method
+13:33:00 [MIDCORE][Route::__construct] > At the end of method
+13:33:00 [INFCORE][Route::Follow] > Following routes
+13:33:00 [MASCORE][Route::Follow] > Trimming query string [testerrors]
+13:33:00 [MASCORE][Route::Follow] > Found direct route match
+13:33:00 [INFCORE][Controller::__construct] > Opening controller [Home]
+13:33:00 [MASCORE][Controller::__construct] > Merging $_POST and ::$params
+13:33:00 [MIDCORE][Controller::__construct] > At the end of method
+13:33:00 [INFCORE][Controller::HandleRequest] > Handling request by [testerrors]
+13:33:00 [ERROR][ERR::!!!] > [E_USER_WARNING][/var/www/sky/app/controllers/home.controller.php:65] Testing this shit
+13:33:00 [ERROR][ERR::!!!] > [E_USER_DEPRECATED][/var/www/sky/app/controllers/home.controller.php:66] Testing this shit
+13:33:00 [ERROR][ERR::!!!] > [E_USER_NOTICE][/var/www/sky/app/controllers/home.controller.php:67] Testing this shit
+13:33:00 [ERROR][ERR::!!!] > [E_USER_ERROR][/var/www/sky/app/controllers/home.controller.php:69] Critical error!

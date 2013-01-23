@@ -6,6 +6,7 @@ import(PLUGIN_CLASS);
 import(EVENT_CLASS);
 import(CONFIGS_DIR.'/plugins.php');
 import(PRELOADER);
+import(HTML_CLASS);
 import(ERROR_CLASS);
 import(SESSION_CLASS);
 import(COOKIE_CLASS);
@@ -30,4 +31,6 @@ if(!function_exists('date_diff'))
 }
 
 Event::PublishActionHook('/preimports/after/');
+
+$_errorHandler = Error::GetInstance();
 ?>

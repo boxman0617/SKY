@@ -74,17 +74,13 @@ class Log
     public static function stringify($level)
     {
         if($level == 1)
-        {
             return 'MASCORE';
-        }
         elseif($level == 2)
-        {
             return 'MIDCORE';
-        }
         elseif($level == 3)
-        {
             return 'INFCORE';
-        }
+        elseif($level == 4)
+            return 'ERROR';
         return '???';
     }
 

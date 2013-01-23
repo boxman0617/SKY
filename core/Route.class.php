@@ -37,12 +37,6 @@ define('STATUS_FOUND', 200);
 class Route
 {
     /**
-     * Error Class Object
-     * @access private
-     * @var object
-     */
-    private $error;
-    /**
      * Route match indexing array
      * @access private
      * @var array
@@ -104,7 +98,6 @@ class Route
     {
         Log::corewrite('Opening routes', 3, __CLASS__, __FUNCTION__);
         Event::PublishActionHook('/Route/before/__construct/');
-        $this->error = ErrorHandler::Singleton(true);
         if(isset($_REQUEST['REQUEST_METHOD']))
         {
             Log::corewrite('Conveting DRY method', 1, __CLASS__, __FUNCTION__);
@@ -181,13 +174,15 @@ class Route
      */
     public function Resource($controller)
     {
-        $this->Match($controller, ucfirst($controller).'#Index', 'GET');
-        $this->Match($controller.'/new', ucfirst($controller).'#NewItem', 'GET');
-        $this->Match($controller, ucfirst($controller).'#Create', 'POST');
-        $this->Match($controller.'/:id', ucfirst($controller).'#Show', 'GET');
-        $this->Match($controller.'/:id/edit', ucfirst($controller).'#Edit', 'GET');
-        $this->Match($controller.'/:id', ucfirst($controller).'#Update', 'PUT');
-        $this->Match($controller.'/:id', ucfirst($controller).'#Destroy', 'DELETE');
+        $this->Scope($controller, array(
+            '/' => array(ucfirst($controller).'#Index'),
+            '/new' => array(ucfirst($controller).'#NewItem'),
+            '/' => array(ucfirst($controller).'#Create', 'POST'),
+            '/:id' => array(ucfirst($controller).'#Show'),
+            '/:id/edit' => array(ucfirst($controller).'#Edit'),
+            '/:id' => array(ucfirst($controller).'#Update', 'PUT'),
+            '/:id' => array(ucfirst($controller).'#Destroy', 'DELETE')
+        ));
     }
     
     /**
@@ -199,11 +194,32 @@ class Route
      */
     public function Match($url, $controller_action, $request_method = 'GET')
     {
-        if(strpos($url, '/') === 0)
+        if($url[0] === '/')
             $url = substr($url, 1);
         
         $this->match_index[count(explode('/', $url))][] = $request_method.'_'.$url;
         $this->matches[$request_method.'_'.$url]['CONTROLLER_ACTION'] = $controller_action;
+    }
+
+    /**
+     * Adds URL match to {@link $matches} based on $base_url
+     * @access public
+     * @param string $base_url '/base'
+     * @param array $matches array('/test' => array('Base#Test', 'POST'))
+     */
+    public function Scope($base_url, $matches)
+    {
+        if($base_url[strlen($url)-1] === '/')
+            $base_url = substr($url, 0, -1);
+
+        foreach($matches as $url => $match)
+        {
+            if($url[0] !== '/')
+                $url = '/'.$url;
+            if(!isset($match[1]))
+                $match[1] = 'GET';
+            $this->Match($base_url.$url, $match[0], $match[1]);
+        }
     }
     
     /**
@@ -305,7 +321,7 @@ class Route
         {
             if(!isset($_POST['token']))
             {
-                $this->error->Toss("Not Authorized! [No token past]", E_USER_WARNING);
+                //$this->error->Toss("Not Authorized! [No token past]", E_USER_WARNING);
             }
             if($_POST['token'] != Route::CreateHash(Route::GetSalt()))
             {
@@ -313,7 +329,7 @@ class Route
                 $session = Session::getInstance();
                 $id = $session->getSessionId();
                 Log::corewrite('Getting stats [%s] [%s]', 1, __CLASS__, __FUNCTION__, array($id, self::$salt));
-                $this->error->Toss('Not Authorized! [Incorrect token]', E_USER_ERROR);
+                //$this->error->Toss('Not Authorized! [Incorrect token]', E_USER_ERROR);
             }
         }
         Event::PublishActionHook('/Route/after/SecurePOST/');

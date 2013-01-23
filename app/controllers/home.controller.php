@@ -59,6 +59,15 @@ class Home extends Controller
     {
         $this->Assign('test', 'Heading 1');
     }
+
+    public function TestErrors()
+    {
+        trigger_error('Testing this shit', E_USER_WARNING);
+        trigger_error('Testing this shit', E_USER_DEPRECATED);
+        trigger_error('Testing this shit', E_USER_NOTICE);
+        //throw new Exception('Blah!');
+        trigger_error('Critical error!', E_USER_ERROR);
+    }
     
     public function Show($id)
     {

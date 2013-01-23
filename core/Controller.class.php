@@ -54,13 +54,6 @@ define('NOT_RENDERED', false);
 abstract class Controller
 {
     /**
-     * Error Class Object
-     *
-     * @access private
-     * @var object
-     */
-    private $error;
-    /**
      * What to render flag
      *
      * @access private
@@ -146,7 +139,6 @@ abstract class Controller
     {
         Log::corewrite('Opening controller [%s]', 3, __CLASS__, __FUNCTION__, array(get_class($this)));
         Event::PublishActionHook('/Controller/before/__construct/', array($this));
-        $this->error = ErrorHandler::Singleton(true);
         Log::corewrite('Merging $_POST and ::$params', 1, __CLASS__, __FUNCTION__);
         $this->params = array_merge($_POST, $this->params);
         Event::PublishActionHook('/Controller/after/__construct/', array($this));

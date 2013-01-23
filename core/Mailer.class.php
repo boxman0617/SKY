@@ -27,12 +27,6 @@
 abstract class Mailer
 {
     /**
-     * Error Class Object
-     * @access private
-     * @var object
-     */
-    private $error;
-    /**
      * Email From header
      * @access public
      * @var string
@@ -56,7 +50,6 @@ abstract class Mailer
     public function __construct($params = array())
     {
         Event::PublishActionHook('/Mailer/before/__construct/', array($this));
-        $this->error = ErrorHandler::Singleton(true);
         $this->params = $params;
         Event::PublishActionHook('/Mailer/after/__construct/', array($this));
     }
@@ -86,7 +79,8 @@ abstract class Mailer
         $email->body = $message;
         $email->from = $this->from;
         if(!$email->Send())
-            $this->error->Toss('Email did not send!', E_USER_ERROR);
+            $_r = true;
+            //$this->error->Toss('Email did not send!', E_USER_ERROR);
         Event::PublishActionHook('/Mailer/after/Mail/', array($this, $email));
     }
     

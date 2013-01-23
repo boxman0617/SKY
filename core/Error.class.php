@@ -16,239 +16,177 @@
  * @license http://www.deeplogik.com/sky/legal/license
  * @link http://www.deeplogik.com/sky/index
  * @version 1.0 Initial build
+ * @version 2.0 Complete rework
  * @package Sky.Core
  */
-
-if (!defined('E_STRICT'))
-{
-	/**
-	* Constant E_STRICT, Strict error code
-	*/
-	define('E_STRICT', 2048);
-}
-if (!defined('E_RECOVERABLE_ERROR'))
-{
-	/**
-	* Constant E_RECOVERABLE_ERROR, Recoverable error code
-	*/
-	define('E_RECOVERABLE_ERROR' , 4096);
-}
-if (!defined('E_DEPRECATED'))
-{
-	/**
-	* Constant E_DEPRECATED, Depricated error code
-	*/
-	define('E_DEPRECATED', 8192);
-}
-if (!defined('E_USER_DEPRECATED'))
-{
-	/**
-	* Constant E_USER_DEPRECATED, User depricated error code
-	*/
-	define('E_USER_DEPRECATED', 16384);
-}
 
 /**
  * ErrorHandler class
  * Handles errors created by code
- * @package Sky.Core.ErrorHandler
+ * @package Sky.Core.Error
  */
-class ErrorHandler
+class Error
 {
-    private static $instance;
-    private $report = true;
-    private $log_level;
-    private $mail_level;
-    private $print_level;
-    private $crash_level;
-    private $level;
-    private $core_error;
-    private $error_log = ERROR_LOG_DIR;
-    private $message_mask = "[%s] {File: %s | Line: %d | Time: %s} %s\n";
-    public static $prefix = 'sky';
-    public $garbage_collector_days = 5;
-    private $errorTypes = array (
-        E_PARSE => 'Parsing Error',
-        E_ALL => 'All errors occured at once',
-        E_WARNING => 'Run-Time Warning',
-        E_CORE_WARNING => 'Core Warning',
-        E_COMPILE_WARNING => 'Compile Warning',
-        E_USER_WARNING => 'User Warning',
-        E_ERROR => 'Fatal Run-Time Error',
-        E_CORE_ERROR => 'Core Error',
-        E_COMPILE_ERROR => 'Compile Error',
-        E_USER_ERROR => 'User Error',
-        E_DEPRECATED => 'Deprecated code detected',
-        E_USER_DEPRECATED => 'Deprecated code detected',
-        E_RECOVERABLE_ERROR => 'Recoverable error',
-        E_NOTICE => 'Notice',
-        E_USER_NOTICE => 'User Notice',
-        E_STRICT => 'Strict Error',
-    );
+    public static $instance = null;
+
+    public static function GetInstance()
+    {
+        if(is_null(self::$instance))
+            self::$instance = new Error();
+        else
+            return self::$instance;
+    }
 
     public function __construct()
     {
-        $this->log_level = ERROR_LOG_LEVEL;
-        $this->mail_level = ERROR_REPORT_LEVEL;
-        $this->print_level = ERROR_PRINT_LEVEL;
-        $this->crash_level = ERROR_CRASH_LEVEL;
-        $this->level = error_reporting();
-        set_error_handler(array($this, 'HandleError'));
-        register_shutdown_function(array($this, 'ShutDownFunction'));
+        if(ENV == 'DEV' || ENV == 'TEST')
+            ini_set('display_errors', 1);
+        else
+            ini_set('display_errors', 0);
+        error_reporting(-1);
+        set_error_handler( array( 'Error', 'HandleNormalErrors' ) );
+        set_exception_handler( array( 'Error', 'HandleExceptionErrors' ) );
+        register_shutdown_function( array( 'Error', 'HandleShutdown' ) );
     }
 
-    public static function Singleton()
+    public static function HandleNormalErrors($no, $str, $file, $line)
     {
-        if (!isset(self::$instance))
+        self::LogError($no, $str, $file, $line);
+        switch($no)
         {
-            $c = __CLASS__;
-            self::$instance = new $c();
+            case E_NOTICE:
+            case E_USER_NOTICE:
+                self::_HandleNotice($no, $str, $file, $line);
+                break;
+            case E_DEPRECATED:
+            case E_USER_DEPRECATED:
+            case E_STRICT:
+                self::_HandleDeprecated($no, $str, $file, $line);
+                break;
+            case E_WARNING:
+            case E_USER_WARNING:
+                self::_HandleWarning($no, $str, $file, $line);
+                break;
+            case E_ERROR:
+            case E_USER_ERROR:
+                self::_HandleError($no, $str, $file, $line);
+                break;
+            default:
+
         }
-        return self::$instance;
     }
 
-    public function __destruct()
+    public static function Stringify($no)
     {
-            restore_error_handler();
-    }
-
-    public function Toss($error, $level = E_USER_ERROR)
-    {
-        $d = debug_backtrace();
-        foreach ($d as $traceline)
+        switch($no)
         {
-            if (isset($traceline['file']))
+            case E_NOTICE:
+                return "E_NOTICE";
+            case E_USER_NOTICE:
+                return "E_USER_NOTICE";
+            case E_DEPRECATED:
+                return "E_DEPRECATED";
+            case E_USER_DEPRECATED:
+                return "E_USER_DEPRECATED";
+            case E_STRICT:
+                return "E_STRICT";
+            case E_WARNING:
+                return "E_WARNING";
+            case E_USER_WARNING:
+                return "E_USER_WARNING";
+            case E_USER_WARNING:
+                return "E_USER_WARNING";
+            case E_ERROR:
+                return "E_ERROR";
+            case E_USER_ERROR:
+                return "E_USER_ERROR";
+            case 0:
+                return "EXCEPTION";
+            default:
+                return "E_UNDEFINED";
+        }
+    }
+
+    public static function LogError($no, $str, $file, $line)
+    {
+        Log::corewrite('[%s][%s:%d] %s', 4, 'ERR', '!!!', array(
+            self::Stringify($no),
+            $file,
+            $line,
+            $str
+        ));
+    }
+
+    public static function _HandleNotice($no, $str, $file, $line)
+    {
+        if(ENV == 'DEV' || ENV == 'TEST') // Display Error
+            self::BuildMessage($no, $str, $file, $line, 'dbf0fc');
+    }
+
+    public static function BuildMessage($no, $str, $file, $line, $color)
+    {
+        $h = new HTML();
+        echo $h->div(
+            $h->div(
+                $h->div('['.self::Stringify($no).']', array('style' => 'float: left;padding-right:5px;font-weight:bold;')).
+                $h->div($file.':'.$line, array('style' => 'padding-left:5px;')), 
+                array('style' => 'padding: 5px;border-bottom:1px solid #000;background:#'.$color.';')).
+            $h->div($str, array('style' => 'padding:5px;')), 
+            array('style' => 'width:95%; border:1px solid #000;margin:5px auto;')
+        );
+    }
+
+    public static function _HandleDeprecated($no, $str, $file, $line)
+    {
+        if(ENV == 'DEV' || ENV == 'TEST') // Display Error
+            self::BuildMessage($no, $str, $file, $line, 'eaa5ef');
+    }
+
+    public static function _HandleWarning($no, $str, $file, $line)
+    {
+        if(ENV == 'DEV' || ENV == 'TEST') // Display Error
+            self::BuildMessage($no, $str, $file, $line, 'ffe900');
+    }
+
+    public static function _HandleError($no, $str, $file, $line)
+    {
+        $backtrace = debug_backtrace();
+        $trace = null;
+        foreach($backtrace as $step_number => $step)
+        {
+            if(isset($step['file']) && $step['file'] == $file)
             {
-                $out = $traceline;
+                $trace[] = $step;
+                $trace[] = $backtrace[$step_number+1];
+                break;
             }
         }
-        $this->HandleError($level, $error, $out['file'], $out['line'], $d);
+        
+        $message = $str."<h3>Traceback:</h3><pre>".var_export($trace, true)."</pre>";
+
+        if(ENV == 'DEV' || ENV == 'TEST')
+            self::BuildMessage($no, $message, $file, $line, 'f48989');
+        exit();
     }
 
-    public function HandleError($error_level, $error_message, $error_file = '', $error_line = 0, $error_context = '')
+    public static function HandleExceptionErrors($e)
     {
-        if($this->report)
+        self::LogError($e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine());
+        if(ENV == 'DEV' || ENV == 'TEST')
+            self::BuildMessage($e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine(), '949ce8');
+    }
+
+    public static function HandleShutdown()
+    {
+        $error = error_get_last();
+        if($error)
         {
-		global $_IMPORT;
-		if(($error_level & $this->log_level) != 0)
-		{
-		    $this->LogError($error_level, $error_message, $error_file, $error_line);
-		}
-		if(($error_level & $this->mail_level) != 0)
-		{
-		    $this->EmailError($error_level, $error_message, $error_file, $error_line, $error_context);
-		}
-		if(($error_level & $this->print_level) != 0)
-		{
-		    $this->PrintError($error_level, $error_message, $error_file, $error_line, $error_context);
-		}
-		if(($error_level & $this->crash_level) != 0)
-		{
-		    die(1);
-		}
-        }
-    }
-
-    private function LogError($level, $message, $file, $line)
-    {
-        $f = fopen($this->error_log.self::$prefix."_error_".date('mdY').".log", 'a');
-        $formatted_message = sprintf($this->message_mask, $this->ToString($level), $file, $line, date('H:i:s'), $message);
-        fwrite($f, $formatted_message);
-        fclose($f);
-    }
-
-    private function EmailError($level, $message, $file, $line, $context)
-    {
-
-    }
-
-    private function PrintError($level, $message, $file, $line, $context)
-    {
-        //if ($file == '' && $line == '')
-        //{
-            $d = $this->ParentTrace();
-            if (isset($d[0]['file']))
+            if(ENV == 'DEV' || ENV == 'TEST')
             {
-                $file = $d[0]['file'];
+                ob_end_clean( );
+                self::BuildMessage($error['type'], $error['message'], $error['file'], $error['line'], 'f48989');
             }
-            if (isset($d[0]['line']))
-            {
-                $line = $d[0]['line'];
-            }
-        //}
-
-        printf($this->message_mask, $this->ToString($level), $file, $line, date('H:i:s'), $message);
-
-        if (function_exists('xdebug_is_enabled') && xdebug_is_enabled())
-        {
-                ini_set('xdebug.collect_vars', 'on');
-                ini_set('xdebug.collect_params', '4');
-                ini_set('xdebug.dump_globals', 'on');
-                ini_set('xdebug.dump.SERVER', 'REQUEST_URI');
-                xdebug_print_function_stack( $this->ToString($level)." - ".$message."\n" );
         }
-    }
-
-    private function ParentTrace()
-    {
-        $trace = debug_backtrace();
-
-        // filter out error class stuff.
-        if (count($trace) > 2)
-        {
-            $trace2 = array();
-            foreach ($trace as $item)
-            {
-                if (isset($item['file']) && stristr($item['file'], 'Error.class.php')===FALSE)
-                {
-                    // it's not the error class, so add it.
-                    $trace2[] = $item;
-                }
-            }
-            $trace = $trace2;
-        }
-
-        if (!isset($trace[0]['file']))
-        {
-            $trace[0]['file'] = __FILE__;
-        }
-        if (!isset($trace[0]['line']))
-        {
-            $trace[0]['line'] = __LINE__;
-        }
-        return $trace;
-    }
-
-    private function ToString($error_level)
-    {
-        if(isset($this->errorTypes[$error_level]))
-        {
-            return $this->errorTypes[$error_level];
-        }
-        return null;
-    }
-
-    public function ShutDownFunction()
-    {
-    	if(round(rand(0, 10)) < 5)
-    		return false;
-        $files = scandir($this->error_log);
-    	foreach($files as $file)
-    	{
-    		if($file != '.' && $file != '..')
-    		{
-    			//preg_match('/'.self::$prefix.'_error_(\d+).log/', $file, $date);
-    			//preg_match('/(\d{2})(\d{2})(\d{4})/', $date[1], $mdy);
-    			//$today = date('Y-m-d');
-    			//$end = date('Y-m-d', strtotime($mdy[3].'-'.$mdy[1].'-'.$mdy[2]));
-    			//$d_today = new DateTime($today);
-    			//$d_end = new DateTime($end);
-    			//$diff = $d_today->diff($d_end);
-    			//if($diff->format('%d') >= $this->garbage_collector_days)
-    			//	unlink($this->error_log.'/'.$file);
-    		}
-    	}
-    	return true;
     }
 }
 ?>
