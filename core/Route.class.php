@@ -209,8 +209,8 @@ class Route
      */
     public function Scope($base_url, $matches)
     {
-        if($base_url[strlen($url)-1] === '/')
-            $base_url = substr($url, 0, -1);
+        if($base_url[strlen($base_url)-1] === '/')
+            $base_url = substr($base_url, 0, -1);
 
         foreach($matches as $url => $match)
         {
