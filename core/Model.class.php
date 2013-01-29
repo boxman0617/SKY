@@ -36,12 +36,6 @@ abstract class Model implements Iterator
      */
     private $driver;
     /**
-     * Error Class Object
-     * @access private
-     * @var object
-     */
-    private $_error;
-    /**
      * Driver Class Object
      * @access private
      * @var object
@@ -169,21 +163,20 @@ abstract class Model implements Iterator
     protected $encrypt_field = array();
 
     /**
-     * Constructor sets up {@link $driver}, {@link $error}, and {@link $db}
+     * Constructor sets up {@link $driver} and {@link $db}
      * @param array $hash Will set up model object with hash values
      */
     public function __construct($hash = array())
     {
         Log::corewrite('Starting Model [%s]', 3, __CLASS__, __FUNCTION__, array(get_class($this)));
         $this->driver = MODEL_DRIVER."Driver";
-        $this->_error = ErrorHandler::Singleton(true);
         if(is_file(CORE_DIR."/drivers/".MODEL_DRIVER.".driver.php"))
         {
             Log::corewrite('Found driver [%s]', 1, __CLASS__, __FUNCTION__, array(MODEL_DRIVER));
             import(CORE_DIR."/drivers/".MODEL_DRIVER.".driver.php");
                     $this->db = new $this->driver($this->db_array);
             if(!$this->db instanceof iDriver)
-                $this->_error->Toss('Driver loaded is not an instance of iDriver interface!', E_USER_ERROR);
+                trigger_error('Driver loaded is not an instance of iDriver interface!', E_USER_ERROR);
             if(isset($this->table_name))
             {
                 Log::corewrite('::$table_name is set [%s]', 1, __CLASS__, __FUNCTION__, array($this->table_name));
@@ -192,7 +185,7 @@ abstract class Model implements Iterator
             } else {
                 Log::corewrite('::$table_name is NOT set. Attempting to create name out of class', 1, __CLASS__, __FUNCTION__);
                 if(!$this->db->doesTableExist(get_class($this)))
-                    $this->_error->Toss('No table name specified. Please add property $table_name to model.', E_USER_ERROR);
+                    trigger_error('No table name specified. Please add property $table_name to model.', E_USER_ERROR);
                 else
                 {
                     $table_name = strtolower(get_class($this));
@@ -204,7 +197,7 @@ abstract class Model implements Iterator
             $this->table_schema = $this->db->getSchema();
             Log::corewrite('Model was set properly [%s]', 2, __CLASS__, __FUNCTION__, array(get_class($this)));
         } else {
-            $this->_error->Toss('No driver found for model! Model: '.get_class($this).' | Driver: '.MODEL_DRIVER, E_USER_ERROR);
+            trigger_error('No driver found for model! Model: '.get_class($this).' | Driver: '.MODEL_DRIVER, E_USER_ERROR);
         }
         
         // Setting empty object
@@ -298,7 +291,7 @@ abstract class Model implements Iterator
             $obj = call_user_func_array(array($this, 'where'), $conditions);
             return $obj->run();
         } else {
-            $this->_error->Toss('No method name ['.$method.']');
+            trigger_error('No method name ['.$method.']', E_USER_WARNING);
         }
     }
 
@@ -498,7 +491,7 @@ abstract class Model implements Iterator
                 ->where('`'.$this->table_name.'`.`'.$PRI.'` = ?', $this->_data[$PRI])
                 ->run();
         } else {
-            $this->_error->Toss(__CLASS__."::".__FUNCTION__." No Model by the name [".$name."]", E_USER_NOTICE);
+            trigger_error(__CLASS__."::".__FUNCTION__." No Model by the name [".$name."]", E_USER_NOTICE);
             return null;
         }
     }
@@ -521,7 +514,7 @@ abstract class Model implements Iterator
             Log::corewrite('At the end of method...', 2, __CLASS__, __FUNCTION__, array($name));
             return $obj->where('`'.$ON.'` = ?', $this->_data[$PRI])->run();
         } else {
-            $this->_error->Toss(__CLASS__."::".__FUNCTION__." No Model by the name [".$name."]", E_USER_NOTICE);
+            trigger_error(__CLASS__."::".__FUNCTION__." No Model by the name [".$name."]", E_USER_NOTICE);
             return null;
         }
     }
@@ -544,7 +537,7 @@ abstract class Model implements Iterator
             Log::corewrite('At the end of method...', 2, __CLASS__, __FUNCTION__, array($name));
             return $obj->where('`'.$ON.'` = ?', $this->_data[$PRI])->run();
         } else {
-            $this->_error->Toss(__CLASS__."::".__FUNCTION__." No Model by the name [".$name."]", E_USER_NOTICE);
+            trigger_error(__CLASS__."::".__FUNCTION__." No Model by the name [".$name."]", E_USER_NOTICE);
             return null;
         }
     }
@@ -576,7 +569,7 @@ abstract class Model implements Iterator
             }
             else
             {
-                $this->_error->Toss(__CLASS__."::".__FUNCTION__." No field by the name [".$name."] in Model [".get_class($this)."]", E_USER_NOTICE);
+                trigger_error(__CLASS__."::".__FUNCTION__." No field by the name [".$name."] in Model [".get_class($this)."]", E_USER_NOTICE);
                 return null;
             }
         }
@@ -599,7 +592,7 @@ abstract class Model implements Iterator
     {
             if(!isset($this->_data[$name]))
     {
-        $this->_error->Toss(__CLASS__."::".__FUNCTION__." No field by the name [".$name."]", E_USER_NOTICE);
+        trigger_error(__CLASS__."::".__FUNCTION__." No field by the name [".$name."]", E_USER_NOTICE);
         return null;
     }
             return $this->_data[$name];
@@ -819,7 +812,7 @@ abstract class Model implements Iterator
             $r = $obj->where('`'.$ON.'` = ?', $this->$PRI)->run();
             return $r->delete();
         } else {
-            $this->_error->Toss(__CLASS__."::".__FUNCTION__." No Model by the name [".$name."]", E_USER_NOTICE);
+            trigger_error(__CLASS__."::".__FUNCTION__." No Model by the name [".$name."]", E_USER_NOTICE);
             return null;
         }
     }
@@ -839,7 +832,7 @@ abstract class Model implements Iterator
             if(isset($r->$ON))
                 $r->delete_set();
         } else {
-            $this->_error->Toss(__CLASS__."::".__FUNCTION__." No Model by the name [".$name."]", E_USER_NOTICE);
+            trigger_error(__CLASS__."::".__FUNCTION__." No Model by the name [".$name."]", E_USER_NOTICE);
             return null;
         }
     }
@@ -895,7 +888,7 @@ abstract class Model implements Iterator
             $obj->$FK = $id;
             return $obj->save();
         } else {
-            $this->_error->Toss(__CLASS__."::".__FUNCTION__." No Model by the name [".$name."]", E_USER_NOTICE);
+            trigger_error(__CLASS__."::".__FUNCTION__." No Model by the name [".$name."]", E_USER_NOTICE);
             return false;
         }
     }
@@ -1002,7 +995,7 @@ abstract class Model implements Iterator
                 $arg = func_get_arg($i);
                 if(!is_array($arg))
                 {
-                    $this->_error->Toss(__CLASS__."::".__FUNCTION__." Must be an array");
+                    trigger_error(__CLASS__."::".__FUNCTION__." Must be an array");
                 }
                 foreach($arg as $key => $value)
                 {
