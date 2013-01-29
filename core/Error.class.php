@@ -125,6 +125,10 @@ class Error
 
     public static function BuildMessage($no, $str, $file, $line, $color)
     {
+        if(php_sapi_name() == 'cli')
+        {
+            echo '['.self::Stringify($no).'] '.$file.':'.$line.' => '.$str."\n";
+        } else {
         $h = new HTML();
         echo $h->div(
             $h->div(
@@ -134,6 +138,7 @@ class Error
             $h->div($str, array('style' => 'padding:5px;')), 
             array('style' => 'width:95%; border:1px solid #000;margin:5px auto;')
         );
+        }
     }
 
     public static function _HandleDeprecated($no, $str, $file, $line)

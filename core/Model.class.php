@@ -163,7 +163,7 @@ abstract class Model implements Iterator
      * @var array
      */
     protected $groupby = array();
-    protected $db_array = null;
+    protected $db_array = NULL;
     protected $_pre_data = array();
     protected $_skip_format_input = false;
     protected $encrypt_field = array();
@@ -181,9 +181,6 @@ abstract class Model implements Iterator
         {
             Log::corewrite('Found driver [%s]', 1, __CLASS__, __FUNCTION__, array(MODEL_DRIVER));
             import(CORE_DIR."/drivers/".MODEL_DRIVER.".driver.php");
-            if(is_null($this->db_array))
-                    $this->db = new $this->driver();
-            else
                     $this->db = new $this->driver($this->db_array);
             if(!$this->db instanceof iDriver)
                 $this->_error->Toss('Driver loaded is not an instance of iDriver interface!', E_USER_ERROR);

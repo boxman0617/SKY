@@ -47,7 +47,7 @@ class Route
      * @access private
      * @var array
      */
-    private $matches;
+    private $matches = array();
     /**
      * Home page URL match
      * @access private
@@ -148,11 +148,9 @@ class Route
      * @param string $url
      * @access public
      */
-    public function Home($url)
+    public function Home($controller_action)
     {
-        $tmp = explode('#', $url);
-        $this->home = ucfirst($tmp[0]).'#'.ucfirst($tmp[1]);
-        $this->matches['GET_'.strtolower($tmp[0]).'/'.strtolower($tmp[1])]['CONTROLLER_ACTION'] = ucfirst($tmp[0]).'#'.ucfirst($tmp[1]);
+        $this->Match('_', $controller_action);
     }
     
     /**
@@ -160,11 +158,9 @@ class Route
      * @param string $url
      * @access public
      */
-    public function NotFound($url)
+    public function NotFound($controller_action)
     {
-        $tmp = explode('#', $url);
-        $this->notfound = ucfirst($tmp[0]).'#'.ucfirst($tmp[1]);
-        $this->matches['GET_'.strtolower($tmp[0]).'/'.strtolower($tmp[1])]['CONTROLLER_ACTION'] = ucfirst($tmp[0]).'#'.ucfirst($tmp[1]);
+        $this->Match('/_notfound', $controller_action);
     }
     
     /**
@@ -191,9 +187,11 @@ class Route
      * @param string $url '/home/index'
      * @param string $controller_action 'Home#Index'
      * @param string $request_method default 'GET'
+     * @depricated
      */
-    public function Match($url, $controller_action, $request_method = 'GET')
+    public function OldMatch($url, $controller_action, $request_method = 'GET')
     {
+        trigger_error(E_USER_DEPRECATED, 'This will be removed soon! Use Routes::Match()');
         if($url[0] === '/')
             $url = substr($url, 1);
         
@@ -356,6 +354,99 @@ class Route
      */
     public function Follow()
     {
+        Log::corewrite('Following routes', 3, __CLASS__, __FUNCTION__);
+        Event::PublishActionHook('/Route/before/Follow/');
+        $query = rtrim($_REQUEST['_query'], '/');
+        if($query == '')
+            $query = '_';
+
+        $e_tmp = explode('/', $query);
+        if(isset($this->matches[$this->REQUEST_METHOD][count($e_tmp)]))
+            $tmp = $this->matches[$this->REQUEST_METHOD][count($e_tmp)];
+        else
+            $tmp = array();
+
+        if(isset($tmp[$query])) //Direct match
+        {
+            $class = ucfirst(strtolower($tmp[$query]['controller']));
+            import(CONTROLLER_DIR.'/'.strtolower($class).'.controller.php');
+            $obj = new $class();
+            $obj->HandleRequest(ucfirst(strtolower($tmp[$query]['action'])));
+            $this->status = STATUS_FOUND;
+            return true;
+        }
+        else if(!isset($tmp[$query]))
+        {
+            $matches = array_keys($tmp);
+            $indirect_match = false;
+            for($i=0;$i<count($matches);$i++)
+            {
+                $params = array();
+                $e = explode('/', $matches[$i]);
+                $check_tmp = array();
+                for($n=0;$n<count($e);$n++)
+                {
+                    if(strpos($e[$n], ':') !== false)
+                    {
+                        $params[ltrim($e[$n], ':')] = $e_tmp[$n]; 
+                        $check_tmp[$n] = $e_tmp[$n];
+                    }
+                    else
+                        $check_tmp[$n] = $e[$n];
+                }
+                $check_query = implode('/', $check_tmp);
+                if($query == $check_query)
+                {
+                    $indirect_match = $tmp[$matches[$i]];
+                    $indirect_match['url'] = $matches[$i];
+
+                    $class = ucfirst(strtolower($indirect_match['controller']));
+                    import(CONTROLLER_DIR.'/'.strtolower($class).'.controller.php');
+                    $obj = new $class($params);
+                    $obj->HandleRequest(ucfirst(strtolower($indirect_match['action'])));
+                    $this->status = STATUS_FOUND;
+                    return true;
+                }
+            }
+        }
+
+        $this->status = STATUS_NOTFOUND;
+        $class = ucfirst(strtolower($this->matches['GET'][1]['_notfound']['controller']));
+        import(CONTROLLER_DIR.'/'.strtolower($class).'.controller.php');
+        $obj = new $class();
+        $obj->HandleRequest(ucfirst(strtolower($this->matches['GET'][1]['_notfound']['action'])));
+        return false;
+    }
+
+    /**
+     * Adds URL match to {@link $matches} and creates index to {@link $match_index}
+     * @access public
+     * @param string $url '/home/index'
+     * @param string $controller_action 'Home#Index'
+     * @param string $request_method default 'GET'
+     * @depricated
+     */
+    public function Match($url, $controller_action, $request_method = 'GET')
+    {
+        if($url[0] === '/')
+            if(!$url = substr($url, 1))
+                $url = "/";
+        
+        $ca = explode('#', $controller_action);
+        $this->matches[strtoupper($request_method)][count(explode('/', $url))][$url] = array(
+            'controller' => $ca[0],
+            'action' => $ca[1]
+        );
+    }
+
+    /**
+     * Follow URL match
+     * @access public
+     * @return bool
+     */
+    public function OldFollow()
+    {
+        trigger_error(E_USER_DEPRECATED, 'This will be removed soon, use Routes::Follow()');
         Log::corewrite('Following routes', 3, __CLASS__, __FUNCTION__);
         Event::PublishActionHook('/Route/before/Follow/');
         $this->status = STATUS_NOTFOUND;

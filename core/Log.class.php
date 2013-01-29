@@ -37,6 +37,18 @@ class Log
         'tmobile' => 'tomomail.net'
     );
 
+    public static function predebug()
+    {
+        if(ENV !== 'PROD')
+        {
+            $echo = "<pre>";
+            $vars = func_get_args();
+            foreach($vars as $v)
+                $echo .= var_export($v, true)."\n";
+            echo $echo."</pre>";
+        }
+    }
+
     /**
      * Static app level write method
      * @access public

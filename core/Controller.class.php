@@ -135,12 +135,13 @@ abstract class Controller
     /**
      * Constructor method. Gets called at object initialization.
      */
-    public function __construct()
+    public function __construct($params = array())
     {
         Log::corewrite('Opening controller [%s]', 3, __CLASS__, __FUNCTION__, array(get_class($this)));
         Event::PublishActionHook('/Controller/before/__construct/', array($this));
         Log::corewrite('Merging $_POST and ::$params', 1, __CLASS__, __FUNCTION__);
-        $this->params = array_merge($_POST, $this->params);
+        $this->params = array_merge($_POST, $this->params, $_GET, $params);
+        unset($this->params['_query']);
         Event::PublishActionHook('/Controller/after/__construct/', array($this));
         Log::corewrite('At the end of method', 2, __CLASS__, __FUNCTION__);
     }
@@ -282,7 +283,7 @@ abstract class Controller
                             return strtolower($v);
                         }
                         $options['only'] = array_map('Lower', $options['only']);
-                        if(in_array($this->method, $options['only']))
+                        if(in_array(strtolower($this->method), $options['only']))
                         {
                             call_user_func(array($this, $filter));
                         }
@@ -389,10 +390,7 @@ abstract class Controller
     protected function RenderHTML()
     {
         Event::PublishActionHook('/Controller/before/RenderHTML/', array($this));
-        foreach(self::$_variables as $name => $value)
-        {
-            $$name = $value;
-        }
+        extract(self::$_variables);
         self::$_variables['_MAIN_DIR'] = strtolower(get_class($this));
         self::$_variables['_MAIN_PAGE'] = strtolower($this->method);
         self::$_variables['_secure_post'] = Route::CreateHash(Route::GetSalt());
@@ -409,10 +407,7 @@ abstract class Controller
      */
     public static function yield()
     {
-        foreach(self::$_variables as $name => $value)
-        {
-            $$name = $value;
-        }
+        extract(self::$_variables);
         include_once(VIEW_DIR.'/'.self::$_variables['_MAIN_DIR'].'/'.self::$_variables['_MAIN_PAGE'].'.view.php');
     }
 
