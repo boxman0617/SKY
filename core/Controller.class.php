@@ -188,6 +188,14 @@ abstract class Controller
         }
     }
 
+    protected function JSON($info)
+    {
+        $this->Render(array(
+            'flag' => RENDER_JSON,
+            'info' => $info
+        ));
+    }
+
     /**
      * Forces file download.
      *
@@ -278,17 +286,27 @@ abstract class Controller
                 {
                     if(is_array($options['only']))
                     {
-                        function Lower($v)
-                        {
-                            return strtolower($v);
-                        }
-                        $options['only'] = array_map('Lower', $options['only']);
+                        $options['only'] = array_map('strtolower', $options['only']);
                         if(in_array(strtolower($this->method), $options['only']))
                         {
                             call_user_func(array($this, $filter));
                         }
                     } else {
                         if(strtolower($this->method) == strtolower($options['only']))
+                        {
+                            call_user_func(array($this, $filter));
+                        }
+                    }
+                } elseif (isset($options['exclude'])) {
+                    if(is_array($options['exclude']))
+                    {
+                        $options['exclude'] = array_map('strtolower', $options['exclude']);
+                        if(!in_array(strtolower($this->method), $options['exclude']))
+                        {
+                            call_user_func(array($this, $filter));
+                        }
+                    } else {
+                        if(strtolower($this->method) != strtolower($options['exclude']))
                         {
                             call_user_func(array($this, $filter));
                         }
@@ -508,6 +526,7 @@ abstract class Controller
         } else {
             Log::corewrite('URL passed: [%s]', 1, __CLASS__, __FUNCTION__, array($url));
             header('Location: '.$this->GetPageURL().$url);
+            exit();
         }
         Log::corewrite('At end of method...', 2, __CLASS__, __FUNCTION__);
     }

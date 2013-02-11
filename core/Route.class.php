@@ -203,20 +203,22 @@ class Route
      * Adds URL match to {@link $matches} based on $base_url
      * @access public
      * @param string $base_url '/base'
-     * @param array $matches array('/test' => array('Base#Test', 'POST'))
+     * @param array $matches array(array('/test', 'Base#Test', 'POST'))
      */
     public function Scope($base_url, $matches)
     {
         if($base_url[strlen($base_url)-1] === '/')
             $base_url = substr($base_url, 0, -1);
 
-        foreach($matches as $url => $match)
+        foreach($matches as $match)
         {
-            if($url[0] !== '/')
-                $url = '/'.$url;
-            if(!isset($match[1]))
+            if($match[0][0] !== '/')
+                $match[0] = '/'.$match[0];
+            if(strlen($match[0]) == 1 && $match[0] == '/')
+                $match[0] = '';
+            if(!isset($match[2]))
                 $match[1] = 'GET';
-            $this->Match($base_url.$url, $match[0], $match[1]);
+            $this->Match($base_url.$match[0], $match[1], $match[2]);
         }
     }
     
@@ -360,6 +362,8 @@ class Route
         if($query == '')
             $query = '_';
 
+        Log::corewrite('Following query [%s]', 1, __CLASS__, __FUNCTION__, array($query));
+
         $e_tmp = explode('/', $query);
         if(isset($this->matches[$this->REQUEST_METHOD][count($e_tmp)]))
             $tmp = $this->matches[$this->REQUEST_METHOD][count($e_tmp)];
@@ -368,6 +372,7 @@ class Route
 
         if(isset($tmp[$query])) //Direct match
         {
+            Log::corewrite('Direct Match', 1, __CLASS__, __FUNCTION__);
             $class = ucfirst(strtolower($tmp[$query]['controller']));
             import(CONTROLLER_DIR.'/'.strtolower($class).'.controller.php');
             $obj = new $class();
@@ -377,8 +382,10 @@ class Route
         }
         else if(!isset($tmp[$query]))
         {
+            Log::corewrite('Indirect Match', 1, __CLASS__, __FUNCTION__);
             $matches = array_keys($tmp);
             $indirect_match = false;
+            $indirect_matches = array();
             for($i=0;$i<count($matches);$i++)
             {
                 $params = array();
@@ -397,17 +404,30 @@ class Route
                 $check_query = implode('/', $check_tmp);
                 if($query == $check_query)
                 {
+                    Log::corewrite('Matched [%s] to [%s]', 1, __CLASS__, __FUNCTION__, array($query, $check_query));
                     $indirect_match = $tmp[$matches[$i]];
                     $indirect_match['url'] = $matches[$i];
-
-                    $class = ucfirst(strtolower($indirect_match['controller']));
-                    import(CONTROLLER_DIR.'/'.strtolower($class).'.controller.php');
-                    $obj = new $class($params);
-                    $obj->HandleRequest(ucfirst(strtolower($indirect_match['action'])));
-                    $this->status = STATUS_FOUND;
-                    return true;
+                    $indirect_matches[$indirect_match['action']] = $indirect_match;
+                    $indirect_matches[$indirect_match['action']]['params'] = $params;
                 }
             }
+            $winner = null;
+            $num_win = 999999;
+            foreach($indirect_matches as $action => $info)
+            {
+                if(count($info['params']) < $num_win)
+                {
+                    $num_win = count($info['params']);
+                    $winner = $action;
+                }
+            }
+
+            $class = ucfirst(strtolower($indirect_matches[$winner]['controller']));
+                    import(CONTROLLER_DIR.'/'.strtolower($class).'.controller.php');
+            $obj = new $class($indirect_matches[$winner]['params']);
+            $obj->HandleRequest(ucfirst(strtolower($winner)));
+                    $this->status = STATUS_FOUND;
+                    return true;
         }
 
         $this->status = STATUS_NOTFOUND;

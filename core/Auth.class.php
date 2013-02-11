@@ -6,7 +6,7 @@ interface iAuth
     public function __construct();
     public function LogIn($username, $password);
     public function LogOut();
-    public function IsLoggedIn();
+    public static function IsLoggedIn();
     public function WhoAmI();
 }
 
@@ -29,7 +29,7 @@ class Auth implements iAuth
 
     public function LogIn($username, $password)
     {
-        Log::corewrite('Logging in [%s] [%s]', 3, __CLASS__, __FUNCTION__, array($username, $password));
+        Log::corewrite('Logging in [%s] [%s]', 3, __CLASS__, __FUNCTION__, array($username, md5(AUTH_SALT.$password)));
         $map_username = $this->map['username'];
         $map_password = $this->map['password'];
         $class = ucfirst($this->user_model);
@@ -37,7 +37,7 @@ class Auth implements iAuth
         $r = $user->where($map_username.' = ?', $username)->run();
         if(isset($r->$map_username) && $r->$map_username != null)
         {
-            $encrypt_pass = md5($password);
+            $encrypt_pass = md5(AUTH_SALT.$password);
             if($encrypt_pass == $r->$map_password)
             {
                 Log::corewrite('Login was successful!', 1, __CLASS__, __FUNCTION__);
@@ -61,9 +61,9 @@ class Auth implements iAuth
         return true;
     }
 
-    public function IsLoggedIn()
+    public static function IsLoggedIn()
     {
-        return isset($this->session->user_id);
+        return isset(Session::getInstance()->user_id);
     }
 
     public function WhoAmI()

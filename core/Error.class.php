@@ -109,10 +109,7 @@ class Error
 
     public static function LogError($no, $str, $file, $line)
     {
-        Log::corewrite('[%s][%s:%d] %s', 4, 'ERR', '!!!', array(
-            self::Stringify($no),
-            $file,
-            $line,
+        Log::corewrite('%s', 4, self::Stringify($no), $file.':'.$line, array(
             $str
         ));
     }
@@ -189,7 +186,8 @@ class Error
             if(ENV !== 'PRO')
             {
                 ob_end_clean( );
-                self::BuildMessage($error['type'], $error['message'], $error['file'], $error['line'], 'f48989');
+                self::LogError($error['type'], $error['message'], $error['file'], $error['line']);
+                self::BuildMessage($error['type'], $error['message'], $error['file'], $error['line'].'['.phpversion().']', 'f48989');
             }
         }
     }

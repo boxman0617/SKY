@@ -161,6 +161,8 @@ abstract class Model implements Iterator
     protected $_pre_data = array();
     protected $_skip_format_input = false;
     protected $encrypt_field = array();
+    public static $_instances_info = array();
+    protected $_child;
 
     /**
      * Constructor sets up {@link $driver} and {@link $db}
@@ -168,36 +170,43 @@ abstract class Model implements Iterator
      */
     public function __construct($hash = array())
     {
+        $this->_child = get_called_class();
+        if(!isset(self::$_instances_info[$this->_child]))
+            self::$_instances_info[$this->_child] = array();
+
+        if(!isset(self::$_instances_info[$this->_child]['db']))
+        {
         Log::corewrite('Starting Model [%s]', 3, __CLASS__, __FUNCTION__, array(get_class($this)));
-        $this->driver = MODEL_DRIVER."Driver";
+            self::$_instances_info[$this->_child]['driver'] = MODEL_DRIVER.'Driver';
         if(is_file(CORE_DIR."/drivers/".MODEL_DRIVER.".driver.php"))
         {
             Log::corewrite('Found driver [%s]', 1, __CLASS__, __FUNCTION__, array(MODEL_DRIVER));
             import(CORE_DIR."/drivers/".MODEL_DRIVER.".driver.php");
-                    $this->db = new $this->driver($this->db_array);
-            if(!$this->db instanceof iDriver)
+                self::$_instances_info[$this->_child]['db'] = new self::$_instances_info[$this->_child]['driver']($this->db_array);
+                if(!self::$_instances_info[$this->_child]['db'] instanceof iDriver)
                 trigger_error('Driver loaded is not an instance of iDriver interface!', E_USER_ERROR);
             if(isset($this->table_name))
             {
                 Log::corewrite('::$table_name is set [%s]', 1, __CLASS__, __FUNCTION__, array($this->table_name));
-                $this->db->setTableName($this->table_name);
-                $this->db->setSchema();
+                    self::$_instances_info[$this->_child]['db']->setTableName($this->table_name);
+                    self::$_instances_info[$this->_child]['db']->setSchema();
             } else {
                 Log::corewrite('::$table_name is NOT set. Attempting to create name out of class', 1, __CLASS__, __FUNCTION__);
-                if(!$this->db->doesTableExist(get_class($this)))
+                    if(!self::$_instances_info[$this->_child]['db']->doesTableExist(get_class($this)))
                     trigger_error('No table name specified. Please add property $table_name to model.', E_USER_ERROR);
                 else
                 {
                     $table_name = strtolower(get_class($this));
                     $this->table_name = $table_name;
-                    $this->db->setTableName($this->table_name);
-                    $this->db->setSchema();
+                        self::$_instances_info[$this->_child]['db']->setTableName($this->table_name);
+                        self::$_instances_info[$this->_child]['db']->setSchema();
                 }
             }
-            $this->table_schema = $this->db->getSchema();
+                $this->table_schema = self::$_instances_info[$this->_child]['db']->getSchema();
             Log::corewrite('Model was set properly [%s]', 2, __CLASS__, __FUNCTION__, array(get_class($this)));
         } else {
             trigger_error('No driver found for model! Model: '.get_class($this).' | Driver: '.MODEL_DRIVER, E_USER_ERROR);
+        }
         }
         
         // Setting empty object
@@ -620,7 +629,7 @@ abstract class Model implements Iterator
     
     public function find_all()
     {
-        return $obj->all()->run();
+        return $this;
     }
     
     public function fill($data)
@@ -794,7 +803,7 @@ abstract class Model implements Iterator
             }
         }
         Log::corewrite('At the end of method', 2, __CLASS__, __FUNCTION__);
-        $ret = $this->db->delete($pri, $this->_data[$pri]);
+        $ret = self::$_instances_info[$this->_child]['db']->delete($pri, $this->_data[$pri]);
         return $ret;
     }
     
@@ -860,7 +869,7 @@ abstract class Model implements Iterator
                 $data = $tmp;
         }
         
-        $ret = $this->db->save($data);
+        $ret = self::$_instances_info[$this->_child]['db']->save($data);
         $this->_pre_data = $this->_data;
         Log::corewrite('At end of method', 2, __CLASS__, __FUNCTION__);
         
@@ -955,7 +964,7 @@ abstract class Model implements Iterator
                 if(is_array($value))
                     $operator = 'IN';
                 $this->where[] = array(
-                    'field' => $this->db->escape($key),
+                    'field' => self::$_instances_info[$this->_child]['db']->escape($key),
                     'operator' => $operator,
                     'value' => $value
                 );
@@ -968,7 +977,7 @@ abstract class Model implements Iterator
             preg_match_all('/\:([a-zA-Z0-9]+)/', $tmp, $matches);
             foreach($matches[1] as $field)
             {
-                $tmp = preg_replace('/(\:'.$field.')/', "'".$this->db->escape($data[$field])."'", $tmp);
+                $tmp = preg_replace('/(\:'.$field.')/', "'".self::$_instances_info[$this->_child]['db']->escape($data[$field])."'", $tmp);
             }
             $this->where[] = $tmp;
         }
@@ -983,7 +992,7 @@ abstract class Model implements Iterator
             {
                 if($broken[$i] != "")
                 {
-                    $where .= $broken[$i]."'".$this->db->escape(func_get_arg($i+1))."' ";
+                    $where .= $broken[$i]."'".self::$_instances_info[$this->_child]['db']->escape(func_get_arg($i+1))."' ";
                 }
             }
             $this->where[] = $where;
@@ -1003,7 +1012,7 @@ abstract class Model implements Iterator
                     if(is_array($value))
                         $operator = 'IN';
                     $this->where[] = array(
-                        'field' => $this->db->escape($key),
+                        'field' => self::$_instances_info[$this->_child]['db']->escape($key),
                         'operator' => $operator,
                         'value' => $value
                     );
@@ -1081,7 +1090,7 @@ abstract class Model implements Iterator
     public function run()
     {
         Log::corewrite('Running query...', 3, __CLASS__, __FUNCTION__);
-        $query = $this->db->buildQuery(array(
+        $query = self::$_instances_info[$this->_child]['db']->buildQuery(array(
             'select' => $this->select,
             'from' => $this->from,
             'where' => $this->where,
@@ -1097,7 +1106,7 @@ abstract class Model implements Iterator
             fwrite($f, "START: ".date('H:i:s')."\t".trim($query)."\n");
             fclose($f);
         }
-        $results = $this->db->runQuery($query);
+        $results = self::$_instances_info[$this->_child]['db']->runQuery($query);
         if(count($results) == 0)
             return $this;
         Log::corewrite('Results were found [%s]', 1, __CLASS__, __FUNCTION__, array(count($results)));
@@ -1143,7 +1152,7 @@ abstract class Model implements Iterator
      */
     public function printQuery()
     {
-        echo $this->db->buildQuery(array(
+        echo self::$_instances_info[$this->_child]['db']->buildQuery(array(
             'select' => $this->select,
             'from' => $this->from,
             'where' => $this->where,
@@ -1165,7 +1174,7 @@ abstract class Model implements Iterator
 			{
 				$ids[] = $obj->$pri;
 			}
-			$this->db->delete($pri, $ids);
+			self::$_instances_info[$this->_child]['db']->delete($pri, $ids);
 		}
 	}
 
