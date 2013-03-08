@@ -14,12 +14,9 @@
  * @author Alan Tirado <root@deeplogik.com>
  * @copyright 2012 DeepLogiK, All Rights Reserved
  * @license http://www.deeplogik.com/sky/legal/license
- * @link http://www.deeplogik.com/sky/index
- * @version 1.0 Initial build
- * @version 1.1 Bug fixes
- * @version 2.0 Logic upgrade and added drivers
+ * @link http://www.codethesky.com
+ * @version 2.1.0 Code Clean Up
  * @package Sky.Core
- * @todo: Simplyfy the find methods. Example: find() find_by_%() find_all()
  */
 
 /**
@@ -29,140 +26,48 @@
  */
 abstract class Model implements Iterator
 {
-    /**
-     * Driver that will be used with this object
-     * @access private
-     * @var string
-     */
-    private $driver;
-    /**
-     * Driver Class Object
-     * @access private
-     * @var object
-     */
-    private $db;
-    /**
-     * Data for model
-     * @access protected
-     * @var array
-     */
-    protected $_data = array();
-    /**
-     * Name of table
-     * @access protected
-     * @var string
-     */
-    protected $table_name;
-    /**
-     * Schema of current table
-     * @access protected
-     * @var array
-     */
-    protected $table_schema = array();
-    /**
-     * Last query ran
-     * @access protected
-     * @var string
-     */
-    protected $last_query;
-    /**
-     * Query to be ran at Model::__get()
-     * @access private
-     * @var array
-     */
-    private $run_this = array();
-    
-    protected $belongs_to = array();
-    /**
-     * Relational property [this model has one on one relationship with]
-     * @access protected
-     * @var array
-     */
-    protected $has_one = array();
-    /**
-     * Relational property [this model has one on many relationship with]
-     * @access protected
-     * @var array
-     */
-    protected $has_many = array();
-    /**
-     * Fields to validate on save
-     * @access protected
-     * @var array
-     */
-    protected $validate = array();
-    /**
-     * Output formatting
-     * @access public
-     * @var array
-     */
+    /** PUBLIC PROPERTIES **/
     public $output_format = array();
-    /**
-     * Input formatting
-     * @access public
-     * @var array
-     */
     public $input_format = array();
-    /**
-     * Holds internal iterator position
-     * @access private
-     * @var integer
-     */
-    private $position = 0;
-    /**
-     * Holds internal iterator place
-     * @access private
-     * @var array
-     */
-    private $array = array();
-    /**
-     * [Query Builder] Holds select
-     * @access protected
-     * @var array
-     */
-    protected $select = array();
-    /**
-     * [Query Builder] Holds from
-     * @access protected
-     * @var array
-     */
-    protected $from = array();
-    /**
-     * [Query Builder] Holds joins
-     * @access protected
-     * @var array
-     */
-    protected $joins = array();
-    /**
-     * [Query Builder] Holds where
-     * @access protected
-     * @var array
-     */
-    protected $where = array();
-    /**
-     * [Query Builder] Holds limit
-     * @access protected
-     * @var array
-     */
-    protected $limit;
-    /**
-     * [Query Builder] Holds order by
-     * @access protected
-     * @var array
-     */
-    protected $orderby = array();
-    /**
-     * [Query Builder] Holds group by
-     * @access protected
-     * @var array
-     */
-    protected $groupby = array();
-    protected $db_array = NULL;
+    public $belongs_to = array();
+    public $has_one = array();
+    public $has_many = array();
+    public $validate = array();
+    public $table_name;
+    public $encrypt_field = array();
+    public $db_array = NULL;
+    public $_skip_format_input = false;
+
+    /** PUBLIC STATIC PROPERTIES **/
+    public static $_static_info = array();
+
+    /** PROTECTED PROPERTIES **/
+    protected static $_table_schema = array();
+    protected $_last_query;
+    protected $_data = array();
+    protected $_query_material = array(
+        'select' => array(),
+        'from' => array(),
+        'joins' => array(),
+        'where' => array(),
+        'limit' => null,
+        'orderby' => array(),
+        'groupby' => array()
+    );
     protected $_pre_data = array();
-    protected $_skip_format_input = false;
-    protected $encrypt_field = array();
-    public static $_instances_info = array();
     protected $_child;
+    protected $_result_count = 0;
+
+    /** PROTECTED STATIC PROPERTIES **/
+    protected static $_position = array();
+    protected static $_array = array();
+
+    /** PRIVATE PROPERTIES **/
+    private $_object_id;
+
+    //============================================================================//
+    // Magic methods                                                              //
+    //============================================================================//
 
     /**
      * Constructor sets up {@link $driver} and {@link $db}
@@ -170,72 +75,75 @@ abstract class Model implements Iterator
      */
     public function __construct($hash = array())
     {
-        $this->_child = get_called_class();
-        if(!isset(self::$_instances_info[$this->_child]))
-            self::$_instances_info[$this->_child] = array();
-
-        if(!isset(self::$_instances_info[$this->_child]['db']))
-        {
         Log::corewrite('Starting Model [%s]', 3, __CLASS__, __FUNCTION__, array(get_class($this)));
-            self::$_instances_info[$this->_child]['driver'] = MODEL_DRIVER.'Driver';
+        $this->_child = get_called_class();
+        if(!isset(self::$_static_info[$this->_child])) self::$_static_info[$this->_child] = array();
+        if(!isset(self::$_static_info[$this->_child]['db']))
+        {
+            self::$_static_info[$this->_child]['driver'] = MODEL_DRIVER.'Driver';
         if(is_file(CORE_DIR."/drivers/".MODEL_DRIVER.".driver.php"))
         {
             Log::corewrite('Found driver [%s]', 1, __CLASS__, __FUNCTION__, array(MODEL_DRIVER));
             import(CORE_DIR."/drivers/".MODEL_DRIVER.".driver.php");
-                self::$_instances_info[$this->_child]['db'] = new self::$_instances_info[$this->_child]['driver']($this->db_array);
-                if(!self::$_instances_info[$this->_child]['db'] instanceof iDriver)
+                self::$_static_info[$this->_child]['db'] = new self::$_static_info[$this->_child]['driver']($this->db_array);
+                if(!self::$_static_info[$this->_child]['db'] instanceof iDriver)
                 trigger_error('Driver loaded is not an instance of iDriver interface!', E_USER_ERROR);
-            if(isset($this->table_name))
+                if(!isset($this->table_name))
             {
-                Log::corewrite('::$table_name is set [%s]', 1, __CLASS__, __FUNCTION__, array($this->table_name));
-                    self::$_instances_info[$this->_child]['db']->setTableName($this->table_name);
-                    self::$_instances_info[$this->_child]['db']->setSchema();
-            } else {
                 Log::corewrite('::$table_name is NOT set. Attempting to create name out of class', 1, __CLASS__, __FUNCTION__);
-                    if(!self::$_instances_info[$this->_child]['db']->doesTableExist(get_class($this)))
+                    if(!self::$_static_info[$this->_child]['db']->doesTableExist(get_class($this)))
                     trigger_error('No table name specified. Please add property $table_name to model.', E_USER_ERROR);
                 else
-                {
-                    $table_name = strtolower(get_class($this));
-                    $this->table_name = $table_name;
-                        self::$_instances_info[$this->_child]['db']->setTableName($this->table_name);
-                        self::$_instances_info[$this->_child]['db']->setSchema();
-                }
+                        $this->table_name = strtolower(get_class($this));
             }
-                $this->table_schema = self::$_instances_info[$this->_child]['db']->getSchema();
+                self::$_static_info[$this->_child]['db']->setTableName($this->table_name);
+                self::$_static_info[$this->_child]['db']->setSchema();
+                self::$_static_info[$this->_child]['table_name'] = $this->table_name;
             Log::corewrite('Model was set properly [%s]', 2, __CLASS__, __FUNCTION__, array(get_class($this)));
         } else {
             trigger_error('No driver found for model! Model: '.get_class($this).' | Driver: '.MODEL_DRIVER, E_USER_ERROR);
         }
         }
         
+        self::$_table_schema[$this->_child] = self::$_static_info[$this->_child]['db']->getSchema();
         // Setting empty object
-        if(empty($hash))
+        foreach(self::$_table_schema[$this->_child] as $field => $i)
         {
-            Log::corewrite('Creating empty Model object', 1, __CLASS__, __FUNCTION__);
-            foreach($this->table_schema as $field => $i)
-            {
-                if(isset($i['Default']))
-                    $this->_data[$field] = $i['Default'];
-                else
-                    $this->_data[$field] = NULL;
-            }
-        } else {
-            Log::corewrite('Hash was passed in. Filling Model...', 1, __CLASS__, __FUNCTION__);
-            foreach($this->table_schema as $field => $i)
-            {
-                if(isset($hash[$field]))
+            if(!empty($hash) && isset($hash[$field]))
                     $this->_data[$field] = $hash[$field];
                 else
                 {
-                    if(isset($i['Default']))
-                        $this->_data[$field] = $i['Default'];
-                    else
                         $this->_data[$field] = NULL;
-                }
+                if(isset($i['Default'])) $this->_data[$field] = $i['Default'];
             }
-        }
+                }
+        $this->_object_id = md5($this->_child.rand(0, 9999));
         Log::corewrite('At end of method...', 2, __CLASS__, __FUNCTION__);
+            }
+
+    /**
+     * Magic __call method
+     * @access public
+     * @param string $method
+     * @param mixed $args
+     *
+     * If method is called on this object and it is not found
+     * this method will be called.
+     * If the method name starts with 'find_by' it will create a
+     * Query using the rest of the method name.
+     * @example http://www.deeplogik.com/sky/docs/examples/model
+     */
+    public function __call($method, $args)
+    {
+        if(substr($method, 0, 7) == 'find_by')
+        {
+            $options = substr($method, 8);
+            $conditions = $this->create_conditions_from_underscored_string($options, $args);
+            $obj = call_user_func_array(array($this, 'where'), $conditions);
+            return $obj->run();
+        } else {
+            trigger_error('No method name ['.$method.']', E_USER_ERROR);
+        }
     }
 
     /**
@@ -262,7 +170,7 @@ abstract class Model implements Iterator
             {
                 if (!is_null($values[$j]))
                 {
-                    $bind = is_array($values[$j]) ? ' IN(?)' : '=?';
+                    $bind = is_array($values[$j]) ? ' IN(?)' : ' = ?';
                     $conditions[] = $values[$j];
                 }
                 else
@@ -278,30 +186,39 @@ abstract class Model implements Iterator
         return $conditions;
     }
 
-    /**
-     * Magic __call method
+    /** Magic getter
+     * - gets {@link $data}
+     * - gets {@link $table_name}
+     * - gets {@link $primary_key}
      * @access public
-     * @param string $method
-     * @param mixed $args
-     *
-     * If method is called on this object and it is not found
-     * this method will be called.
-     * If the method name starts with 'find_by' it will create a
-     * Query using the rest of the method name.
-     * @example http://www.deeplogik.com/sky/docs/examples/model
+     * @return mixed
      */
-    public function __call($method, $args)
+    public function __get( $name )
     {
-        if(substr($method, 0, 7) == 'find_by')
+        Log::corewrite('Getting data from Model [%s]', 3, __CLASS__, __FUNCTION__, array($name));
+        if(!array_key_exists($name, $this->_data))
         {
-            $options = substr($method, 8);
-            //$fields = array_keys(self::$table_schema[$this->table_name]);
-            $conditions = $this->create_conditions_from_underscored_string($options, $args);
-            $obj = call_user_func_array(array($this, 'where'), $conditions);
-            return $obj->run();
-        } else {
-            trigger_error('No method name ['.$method.']', E_USER_WARNING);
+            Log::corewrite('No data found. Checking associations...', 1, __CLASS__, __FUNCTION__);
+            if(isset($this->belongs_to[$name])) return $this->_getBelongsTo($name);
+            elseif(isset($this->has_one[$name])) return $this->_getHasOne($name);
+            elseif(isset($this->has_many[$name])) return $this->_getHasMany($name);
+            else
+    {
+                trigger_error(__CLASS__."::".__FUNCTION__." No field by the name [".$name."] in Model [".get_class($this)."]", E_USER_WARNING);
+                return null;
+            }
         }
+        Log::corewrite('Found data. Checking format output...', 2, __CLASS__, __FUNCTION__);
+        if(isset($this->output_format[$name]))
+        {
+            Log::corewrite('Calling formating', 1, __CLASS__, __FUNCTION__);
+            if(is_array($this->output_format[$name]))
+                return call_user_func(array($this, $this->output_format[$name]['custom']), $this->_data[$name]);
+            else
+                return sprintf($this->output_format[$name], $this->_data[$name]);
+        }
+        Log::corewrite('At the end of method', 2, __CLASS__, __FUNCTION__);
+        return $this->_data[$name];
     }
 
     /**
@@ -315,16 +232,14 @@ abstract class Model implements Iterator
         {
             Log::corewrite('Has input format. Executing...', 1, __CLASS__, __FUNCTION__);
             if(is_array($this->input_format[$name]))
-            {
                 $this->_data[$name] = call_user_func(array($this, $this->input_format[$name]['custom']), $value);
-            } else {
+            else
                 $this->_data[$name] = sprintf($this->input_format[$name], $value);
             }
-        }
         elseif(in_array($name, $this->encrypt_field))
         {
             Log::corewrite('Need to encrypt field. Executing...', 1, __CLASS__, __FUNCTION__);
-            $this->_data[$name] = md5($value);
+            $this->_data[$name] = md5(AUTH_SALT.$value);
         }
         else
         {
@@ -336,7 +251,7 @@ abstract class Model implements Iterator
 	
     public function __isset( $name )
     {
-            return (isset($this->_data[$name]) && $this->_data[$name] !== NULL);
+        return array_key_exists($name, $this->_data);
     }
     
     public function __unset( $name )
@@ -344,32 +259,48 @@ abstract class Model implements Iterator
             $this->_data[$name] = NULL;
     }
 
-    private function singularize($word)
+    public function get_raw($name)
+    {
+        if(!isset($this->_data[$name]))
+        {
+            trigger_error(__CLASS__."::".__FUNCTION__." No field by the name [".$name."]", E_USER_NOTICE);
+            return null;
+        }
+        return $this->_data[$name];
+    }
+
+
+
+    //============================================================================//
+    // Word plural/singular Methods                                               //
+    //============================================================================//
+
+    public function singularize($word)
     {
         $singular = array (
-        '/(quiz)zes$/i' => '\1',
-        '/(matr)ices$/i' => '\1ix',
-        '/(vert|ind)ices$/i' => '\1ex',
-        '/^(ox)en/i' => '\1',
-        '/(alias|status)es$/i' => '\1',
-        '/([octop|vir])i$/i' => '\1us',
-        '/(cris|ax|test)es$/i' => '\1is',
-        '/(shoe)s$/i' => '\1',
-        '/(o)es$/i' => '\1',
-        '/(bus)es$/i' => '\1',
-        '/([m|l])ice$/i' => '\1ouse',
-        '/(x|ch|ss|sh)es$/i' => '\1',
-        '/(m)ovies$/i' => '\1ovie',
-        '/(s)eries$/i' => '\1eries',
-        '/([^aeiouy]|qu)ies$/i' => '\1y',
-        '/([lr])ves$/i' => '\1f',
-        '/(tive)s$/i' => '\1',
-        '/(hive)s$/i' => '\1',
-        '/([^f])ves$/i' => '\1fe',
-        '/(^analy)ses$/i' => '\1sis',
-        '/((a)naly|(b)a|(d)iagno|(p)arenthe|(p)rogno|(s)ynop|(t)he)ses$/i' => '\1\2sis',
-        '/([ti])a$/i' => '\1um',
-        '/(n)ews$/i' => '\1ews',
+        '/(quiz)zes$/i' => '$1',
+        '/(matr)ices$/i' => '$1ix',
+        '/(vert|ind)ices$/i' => '$1ex',
+        '/^(ox)en/i' => '$1',
+        '/(alias|status)es$/i' => '$1',
+        '/([octop|vir])i$/i' => '$1us',
+        '/(cris|ax|test)es$/i' => '$1is',
+        '/(shoe)s$/i' => '$1',
+        '/(o)es$/i' => '$1',
+        '/(bus)es$/i' => '$1',
+        '/([m|l])ice$/i' => '$1ouse',
+        '/(x|ch|ss|sh)es$/i' => '$1',
+        '/(m)ovies$/i' => '$1ovie',
+        '/(s)eries$/i' => '$1eries',
+        '/([^aeiouy]|qu)ies$/i' => '$1y',
+        '/([lr])ves$/i' => '$1f',
+        '/(tive)s$/i' => '$1',
+        '/(hive)s$/i' => '$1',
+        '/([^f])ves$/i' => '$1fe',
+        '/(^analy)ses$/i' => '$1sis',
+        '/((a)naly|(b)a|(d)iagno|(p)arenthe|(p)rogno|(s)ynop|(t)he)ses$/i' => '$1$2sis',
+        '/([ti])a$/i' => '$1um',
+        '/(n)ews$/i' => '$1ews',
         '/s$/i' => '',
         );
 
@@ -404,25 +335,26 @@ abstract class Model implements Iterator
         return $word;
     }
 
-    private function pluralize($word)
+    public function pluralize($word)
     {
+        Log::corewrite('Pluralizing word [%s]', 1, __CLASS__, __FUNCTION__, array($word));
         $plural = array(
-        '/(quiz)$/i' => '1zes',
-        '/^(ox)$/i' => '1en',
-        '/([m|l])ouse$/i' => '1ice',
-        '/(matr|vert|ind)ix|ex$/i' => '1ices',
-        '/(x|ch|ss|sh)$/i' => '1es',
-        '/([^aeiouy]|qu)ies$/i' => '1y',
-        '/([^aeiouy]|qu)y$/i' => '1ies',
-        '/(hive)$/i' => '1s',
-        '/(?:([^f])fe|([lr])f)$/i' => '12ves',
+        '/(quiz)$/i' => '$1zes',
+        '/^(ox)$/i' => '$1en',
+        '/([m|l])ouse$/i' => '$1ice',
+        '/(matr|vert|ind)ix|ex$/i' => '$1ices',
+        '/(x|ch|ss|sh)$/i' => '$1es',
+        '/([^aeiouy]|qu)ies$/i' => '$1y',
+        '/([^aeiouy]|qu)y$/i' => '$1ies',
+        '/(hive)$/i' => '$1s',
+        '/(?:([^f])fe|([lr])f)$/i' => '$1$2ves',
         '/sis$/i' => 'ses',
-        '/([ti])um$/i' => '1a',
-        '/(buffal|tomat)o$/i' => '1oes',
-        '/(bu)s$/i' => '1ses',
-        '/(alias|status)/i'=> '1es',
-        '/(octop|vir)us$/i'=> '1i',
-        '/(ax|test)is$/i'=> '1es',
+        '/([ti])um$/i' => '$1a',
+        '/(buffal|tomat)o$/i' => '$1oes',
+        '/(bu)s$/i' => '$1ses',
+        '/(alias|status)/i'=> '$1es',
+        '/(octop|vir)us$/i'=> '$1i',
+        '/(ax|test)is$/i'=> '$1es',
         '/s$/i'=> 's',
         '/$/'=> 's');
 
@@ -439,24 +371,34 @@ abstract class Model implements Iterator
 
         foreach ($uncountable as $_uncountable){
             if(substr($lowercased_word,(-1*strlen($_uncountable))) == $_uncountable){
+                Log::corewrite('Pluralized word [%s] 1', 1, __CLASS__, __FUNCTION__, array($word));
                 return $word;
             }
         }
 
         foreach ($irregular as $_plural=> $_singular){
             if (preg_match('/('.$_plural.')$/i', $word, $arr)) {
-                return preg_replace('/('.$_plural.')$/i', substr($arr[0],0,1).substr($_singular,1), $word);
+                $word = preg_replace('/('.$_plural.')$/i', substr($arr[0],0,1).substr($_singular,1), $word);
+                Log::corewrite('Pluralized word [%s] 2', 1, __CLASS__, __FUNCTION__, array($word));
+                return $word;
             }
         }
 
         foreach ($plural as $rule => $replacement) {
             if (preg_match($rule, $word)) {
-                return preg_replace($rule, $replacement, $word);
+                $word = preg_replace($rule, $replacement, $word);
+                Log::corewrite('Pluralized word [%s] Rule: [%s] Replace: [%s]', 1, __CLASS__, __FUNCTION__, array($word, $rule, $replacement));
+                return $word;
             }
         }
         return false;
-
     }
+
+
+
+    //============================================================================//
+    // Association Methods                                                        //
+    //============================================================================//
     
     private function FindModel($name, $plural = true, $overwrite = null)
     {
@@ -482,23 +424,26 @@ abstract class Model implements Iterator
     
     private function _getBelongsTo($name)
     {
-        Log::corewrite('Getting BelongsTo data [%s]', 3, __CLASS__, __FUNCTION__, array($name));
         if(isset($this->belongs_to[$name]['table']))
             $class = $this->FindModel($name, false, $this->belongs_to[$name]['table']);
         else
             $class = $this->FindModel($name);
-        if($class != null)
+        if($class !== null)
         {
-            $PRI = $this->getPrimary();
-            $obj = new $class();
-            if(is_array($this->belongs_to[$name]))
-                $ON = (isset($this->belongs_to[$name]['on']) ? $this->belongs_to[$name]['on'] : $name.'_id');
-            else
+            $this->table_name = self::$_static_info[$this->_child]['table_name'];
+            $other = new $class();
                 $ON = $name.'_id';
-            Log::corewrite('At the end of method...', 2, __CLASS__, __FUNCTION__, array($name));
-            return $obj->joins('LEFT JOIN `'.$this->table_name.'` ON (`'.$this->table_name.'`.`'.$ON.'` = `'.((isset($this->belongs_to[$name]['table'])) ? $this->belongs_to[$name]['table'] : $name.'s').'`.`id`)')
-                ->where('`'.$this->table_name.'`.`'.$PRI.'` = ?', $this->_data[$PRI])
+            if(isset($this->belongs_to[$name]['on']))
+                $ON = $this->belongs_to[$name]['on'];
+            $nameS = $this->pluralize($name);
+            $thisPRI = $this->getPrimary();
+            $this->_data[$name] = $other->from($this->table_name)
+                ->joins('INNER JOIN `'.$nameS.'` ON 
+                    (`'.$this->table_name.'`.`'.$ON.'` = `'.$nameS.'`.`'.$other->getPrimary().'`)')
+                ->where('`'.$this->table_name.'`.`'.$thisPRI.'` = ?', $this->_data[$thisPRI])
+                ->limit(1)
                 ->run();
+            return $this->_data[$name];
         } else {
             trigger_error(__CLASS__."::".__FUNCTION__." No Model by the name [".$name."]", E_USER_NOTICE);
             return null;
@@ -508,105 +453,130 @@ abstract class Model implements Iterator
     private function _getHasOne($name)
     {
         Log::corewrite('Getting HasOne data [%s]', 3, __CLASS__, __FUNCTION__, array($name));
-        if(isset($this->has_one[$name]['table']))
-            $class = $this->FindModel($name, false, $this->has_one[$name]['table']);
-        else
-            $class = $this->FindModel($name);
-        if($class != null)
-        {
-            $PRI = $this->getPrimary();
-            $obj = new $class();
-            if(is_array($this->has_one[$name]))
-                $ON = (isset($this->has_one[$name]['on']) ? $this->has_one[$name]['on'] : $this->singularize($this->table_name).'_id');
-            else
-                $ON = $this->singularize($this->table_name).'_id';
-            Log::corewrite('At the end of method...', 2, __CLASS__, __FUNCTION__, array($name));
-            return $obj->where('`'.$ON.'` = ?', $this->_data[$PRI])->run();
-        } else {
-            trigger_error(__CLASS__."::".__FUNCTION__." No Model by the name [".$name."]", E_USER_NOTICE);
-            return null;
-        }
+        return $this->__HasSomething($name, 'one');
     }
     
     private function _getHasMany($name)
     {
         Log::corewrite('Getting HasMany data [%s]', 3, __CLASS__, __FUNCTION__, array($name));
+        return $this->__HasSomething($name, 'many');
+    }
+
+    private function __HasSomething($name, $size)
+    {
         if(isset($this->has_many[$name]['table']))
             $class = $this->FindModel($name, false, $this->has_many[$name]['table']);
         else
             $class = $this->FindModel($name, false);
-        if($class != null)
+        if($class !== null)
         {
-            $PRI = $this->getPrimary();
-            $obj = new $class();
-            if(is_array($this->has_many[$name]))
-                $ON = (isset($this->has_many[$name]['on']) ? $this->has_many[$name]['on'] : $this->singularize($this->table_name).'_id');
+            $this->table_name = self::$_static_info[$this->_child]['table_name'];
+            $other = new $class();
+            $ON = $this->singularize($this->table_name).'_id';
+            if(isset($this->has_many[$name]['on']))
+                $ON = $this->has_many[$name]['on'];
+            $thisPRI = $this->getPrimary();
+            $r = $other->from($this->table_name);
+            if(isset($this->has_many[$name]['through']))
+            {
+                $r = $r->joins('INNER JOIN `'.$this->has_many[$name]['through'].'` ON 
+                    (`'.$this->table_name.'`.`'.$thisPRI.'` = `'.$this->has_many[$name]['through'].'`.`'.$ON.'`)');
+                $r = $r->joins('INNER JOIN `'.$name.'` ON 
+                    (`'.$this->has_many[$name]['through'].'`.`'.$this->singularize($name).'_id` = `'.$name.'`.`id`)');
+            } else {
+                $r = $r->joins('INNER JOIN `'.$name.'` ON
+                    (`'.$this->table_name.'`.`'.$thisPRI.'` = `'.$name.'`.`'.$ON.'`)');
+            }
+            $q = $r->where('`'.$this->table_name.'`.`'.$thisPRI.'` = ?', $this->_data[$thisPRI]);
+            if($size == 'one')
+                $this->_data[$name] = $q->limit()->run();
             else
-                $ON = $this->singularize($this->table_name).'_id';
-            Log::corewrite('At the end of method...', 2, __CLASS__, __FUNCTION__, array($name));
-            return $obj->where('`'.$ON.'` = ?', $this->_data[$PRI])->run();
+                $this->_data[$name] = $q->run();
+            return $this->_data[$name];
         } else {
             trigger_error(__CLASS__."::".__FUNCTION__." No Model by the name [".$name."]", E_USER_NOTICE);
             return null;
         }
     }
 
-    /** Magic getter
-     * - gets {@link $data}
-     * - gets {@link $table_name}
-     * - gets {@link $primary_key}
-     * @access public
-     * @return mixed
-     */
-    public function __get( $name )
+    private function _deleteHasOne($name)
     {
-        Log::corewrite('Getting data from Model [%s]', 3, __CLASS__, __FUNCTION__, array($name));
-        if(!isset($this->_data[$name]))
-        {
-            Log::corewrite('No data found. Checking associations...', 1, __CLASS__, __FUNCTION__);
-            if(isset($this->belongs_to[$name]))
-            {
-                return $this->_getBelongsTo($name);
-            }
-            elseif(isset($this->has_one[$name]))
-            {
-                return $this->_getHasOne($name);
-            }
-            elseif(isset($this->has_many[$name]))
-            {
-                return $this->_getHasMany($name);
-            }
-            else
-            {
-                trigger_error(__CLASS__."::".__FUNCTION__." No field by the name [".$name."] in Model [".get_class($this)."]", E_USER_NOTICE);
-                return null;
-            }
+        $r = $this->_getHasOne($name);
+        if(!is_null($r))
+    {
+            foreach($r as $obj)
+                $obj->delete();
         }
-        Log::corewrite('Found data. Checking format output...', 2, __CLASS__, __FUNCTION__);
-        if(isset($this->output_format[$name]))
-        {
-            Log::corewrite('Calling formating', 1, __CLASS__, __FUNCTION__);
-            if(is_array($this->output_format[$name]))
-            {
-                return call_user_func(array($this, $this->output_format[$name]['custom']), $this->_data[$name]);
-            } else {
-                return sprintf($this->output_format[$name], $this->_data[$name]);
-            }
-        }
-        Log::corewrite('At the end of method', 2, __CLASS__, __FUNCTION__);
-        return $this->_data[$name];
-    }
-	
-    public function get_raw($name)
-    {
-            if(!isset($this->_data[$name]))
-    {
-        trigger_error(__CLASS__."::".__FUNCTION__." No field by the name [".$name."]", E_USER_NOTICE);
-        return null;
-    }
-            return $this->_data[$name];
     }
     
+    private function _deleteHasMany($name)
+        {
+        $r = $this->_getHasMany($name);
+        if(!is_null($r))
+            {
+            foreach($r as $obj)
+                $obj->delete();
+        }
+            }
+
+    public function delete_set()
+    {
+        if(count(self::$_array[$this->_object_id]) > 0)
+            {
+            foreach(self::$_array[$this->_object_id] as $obj)
+                $obj->delete();
+            }
+    }
+
+    /**
+     * Deletes current model from database
+     * @access public
+     * @return bool
+     */
+    public function delete()
+            {
+        Log::corewrite('Deleting record', 3, __CLASS__, __FUNCTION__);
+        $pri = $this->getPrimary();
+        foreach($this->has_one as $model => $options)
+            if(is_array($options) && isset($options['dependent'])) $this->_deleteHasOne($model);
+        
+        foreach($this->has_many as $model => $options)
+            if(is_array($options) && isset($options['dependent'])) $this->_deleteHasMany($model);
+        Log::corewrite('At the end of method', 2, __CLASS__, __FUNCTION__);
+        $ret = self::$_static_info[$this->_child]['db']->delete($pri, $this->_data[$pri]);
+        return $ret;
+            }
+
+
+
+    //============================================================================//
+    // Query Macro Methods                                                        //
+    //============================================================================//
+    
+    /**
+     * Resets all [Query Builder] properties
+     * @access public
+     * @return $this
+     */
+    public function all()
+            {
+        $this->_query_material = array(
+            'select' => array(),
+            'from' => array(),
+            'joins' => array(),
+            'where' => array(),
+            'limit' => null,
+            'orderby' => array(),
+            'groupby' => array()
+        );
+        return $this;
+            }
+
+    /**
+     * Allows associative array to be passed to create query
+     * @access public
+     * @return $this
+     */
     public function find()
     {
         if(func_num_args() == 1 && is_numeric(func_get_arg(0)))
@@ -617,38 +587,118 @@ abstract class Model implements Iterator
         }
         elseif(func_num_args() == 1 && is_array(func_get_arg(0)))
         {
-            $arg = func_get_arg(0);
+            $args = func_get_arg(0);
             $obj = $this;
-            if(isset($arg['where']))
-                $obj = $obj->where($arg['where']);
-            if(isset($arg['limit']))
-                $obj = $obj->limit($arg['limit']);
+            foreach($args as $method => $params)
+            {
+                if(!is_array($params)) $params = array($params);
+                $obj = call_user_func_array(array($this, $method), $params);
+            }
             return $obj;
+            }
         }
-    }
-    
-    public function find_all()
+
+    public static function search()
     {
+        $class = get_called_class();
+        $n = new $class();
+        $r = call_user_func_array(array($n, 'find'), func_get_args());
+        return $r->run();
+    }
+	
+    /**
+     * Sets the query to only return the first result
+     * @return object $this
+     */
+    public function first()
+    {
+        return $this->limit();
+    }
+
+    /**
+     * Sets the query to only return the last result
+     * @return object $this
+     */
+    public function last()
+    {
+        $pri = $this->getPrimary();
+        $this->limit()->orderby($pri.' DESC');
         return $this;
     }
+
+
+
+    //============================================================================//
+    // Iterator Methods                                                           //
+    //============================================================================//
     
-    public function fill($data)
+        /**
+     * Magic iterator method
+     * Rewinds {@link $_position} to 0
+     * @access public
+     */
+    public function rewind()
     {
-        foreach($data as $field => $value)
+        self::$_position[$this->_object_id] = 0;
+    }
+    
+    /**
+     * Magic iterator method
+     * Returns currect {@link $_position} value
+     * @access public
+     * @return mixed
+     */
+    public function current()
         {
-            $this->$field = $value;
+        return self::$_array[$this->_object_id][self::$_position[$this->_object_id]];
         }
-        return $this;
+
+    /**
+     * Magic iterator method
+     * Returns {@link $_position}
+     * @access public
+     * @return integer
+     */
+    public function key()
+        {
+        return self::$_position[$this->_object_id];
     }
+    
+    /**
+     * Magic iterator method
+     * Increases {@link $_position} by 1
+     * @access public
+     */
+    public function next()
+    {
+        ++self::$_position[$this->_object_id];
+    }
+    
+    /**
+     * Magic iterator method
+     * Checks if array[_position] is set
+     * @access public
+     * @return bool
+     */
+    public function valid()
+        {
+        return isset(self::$_array[$this->_object_id][self::$_position[$this->_object_id]]);
+    }
+
+
+
+    //============================================================================//
+    // Conversion Methods                                                         //
+    //============================================================================//
     
     /**
      * Dumps current {@link $data} values as an array
      * @return array $data
      */
-    public function to_array()
+    public function to_array($format = array())
     {
         Log::corewrite('Turning data into an array', 3, __CLASS__, __FUNCTION__);
-        if(empty($this->output_format))
+        if(empty($this->output_format) && empty($format))
         {
             Log::corewrite('Returning fast data', 1, __CLASS__, __FUNCTION__);
             return $this->_data;
@@ -660,18 +710,37 @@ abstract class Model implements Iterator
             Log::corewrite('Formatted output [%s]', 1, __CLASS__, __FUNCTION__, array($field));
             $ret[$field] = $this->$field;
         }
+        foreach($format as $field => $function)
+        {
+            Log::corewrite('User formatted output [%s]', 1, __CLASS__, __FUNCTION__, array($field));
+            $ret[$field] = $function($ret[$field]);
+        }
         return $ret;
     }
 
-    public function to_set()
+    public function to_set($format = array())
     {
         Log::corewrite('Turning data into a set', 3, __CLASS__, __FUNCTION__);
         $ret = array();
-        foreach($this->array as $i)
+        if(isset(self::$_array[$this->_object_id]))
         {
-            $ret[] = $i->to_array();
+            foreach(self::$_array[$this->_object_id] as $i)
+                $ret[] = $i->to_array($format);
         }
         return $ret;
+    }
+
+
+
+    //============================================================================//
+    // Save Methods                                                               //
+    //============================================================================//
+
+    public function fill($data)
+    {
+        foreach($data as $field => $value)
+            $this->$field = $value;
+        return $this;
     }
 
     /**
@@ -726,127 +795,6 @@ abstract class Model implements Iterator
     }
 
     /**
-     * Magic iterator method
-     * Rewinds {@link $position} to 0
-     * @access public
-     */
-    public function rewind()
-    {
-        $this->position = 0;
-    }
-
-    /**
-     * Magic iterator method
-     * Returns currect {@link $position} value
-     * @access public
-     * @return mixed
-     */
-    public function current()
-    {
-        return $this->array[$this->position];
-    }
-
-    /**
-     * Magic iterator method
-     * Returns {@link $position}
-     * @access public
-     * @return integer
-     */
-    public function key()
-    {
-        return $this->position;
-    }
-
-    /**
-     * Magic iterator method
-     * Increases {@link $position} by 1
-     * @access public
-     */
-    public function next()
-    {
-        ++$this->position;
-    }
-
-    /**
-     * Magic iterator method
-     * Checks if array[position] is set
-     * @access public
-     * @return bool
-     */
-    public function valid()
-    {
-        return isset($this->array[$this->position]);
-    }
-
-    /**
-     * Deletes current model from database
-     * @access public
-     * @return bool
-     */
-    public function delete()
-    {
-        Log::corewrite('Deleting record', 3, __CLASS__, __FUNCTION__);
-        $pri = $this->getPrimary();
-        foreach($this->has_one as $model => $options)
-        {
-            if(is_array($options) && isset($options['dependent']))
-            {
-                $this->_deleteHasOne($model);
-            }
-        }
-        
-        foreach($this->has_many as $model => $options)
-        {
-            if(is_array($options) && isset($options['dependent']))
-            {
-                $this->_deleteHasMany($model);
-            }
-        }
-        Log::corewrite('At the end of method', 2, __CLASS__, __FUNCTION__);
-        $ret = self::$_instances_info[$this->_child]['db']->delete($pri, $this->_data[$pri]);
-        return $ret;
-    }
-    
-    private function _deleteHasOne($name)
-    {
-        $class = $this->FindModel($name);
-        if($class != null)
-        {
-            $PRI = $this->getPrimary();
-            $obj = new $class();
-            if(is_array($this->has_one[$name]))
-                $ON = (isset($this->has_one[$name]['on']) ? $this->has_one[$name]['on'] : $this->singularize($this->table_name).'_id');
-            else
-                $ON = $this->singularize($this->table_name).'_id';
-            $r = $obj->where('`'.$ON.'` = ?', $this->$PRI)->run();
-            return $r->delete();
-        } else {
-            trigger_error(__CLASS__."::".__FUNCTION__." No Model by the name [".$name."]", E_USER_NOTICE);
-            return null;
-        }
-    }
-    
-    private function _deleteHasMany($name)
-    {
-        $class = $this->FindModel($name, false);
-        if($class != null)
-        {
-            $PRI = $this->getPrimary();
-            $obj = new $class();
-            if(is_array($this->has_many[$name]))
-                $ON = (isset($this->has_many[$name]['on']) ? $this->has_many[$name]['on'] : $this->singularize($this->table_name).'_id');
-            else
-                $ON = $this->singularize($this->table_name).'_id';
-            $r = $obj->where('`'.$ON.'` = ?', $this->$PRI)->run();
-            if(isset($r->$ON))
-                $r->delete_set();
-        } else {
-            trigger_error(__CLASS__."::".__FUNCTION__." No Model by the name [".$name."]", E_USER_NOTICE);
-            return null;
-        }
-    }
-
-    /**
      * Saves current model in database
      * @access public
      * @return bool
@@ -862,14 +810,12 @@ abstract class Model implements Iterator
                 foreach($data as $field => $value)
                 {
                         if($field != 'updated_at' && $field != 'created_at' && $field != $pri && $value != $this->_pre_data[$field])
-                        {
                                 $tmp[$field] = $value;
                         }
-                }
                 $data = $tmp;
         }
         
-        $ret = self::$_instances_info[$this->_child]['db']->save($data);
+        $ret = self::$_static_info[$this->_child]['db']->save($data);
         $this->_pre_data = $this->_data;
         Log::corewrite('At end of method', 2, __CLASS__, __FUNCTION__);
         
@@ -878,84 +824,100 @@ abstract class Model implements Iterator
             foreach($this->has_one as $table => $options)
             {
                 if(is_array($options) && isset($options['create']))
-                {
                     $this->_createHasOne($table, $ret);
                 }
             }
-            
-        }
         return $ret;
     }
     
-    private function _createHasOne($name, $id)
-    {
-        $class = $this->FindModel($name);
-        if($class != null)
-        {
-            $obj = new $class();
-            $FK = strtolower($this->singularize(get_class($this)).'_id');
-            $obj->$FK = $id;
-            return $obj->save();
-        } else {
-            trigger_error(__CLASS__."::".__FUNCTION__." No Model by the name [".$name."]", E_USER_NOTICE);
-            return false;
-        }
-    }
+
+
+    //============================================================================//
+    // Query Builder Methods                                                      //
+    //============================================================================//
 
     /**
-     * Resets all [Query Builder] properties and runs query
-     * @access public
-     * @return object
-     */
-    public function all()
-    {
-        $this->select = array();
-        $this->where = array();
-        $this->groupby = array();
-        $this->orderby = array();
-        $this->limit = array();
-        return $this;
-    }
-
-    /**
-     * Adds to {@link $select}
+     * Allows selection of specific fields in table
+     *
+     * @example
+     * <?php
+     * $users = new Users();
+     * $users->select('name', 'number')->run();
+     * ?>
+     * 
      * @access public
      * @return $this
      */
     public function select()
     {
-        $this->select = array();
+        $this->_query_material['select'] = array();
         for($i=0;$i<func_num_args();$i++)
-        {
-            $this->select[] = func_get_arg($i);
-        }
+            $this->_query_material['select'][] = func_get_arg($i);
         return $this;
     }
     
     /**
-     * Sets {@link $from}
-     * @return object $this
-     * @todo Decide whether to keep this or not
+     * Allows user to overwrite what table query will be selecting from.
+     * Usually used internally by Association Methods
+     *
+     * @example
+     * <?php
+     * $users = new Users();
+     * $users->from('adminusers')->run();
+     * ?>
+     * 
+     * @access public
+     * @return $this
      */
     public function from($from)
     {
-        $this->from = $from;
+        $this->_query_material['from'] = $from;
         return $this;
     }
 
     /**
-     * Adds a where to {@link $where}
-     * @example http://www.deeplogik.com/sky/docs/examples/model
+     * Gives query a where clause. Allows different ways of
+     * determining how the clause will be constructed.
+     *
+     * Allows the following parameters:
+     * // Regular string based //////////////////////////////////////////////////////////////////////
+     * ::where(String)                                                                          
+     *     PHP: "`name` = 'Alan'"
+     *     SQL: WHERE `name` = 'Alan'
+     * // Array based ///////////////////////////////////////////////////////////////////////////////
+     * ::where(Array)                                                                           
+     *     PHP: array(1, 2, 3, 4, 5, 6)
+     *     SQL: WHERE `field` IN (1, 2, 3, 4, 5, 6)
+     * // Associative substitution based ////////////////////////////////////////////////////////////
+     * ::where(String $query, Array $sub)                                                       
+     *     PHP: "`name` = :name", array('name' => 'Alan')
+     *     SQL: WHERE `name` = 'Alan'
+     * // Ordered substitution based ////////////////////////////////////////////////////////////////
+     * ::where(String $query, String $sub [, String $...])                                      
+     *     PHP: "`name` = ? AND `age` = ?", 'Alan', 2
+     *     SQL: WHERE `name` = 'Alan' AND `age` = 23
+     * // Multiple Associative-Array based //////////////////////////////////////////////////////////
+     * ::where(String $query, Array $sub [, Array $...])                                        
+     *     PHP: array('name' => 'Alan'), array('hobbies', => array('programming', 'music'))
+     *     SQL: WHERE name = 'Alan' AND hobbies IN ('programming', 'music')
+     * 
      * @access public
      * @return $this
      */
     public function where()
     {
         Log::corewrite('Adding where clause to query', 2, __CLASS__, __FUNCTION__);
+
+        // Regular string where clause. No extra work needed
+        // PHP: "`name` = 'Alan'"
+        // SQL: WHERE `name` = 'Alan'
         if(func_num_args() == 1 && is_string(func_get_arg(0)))
         {
-            $this->where[] = func_get_arg(0);
+            $this->_query_material['where'][] = func_get_arg(0);
         }
+        // Array based where clause. Turning array into IN() where clause:
+        // PHP: array('id' => array(1, 2, 3, 4, 5, 6))
+        // SQL: WHERE `id` IN (1, 2, 3, 4, 5, 6)
         elseif(func_num_args() == 1 && is_array(func_get_arg(0)))
         {
             foreach(func_get_arg(0) as $key => $value)
@@ -963,24 +925,32 @@ abstract class Model implements Iterator
                 $operator = '=';
                 if(is_array($value))
                     $operator = 'IN';
-                $this->where[] = array(
-                    'field' => self::$_instances_info[$this->_child]['db']->escape($key),
+                $this->_query_material['where'][] = array(
+                    'field' => self::$_static_info[$this->_child]['db']->escape($key),
                     'operator' => $operator,
                     'value' => $value
                 );
             }
         }
-        elseif(func_num_args() > 1 && is_string(func_get_arg(0)) && is_array(func_get_arg(1)) && strpos(func_get_arg(0), ":") > -1)
+        // Associative substitution based where clause. 
+        // Substitution of symbol like patterns (:symbol) in first parameter
+        // PHP: "`name` = :name", array('name' => 'Alan')
+        // SQL: WHERE `name` = 'Alan'
+        elseif(func_num_args() == 2 && is_string(func_get_arg(0)) && is_array(func_get_arg(1)) && strpos(func_get_arg(0), ":") > -1)
         {
             $tmp = func_get_arg(0);
             $data = func_get_arg(1);
             preg_match_all('/\:([a-zA-Z0-9]+)/', $tmp, $matches);
             foreach($matches[1] as $field)
             {
-                $tmp = preg_replace('/(\:'.$field.')/', "'".self::$_instances_info[$this->_child]['db']->escape($data[$field])."'", $tmp);
+                $tmp = preg_replace('/(\:'.$field.')/', "'".self::$_static_info[$this->_child]['db']->escape($data[$field])."'", $tmp);
             }
-            $this->where[] = $tmp;
+            $this->_query_material['where'][] = $tmp;
         }
+        // Ordered substitution based where clause.
+        // Substitution of ? characters in first parameter with remaining parameters
+        // PHP: "`name` = ? AND `age` = ?", 'Alan', 23
+        // SQL: WHERE `name` = 'Alan' AND `age` = 23
         elseif(func_num_args() > 1 && is_string(func_get_arg(0)) && strpos(func_get_arg(0), "?") > -1)
         {
             $tmp = func_get_arg(0);
@@ -991,12 +961,15 @@ abstract class Model implements Iterator
             for($i=0;$i<$count;$i++)
             {
                 if($broken[$i] != "")
-                {
-                    $where .= $broken[$i]."'".self::$_instances_info[$this->_child]['db']->escape(func_get_arg($i+1))."' ";
-                }
+                    $where .= trim($broken[$i])." '".self::$_static_info[$this->_child]['db']->escape(func_get_arg($i+1))."' ";
             }
-            $this->where[] = $where;
+            $this->_query_material['where'][] = trim($where);
         }
+        // Multiple Associative-Array based where clause.
+        // Allows multiple arrays to be passed where
+        // the key is the field and the value is the value
+        // PHP: array('name' => 'Alan'), array('hobbies', => array('programming', 'music'))
+        // SQL: WHERE name = 'Alan' AND hobbies IN ('programming', 'music')
         elseif(func_num_args() > 0 && is_array(func_get_arg(0)))
         {
             for($i=0;$i<func_num_args();$i++)
@@ -1011,8 +984,8 @@ abstract class Model implements Iterator
                     $operator = '=';
                     if(is_array($value))
                         $operator = 'IN';
-                    $this->where[] = array(
-                        'field' => self::$_instances_info[$this->_child]['db']->escape($key),
+                    $this->_query_material['where'][] = array(
+                        'field' => self::$_static_info[$this->_child]['db']->escape($key),
                         'operator' => $operator,
                         'value' => $value
                     );
@@ -1023,40 +996,62 @@ abstract class Model implements Iterator
     }
 
     /**
-     * Adds a join to {@link $join}
-     * @param string $join
+     * Allows the joining of other tables
+     *
+     * @example
+     * <?php
+     * $users = new Users();
+     * $users->joins('addresses ON (users.id = addresses.user_id)')->run();
+     * ?>
+     *
+     * @idea Could allow the passing of objects to then allow this method to
+     *       find the associations?
      * @access public
      * @return $this
-     * @todo Need to figure out primary key thing...
      */
     public function joins($join)
     {
         if(is_string($join))
-        {
-            $this->joins[] = $join;
-        }
+            $this->_query_material['joins'][] = $join;
         return $this;
     }
 
     /**
-     * Sets up {@link $limit}
-     * @example http://www.deeplogik.com/sky/docs/examples/model
+     * Allows limiting and offsetting of results set
+     *
+     * Allows the following parameters:
+     * // Default Limit //////////////////////////////////////////////////////////////////////
+     * ::limit()
+     *     SQL: LIMIT 1
+     * // Regular Limit //////////////////////////////////////////////////////////////////////
+     * ::limit(Integer $limit)
+     *     PHP: 10
+     *     SQL: LIMIT 10
+     * // Offset Limit ///////////////////////////////////////////////////////////////////////
+     * ::limit(Integer $offset, Integer $limit)
+     *     PHP: 10, 100
+     *     SQL: LIMIT 10, 100
+     * 
+     * @example
+     * <?php
+     * $users = new Users();
+     * $users->limit(10)->run();
+     * ?>
+     *
+     * @idea Could allow the passing of objects to then allow this method to
+     *       find the associations?
      * @access public
      * @return $this
      */
     public function limit()
     {
         if(func_num_args() == 0)
-        {
-            $this->limit = 1;
-        }
+            $this->_query_material['limit'] = 1;
         elseif(func_num_args() == 1)
-        {
-            $this->limit = func_get_arg(0);
-        }
+            $this->_query_material['limit'] = func_get_arg(0);
         elseif(func_num_args() == 2)
         {
-            $this->limit = array(
+            $this->_query_material['limit'] = array(
                 "offset" => func_get_arg(0),
                 "limit" => func_get_arg(1)
             );
@@ -1065,22 +1060,46 @@ abstract class Model implements Iterator
     }
 
     /**
-     * Adds an order by to {@link $orderby}
-     * @param string $by
+     * Allows the sorting clause 'order by'
+     *
+     * @example
+     * <?php
+     * $users = new Users();
+     * $users->orderby('age')->run();
+     * ?>
+     * 
      * @access public
      * @return $this
      */
     public function orderby($by)
     {
-        $this->orderby[] = $by;
+        $this->_query_material['orderby'][] = $by;
         return $this;
     }
 
+    /**
+     * Allows the grouping clause 'group by'
+     *
+     * @example
+     * <?php
+     * $users = new Users();
+     * $users->groupby('age')->run();
+     * ?>
+     * 
+     * @access public
+     * @return $this
+     */
     public function groupby($by)
     {
-        $this->groupby[] = $by;
+        $this->_query_material['groupby'][] = $by;
         return $this;
     }
+
+
+
+    //============================================================================//
+    // Query Methods                                                              //
+    //============================================================================//
 
     /**
      * Runs query built by driver and executes it
@@ -1090,61 +1109,42 @@ abstract class Model implements Iterator
     public function run()
     {
         Log::corewrite('Running query...', 3, __CLASS__, __FUNCTION__);
-        $query = self::$_instances_info[$this->_child]['db']->buildQuery(array(
-            'select' => $this->select,
-            'from' => $this->from,
-            'where' => $this->where,
-            'joins' => $this->joins,
-            'limit' => $this->limit,
-            'orderby' => $this->orderby,
-            'groupby' => $this->groupby
-        ));
-        $this->last_query = $query;
-        if(ENV == 'DEV')
+        $query = self::$_static_info[$this->_child]['db']->buildQuery($this->_query_material);
+        $this->_last_query = $query;
+        if($GLOBALS['ENV'] != 'PRO')
         {
             $f = fopen(LOG_DIR."/development.log", 'a');
-            fwrite($f, "START: ".date('H:i:s')."\t".trim($query)."\n");
+            fwrite($f, "\033[36mSTART\033[0m: ".date('H:i:s')."\t".trim($query)."\n");
+            fclose($f);
+            $_start = microtime(true);
+        }
+        $results = self::$_static_info[$this->_child]['db']->runQuery($query);
+        if($GLOBALS['ENV'] != 'PRO')
+        {
+            $_end = microtime(true);
+            $f = fopen(LOG_DIR."/development.log", 'a');
+            fwrite($f, "\033[35mEND\033[0m: ".date('H:i:s')."\t\033[1;36mResults\033[0m [".count($results)."] \033[1;32mTime\033[0m [".round($_end - $_start, 5)."]\n");
             fclose($f);
         }
-        $results = self::$_instances_info[$this->_child]['db']->runQuery($query);
         if(count($results) == 0)
             return $this;
+        $this->_result_count = count($results);
         Log::corewrite('Results were found [%s]', 1, __CLASS__, __FUNCTION__, array(count($results)));
         for($i=0;$i<count($results);$i++)
         {
             foreach($results[$i] as $field => $value)
-            {
                 $this->_data[$field] = $value;
-            }
-            $this->array[] = clone $this;
+            self::$_array[$this->_object_id][] = clone $this;
         }
         foreach($results[0] as $field => $value)
-        {
             $this->_data[$field] = $value;
-        }
         Log::corewrite('At the end of method...', 2, __CLASS__, __FUNCTION__);
         return $this;
     }
 
-    /**
-     * Sets the query to only return the first result
-     * @return object $this
-     */
-    public function first()
+    public function getQueryMaterial()
     {
-        $this->limit(1);
-        return $this;
-    }
-
-    /**
-     * Sets the query to only return the last result
-     * @return object $this
-     */
-    public function last()
-    {
-        $pri = $this->getPrimary();
-        $this->limit(1)->orderby($pri.' DESC');
-        return $this;
+        return $this->_query_material;
     }
 
     /**
@@ -1152,45 +1152,25 @@ abstract class Model implements Iterator
      */
     public function printQuery()
     {
-        echo self::$_instances_info[$this->_child]['db']->buildQuery(array(
-            'select' => $this->select,
-            'from' => $this->from,
-            'where' => $this->where,
-            'joins' => $this->joins,
-            'limit' => $this->limit,
-            'orderby' => $this->orderby,
-            'groupby' => $this->groupby
-        ));
+        Log::predebug(self::$_static_info[$this->_child]['db']->buildQuery($this->_query_material));
 		return $this;
     }
 	
-	public function delete_set()
-	{
-		if(count($this->array) > 0)
-		{
-			$pri = $this->getPrimary();
-			$ids = array();
-			foreach($this->array as $obj)
-			{
-				$ids[] = $obj->$pri;
-			}
-			self::$_instances_info[$this->_child]['db']->delete($pri, $ids);
-		}
-	}
-
     /**
      * Figures out what the primary key of the table is and returns it
      * @return mixed $field
      */
-    protected function getPrimary()
+    public function getPrimary()
     {
         Log::corewrite('Getting table primary key', 3, __CLASS__, __FUNCTION__);
-        if(isset($this->table_schema['id']) && $this->table_schema['id']['Key'] == 'PRI')
+        if(empty(self::$_table_schema[$this->_child]))
+            self::$_table_schema[$this->_child] = self::$_static_info[$this->_child]['db']->getSchema();
+        if(isset(self::$_table_schema[$this->_child]['id']) && self::$_table_schema[$this->_child]['id']['Key'] == 'PRI')
         {
             Log::corewrite('Found fast primary key [%s]', 1, __CLASS__, __FUNCTION__, array('id'));
             return 'id';
         }
-        foreach($this->table_schema as $field => $detail)
+        foreach(self::$_table_schema[$this->_child] as $field => $detail)
         {
             Log::corewrite('Field [%s]', 1, __CLASS__, __FUNCTION__, array($field));
             if($detail['Key'] == 'PRI')
@@ -1201,6 +1181,30 @@ abstract class Model implements Iterator
         }
         Log::corewrite('No primary key found', 2, __CLASS__, __FUNCTION__);
         return NULL;
+    }
+
+    public function getStaticSet()
+    {
+        return self::$_array[$this->_object_id];
+    }
+
+    public function getObjectId()
+    {
+        return $this->_object_id;
+    }
+
+    public function getCurrentPosition()
+    {
+        return self::$_position[$this->_object_id];
+    }
+
+    public static function getModelScope()
+    {
+        foreach(debug_backtrace(true) as $stack){
+            if(isset($stack['class']) && $stack['class'] == 'Model' && isset($stack['object'])){
+                return $stack['object'];
+            }
+        }
     }
 }
 ?>

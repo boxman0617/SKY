@@ -46,6 +46,9 @@ define('RENDERED', true);
  */
 define('NOT_RENDERED', false);
 
+define('YIELD_BEFORE', 'before');
+define('YIELD_AFTER', 'after');
+
 /**
  * Controller class
  * Handles what to do with models and data then displays it to view or JSON
@@ -53,6 +56,10 @@ define('NOT_RENDERED', false);
  */
 abstract class Controller
 {
+    public static $_yield_queue = array(
+        'before' => array(),
+        'after' => array()
+    );
     /**
      * What to render flag
      *
@@ -84,10 +91,10 @@ abstract class Controller
     /**
      * Method to render
      *
-     * @access private
+     * @access protected
      * @var string
      */
-    private $method;
+    protected $method;
     /**
      * Layout name
      *
@@ -185,6 +192,14 @@ abstract class Controller
         elseif(isset($params['file']))
         {
             $this->GetFile($params['file']);
+        }
+        elseif(isset($params['yield']))
+        {
+            self::$_yield_queue[$params['yield']][] = array(
+                'view_page' => strtolower($this->method),
+                'view_dir' => strtolower(get_called_class())
+            );
+            $this->render = RENDER_NONE;
         }
     }
 
@@ -426,7 +441,18 @@ abstract class Controller
     public static function yield()
     {
         extract(self::$_variables);
+        foreach(self::$_yield_queue['before'] as $yield)
+        {
+            Log::corewrite('Opening yielded page: [%s/%s]', 1, __CLASS__, __FUNCTION__, array($yield['view_dir'], $yield['view_page']));
+            include_once(VIEW_DIR.'/'.$yield['view_dir'].'/'.$yield['view_page'].'.view.php');
+        }
+        Log::corewrite('Opening page: [%s/%s]', 1, __CLASS__, __FUNCTION__, array(self::$_variables['_MAIN_DIR'], self::$_variables['_MAIN_PAGE']));
         include_once(VIEW_DIR.'/'.self::$_variables['_MAIN_DIR'].'/'.self::$_variables['_MAIN_PAGE'].'.view.php');
+        foreach(self::$_yield_queue['after'] as $yield)
+        {
+            Log::corewrite('Opening yielded page: [%s/%s]', 1, __CLASS__, __FUNCTION__, array($yield['view_dir'], $yield['view_page']));
+            include_once(VIEW_DIR.'/'.$yield['view_dir'].'/'.$yield['view_page'].'.view.php');
+        }
     }
 
     /**
@@ -581,6 +607,13 @@ abstract class Controller
         $params = array_values(array_reverse($params));
         $t = new Task($params, false);
         $t->HandleInput($task);
+    }
+
+    public static function TruncateString($string, $chars = 100)
+    {
+        preg_match('/^.{0,' . $chars. '}(?:.*?)\b/iu', $string, $matches);
+        $new_string = $matches[0];
+        return ($new_string === $string) ? $string : $new_string . '&hellip;';
     }
 }
 ?>

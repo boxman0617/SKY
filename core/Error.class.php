@@ -39,7 +39,7 @@ class Error
 
     public function __construct()
     {
-        if(ENV !== 'PRO')
+        if($GLOBALS['ENV'] !== 'PRO')
             ini_set('display_errors', 1);
         else
             ini_set('display_errors', 0);
@@ -116,7 +116,7 @@ class Error
 
     public static function _HandleNotice($no, $str, $file, $line)
     {
-        if(ENV !== 'PRO') // Display Error
+        if($GLOBALS['ENV'] !== 'PRO') // Display Error
             self::BuildMessage($no, $str, $file, $line, 'dbf0fc');
     }
 
@@ -140,13 +140,13 @@ class Error
 
     public static function _HandleDeprecated($no, $str, $file, $line)
     {
-        if(ENV !== 'PRO') // Display Error
+        if($GLOBALS['ENV'] !== 'PRO') // Display Error
             self::BuildMessage($no, $str, $file, $line, 'eaa5ef');
     }
 
     public static function _HandleWarning($no, $str, $file, $line)
     {
-        if(ENV !== 'PRO') // Display Error
+        if($GLOBALS['ENV'] !== 'PRO') // Display Error
             self::BuildMessage($no, $str, $file, $line, 'ffe900');
     }
 
@@ -166,7 +166,7 @@ class Error
         
         $message = $str."<h3>Traceback:</h3><pre>".var_export($trace, true)."</pre>";
 
-        if(ENV !== 'PRO')
+        if($GLOBALS['ENV'] !== 'PRO')
             self::BuildMessage($no, $message, $file, $line, 'f48989');
         exit();
     }
@@ -174,7 +174,7 @@ class Error
     public static function HandleExceptionErrors($e)
     {
         self::LogError($e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine());
-        if(ENV !== 'PRO')
+        if($GLOBALS['ENV'] !== 'PRO')
             self::BuildMessage($e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine(), '949ce8');
     }
 
@@ -183,7 +183,7 @@ class Error
         $error = error_get_last();
         if($error)
         {
-            if(ENV !== 'PRO')
+            if($GLOBALS['ENV'] !== 'PRO')
             {
                 ob_end_clean( );
                 self::LogError($error['type'], $error['message'], $error['file'], $error['line']);

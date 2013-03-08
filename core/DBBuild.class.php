@@ -82,11 +82,9 @@ class DBBuild
                 $tmp = explode(':', $clm);
                 $tmp_column = array(
                     'name' => $tmp[0],
-                    'null' => true,
+                    'null' => false,
                     'type' => 'varchar(255)'
                 );
-                if(strpos($clm, "not_null"))
-                    $tmp_column['null'] = false;
                 foreach ($this->data_types as $type)
                 {
                     if($p1 = strpos($clm, $type))
@@ -100,7 +98,16 @@ class DBBuild
                         if(strpos($clm_string, "_"))
                         {
                             $value = explode("_", $clm_string);
+                            if($value[0] == 'enum')
+                            {
+                                $tmp_column['type'] = $value[0].'(';
+                                unset($value[0]);
+                                foreach($value as $opts)
+                                    $tmp_column['type'] .= "'".$opts."',";
+                                $tmp_column['type'] = substr($tmp_column['type'], 0, -1).')';
+                            } else {
                             $tmp_column['type'] = $value[0]."(".$value[1].")";
+                            }
                         } else {
                             $tmp_column['type'] = $clm_string;
                         }

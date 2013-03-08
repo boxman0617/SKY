@@ -1,10 +1,9 @@
 <?php
-// Enviroment
-define('ENV', 'DEV');
 // Auth Table/Model
 define('AUTH_MODEL', 'users');
 define('AUTH_MODEL_USERNAME', 'username');
 define('AUTH_MODEL_PASSWORD', 'password');
+define('AUTH_SALT', 'SKY');
 // Log system options
 define('APP_LOG', LOG_DIR.'/app.log');
 define('CORE_LOG', LOG_DIR.'/core.log');
@@ -46,7 +45,7 @@ $db_pro = array(
     'DB_DATABASE' => 'sky'
 );
 
-switch (ENV)
+switch ($GLOBALS['ENV'])
 {
     case 'DEV':
         define('DB_SERVER', $db_dev['DB_SERVER']);

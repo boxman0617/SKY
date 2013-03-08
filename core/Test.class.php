@@ -1,9 +1,6 @@
 <?php
-require_once(dirname(__FILE__).'/../configs/defines.php');
-import(PREIMPORTS);
 class TestMaster
 {
-    //public static $ENV_HOLD = ENV;
     public static $score = array(
         'pass' => 0,
         'fail' => 0
@@ -11,17 +8,59 @@ class TestMaster
     
     public function RunTestClass($class)
     {
+        $method = null;
+        if(strpos($class, ':'))
+        {
+            $tmp = explode(':', $class);
+            $class = $tmp[0];
+            $method = $tmp[1];
+        }
+        $files = scandir(TESTS_DIR);
+        foreach($files as $file)
+        {
+            $file_name = explode('.', $file);
+            if(strtolower($file_name[0]) == strtolower($class))
+            {
+                import(TESTS_DIR.'/'.$file); 
+                break;
+            }
+        }
         $obj = new $class();
+        if(is_null($method))
+        {
         $methods = get_class_methods($obj);
         foreach($methods as $method)
         {
-            echo "Running ".$method.": \n";
+                if($method == '__construct') continue;
+                echo $this->to_s($method).": \n";
+                $_start = microtime(true);
+                $obj->$method();
+                $_end = microtime(true);
+                echo "Elapsed time: ".round($_end - $_start, 5)."S\n\n";
+            }
+        } else {
+            echo $this->to_s($method).": \n";
+            $_start = microtime(true);
             $obj->$method();
+            $_end = microtime(true);
+            echo "Elapsed time: ".round($_end - $_start, 5)."S\n\n";
         }
         self::_OutputTotal();
     }
     
-    public static function _IncreaseCount($bool, $type)
+    private function to_s($method)
+    {
+        $pieces = preg_split('/(?=[A-Z])/',$method);
+        $string = "";
+        for($i=0;$i<count($pieces);$i++)
+        {
+            if($pieces[$i] == "") continue;
+            $string .= $pieces[$i].' ';
+        }
+        return substr($string, 0, -1);
+    }
+    
+    public static function _IncreaseCount($bool, $type, $msg)
     {
         if($bool)
         {
@@ -32,13 +71,14 @@ class TestMaster
         {
             echo "\tAssertion type [".$type."]: Fail\n";
             self::$score['fail']++;
+            self::_Message($msg);
         }
     }
     
     public static function _Message($msg)
     {
         if(!is_null($msg))
-            echo $msg;
+            echo "\t\t=> ".$msg."\n";
     }
     
     public static function _OutputTotal()
@@ -63,66 +103,37 @@ class TestMaster
         
     public static function Assert($var, $msg = null)
     {
-        self::_IncreaseCount($var === true, 'True');
-        self::_Message($msg);
+        self::_IncreaseCount($var === true, 'True', $msg);
     }
     
     public static function AssertEqual($var1, $var2, $msg = null)
     {
-        self::_IncreaseCount($var1 == $var2, 'Equal');
-        self::_Message($msg);
+        self::_IncreaseCount($var1 == $var2, 'Equal', $msg);
     }
 
     public static function AssertNotEqual($var1, $var2, $msg = null)
         {
-        self::_IncreaseCount($var1 != $var2, 'NotEqual');
-        self::_Message($msg);
+        self::_IncreaseCount($var1 != $var2, 'NotEqual', $msg);
         }
 
     public static function AssertSame($var1, $var2, $msg = null)
     {
-        self::_IncreaseCount($var1 === $var2, 'Same');
-        self::_Message($msg);
+        self::_IncreaseCount($var1 === $var2, 'Same', $msg);
     }
     
     public static function AssertNotSame($var1, $var2, $msg = null)
     {
-        self::_IncreaseCount($var1 !== $var2, 'NotSame');
-        self::_Message($msg);
+        self::_IncreaseCount($var1 !== $var2, 'NotSame', $msg);
     }
 
     public static function AssertNull($var, $msg = null)
         {
-        self::_IncreaseCount(is_null($var), 'Null');
-        self::_Message($msg);
+        self::_IncreaseCount(is_null($var), 'Null', $msg);
         }
 
     public static function AssertNotNull($var, $msg = null)
     {
-        self::_IncreaseCount(!is_null($var), 'NotNull');
-        self::_Message($msg);
+        self::_IncreaseCount(!is_null($var), 'NotNull', $msg);
     }
 }
-
-class MyTest
-{
-    public function Test1()
-    {
-        TestMaster::Assert(true);
-    }
-    
-    public function Test2()
-    {
-        TestMaster::AssertEqual(5, '5');
-    }
-    
-    public function Test3()
-    {
-        TestMaster::AssertNotEqual(5, 5);
-        TestMaster::AssertSame(5, '5');
-    }
-}
-
-$tm = new TestMaster();
-$tm->RunTestClass('MyTest');
 ?>

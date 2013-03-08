@@ -362,7 +362,7 @@ class Route
         if($query == '')
             $query = '_';
 
-        Log::corewrite('Following query [%s]', 1, __CLASS__, __FUNCTION__, array($query));
+        Log::corewrite('Following query [%s][%s]', 1, __CLASS__, __FUNCTION__, array($this->REQUEST_METHOD, $query));
 
         $e_tmp = explode('/', $query);
         if(isset($this->matches[$this->REQUEST_METHOD][count($e_tmp)]))
@@ -575,7 +575,7 @@ class Route
         $offset = 60 * 60;
         $expire = "expire: ".gmdate("D, d M Y H:i:s", time() + $offset)." GMT";
         header($expire);
-        if(ENV == "PRO")
+        if($GLOBALS['ENV'] == "PRO")
         {
             $buffer = preg_replace('!/\*[^*]*\*+([^/][^*]*\*+)*/!', '', $file);
             $file = str_replace(array("\r\n", "\r", "\n", "\t", '  ', '    ', '    '), '', $buffer);

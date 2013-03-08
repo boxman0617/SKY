@@ -1,12 +1,14 @@
 #!/usr/bin/php
 <?php
 require_once(dirname(__FILE__).'/../configs/defines.php');
+$GLOBALS['ENV'] = 'TEST';
+import(PREIMPORTS);
 import(PRELOADER);
 import(CORE_DIR.'/Test.class.php');
 
-$test = new Test($argv);
+$test = new TestMaster();
 if(isset($argv[1]))
-    $test->HandleInput($argv[1]);
+	$test->RunTestClass($argv[1]);
 else
     echo "No arguments passed... :-/\n";
 ?>

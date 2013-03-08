@@ -26,7 +26,7 @@
 class Log
 {
     public static $app_format = "%s > %s\n";
-    public static $core_format = "%s [%s][%s::%s] > ";
+    public static $core_format = "\033[1;33m%s \033[0m[\033[1;36m%s\033[0m][\033[1;31m%s::%s\033[0m] \033[1;32m>\033[0m ";
     public static $app_count = 0;
     public static $core_count = 0;
     public static $companies = array(
@@ -39,7 +39,7 @@ class Log
 
     public static function predebug()
     {
-        if(ENV !== 'PROD')
+        if($GLOBALS['ENV'] !== 'PROD')
         {
             $echo = "<pre>";
             $vars = func_get_args();
@@ -120,7 +120,7 @@ class Log
      */
     public static function corewrite($msg, $level, $class, $method, $args = array())
     {
-        if(LOGGING_ENABLED)
+        if(LOGGING_ENABLED && $GLOBALS['ENV'] != 'TEST')
         {
             if($level >= LOG_LEVEL)
             {

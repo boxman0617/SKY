@@ -163,11 +163,11 @@ class MySQLDriver implements iDriver
     {
         $query = "SELECT ";
         if(empty($material['select']))
-        {
             $material['select'][] = $this->table_name.".*";
-        }
         $query .= implode(',', $material['select']);
-        $query .= " FROM ".$this->table_name." ";
+        if(empty($material['from']))
+            $material['from'] = $this->table_name;
+        $query .= " FROM ".$material['from']." ";
         if(!empty($material['joins']))
         {
             foreach($material['joins'] as $value)
@@ -240,7 +240,12 @@ class MySQLDriver implements iDriver
         $return = array();
         $i = 0;
         if(!$r)
+        {
+            if(isset(self::$db[$this->server]->error)) trigger_error("[MySQL ERROR] => ".self::$db[$this->server]->error, E_USER_WARNING);
             return $return;
+        }
+        if($r === true)
+            return true;
         while($row = $r->fetch_assoc())
         {
             foreach($row as $key => $value)
@@ -272,7 +277,7 @@ class MySQLDriver implements iDriver
         }
         $where = substr($where, 0, -1);
         $where .= ")";
-        if(ENV == 'DEV')
+        if($GLOBALS['ENV'] == 'DEV')
         {
             $f = fopen(LOG_DIR."/development.log", 'a');
             fwrite($f, "START: ".date('H:i:s')."\t".trim($sql.$where)."\n");
@@ -317,7 +322,7 @@ class MySQLDriver implements iDriver
             }
         }
         $query = substr($query,0,-1);
-        if(ENV == 'DEV')
+        if($GLOBALS['ENV'] == 'DEV')
         {
             $f = fopen(LOG_DIR."/development.log", 'a');
             fwrite($f, "START: ".date('H:i:s')."\t".trim($query.$where)."\n");
