@@ -1,49 +1,72 @@
 <?php
-// Enviroment
-$GLOBALS['ENV'] = 'DEV';
-define('DIR_ROOT', dirname(__FILE__));
-define('CONTROLLER_DIR', DIR_ROOT.'/../app/controllers');
-define('VIEW_DIR', DIR_ROOT.'/../app/views');
-define('MODEL_DIR', DIR_ROOT.'/../app/models');
-define('MAILER_DIR', DIR_ROOT.'/../app/mailers');
-define('CORE_DIR', DIR_ROOT.'/../core');
-define('LIBS_DIR', DIR_ROOT.'/../lib');
-define('TESTS_DIR', DIR_ROOT.'/../test');
-define('CONFIGS_DIR', DIR_ROOT.'/../configs');
-define('OBJECTS_DIR', CORE_DIR.'/objects');
-define('PLUGINS_DIR', LIBS_DIR.'/plugins');
-define('TASKS_DIR', LIBS_DIR.'/tasks');
+define('SKYCORE', getenv('SKYCORE'));
+// #Defining ROOT dirs
+define('SKYCORE_CORE', SKYCORE.'/core' );
+define('SKYCORE_CONFIGS', SKYCORE.'/configs' );
+define('SKYCORE_LIB', SKYCORE.'/lib' );
+define('SKYCORE_BIN', SKYCORE.'/bin' );
+define('SKYCORE_SCRIPTS', SKYCORE.'/scripts');
+define('SKYCORE_TEST', SKYCORE.'/test');
 
-define('PRELOADER', CONFIGS_DIR.'/preloader.php');
-define('PREIMPORTS', CONFIGS_DIR.'/preimports.php');
-define('ROUTES', CONFIGS_DIR.'/routes.php');
+// #Defining ROOT/CORE dirs
+define('SKYCORE_CORE_CONTROLLER', SKYCORE_CORE.'/controller');
+define('SKYCORE_CORE_HTML', SKYCORE_CORE.'/html');
+define('SKYCORE_CORE_MODEL', SKYCORE_CORE.'/model');
+define('SKYCORE_CORE_PLUGIN', SKYCORE_CORE.'/plugin');
+define('SKYCORE_CORE_REPORTING', SKYCORE_CORE.'/reporting');
+define('SKYCORE_CORE_ROUTER', SKYCORE_CORE.'/router');
+define('SKYCORE_CORE_STORAGE', SKYCORE_CORE.'/storage');
+define('SKYCORE_CORE_UTILS', SKYCORE_CORE.'/utils');
 
-$core_classes = scandir(CORE_DIR);
-foreach($core_classes as $class)
+// #Class Definer Function
+function _ClassDefiner($path)
 {
-    $m = explode('.', $class);
-    if(isset($m[1]) && $m[1] == 'class') define(strtoupper($m[0]).'_CLASS', CORE_DIR.'/'.$class);
+    $classes = scandir($path);
+    foreach($classes as $class)
+    {
+        $m = explode('.', $class);
+        if(isset($m[1]) && $m[1] == 'class') define(strtoupper($m[0]).'_CLASS', $path.'/'.$class);
+    }
 }
+// #Defining CLASSES
+_ClassDefiner(SKYCORE_CORE_CONTROLLER);
+_ClassDefiner(SKYCORE_CORE_UTILS);
+_ClassDefiner(SKYCORE_CORE_STORAGE);
+_ClassDefiner(SKYCORE_CORE_MODEL);
+_ClassDefiner(SKYCORE_CORE_ROUTER);
+_ClassDefiner(SKYCORE_CORE_REPORTING);
+_ClassDefiner(SKYCORE_CORE_PLUGIN);
+_ClassDefiner(SKYCORE_CORE_HTML);
 
-define('LOG_DIR', DIR_ROOT.'/../log');
-define('ERROR_LOG_DIR', DIR_ROOT.'/../log/error/');
+
+// #Define Helper Functions
 $GLOBALS['IMPORTS'] = array();
-$f = fopen(LOG_DIR.'/imports.log', 'w');
-fclose($f);
-
-function import($path = "")
+function import($path)
 {
-    preg_match('/\/([a-zA-Z\.]+(?:\.php|\.task|\.sky))/', $path, $match);
+    preg_match('/\/([a-zA-Z\.]+(?:\.php|\.task))/', $path, $match);
     if(!isset($GLOBALS['IMPORTS'][$match[1]]))
     {
         if(is_file($path))
         {
             $GLOBALS['IMPORTS'][$match[1]] = true;
-            $f = fopen(LOG_DIR.'/imports.log', 'a');
-            fwrite($f, "Included [".microtime(true)."]: ".$match[1]."\n");
-            fclose($f);
             require_once($path);
         }
     }
 }
+
+if(!function_exists('date_diff'))
+{
+    function date_diff($date1, $date2)
+    { 
+        $current = $date1; 
+        $datetime2 = date_create($date2); 
+        $count = 0; 
+        while(date_create($current) < $datetime2){ 
+            $current = gmdate("Y-m-d", strtotime("+1 day", strtotime($current))); 
+            $count++; 
+        } 
+        return $count; 
+    } 
+}
+
 ?>

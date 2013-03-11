@@ -1,0 +1,119 @@
+#!/usr/bin/php
+<?php
+require_once(dirname(__FILE__).'/../configs/defines.php');
+import(SKY_CLASS);
+import(COMMANDLINE_CLASS);
+$cli = new CommandLine($argv);
+
+$cli->Delegate(array(
+	0 => array(
+		'new' => array('BuildNewProject', 1),
+		'upgrade' => array('UpgradeSky', 1),
+		'help' => 'DisplayHelp'
+	)
+));
+
+//#####################################################
+//# Delegate Functions
+//#####################################################
+function DisplayHelp()
+{
+	CommandLine::HeaderBar();
+	CommandLine::Puts(CommandLine::LJust("# SKY Version ".SKY::Version(), 34, ' ')."#");
+	CommandLine::HeaderBar('=');
+	CommandLine::Puts("Usage: sky [option, [arguments]]");
+	CommandLine::Puts("=> new");
+	CommandLine::Puts(" -> sky new project_name");
+	CommandLine::Puts("=> upgrade");
+	CommandLine::Puts("=> help");
+	CommandLine::HeaderBar();
+}
+
+function BuildNewProject($path)
+{
+	SKY::RCP(SKYCORE.'/skytemp', $path);
+	CommandLine::HeaderBar();
+	CommandLine::Puts('Creating new SKY project:');
+	CommandLine::Puts(" => app");
+	CommandLine::Puts("\t => app/controllers");
+	CommandLine::Puts("\t => app/mailers");
+	CommandLine::Puts("\t => app/models");
+	CommandLine::Puts("\t => app/views");
+	CommandLine::Puts(" => configs");
+	CommandLine::Puts(" => lib");
+	CommandLine::Puts("\t => lib/objects");
+	CommandLine::Puts("\t => lib/plugins");
+	CommandLine::Puts("\t => lib/tasks");
+	CommandLine::Puts("\t => lib/tmp");
+	CommandLine::Puts(" => log");
+	CommandLine::Puts(" => public");
+	CommandLine::Puts("\t => public/stylesheet");
+	CommandLine::Puts("\t => public/javascript");
+	CommandLine::Puts("\t => public/images");
+	CommandLine::Puts(" => test");
+	CommandLine::HeaderBar();
+	chmod($path.'/log', 0777);
+}
+
+function UpgradeSky()
+{
+	set_time_limit(0);
+	CommandLine::Puts("Getting master version...");
+	$live_version = trim(file_get_contents('http://codethesky.com/version/current'));
+	$live_v = explode('.', $live_version);
+	$local_v = explode('.', SKY::Version());
+	$levels = array('Major', 'Minor', 'Revision');
+	
+	$upgrade = false;
+	if($live_v[0] > $local_v[0]) $upgrade = $levels[0];
+	if($upgrade === false && $live_v[1] > $local_v[1]) $upgrade = $levels[1];
+	if($upgrade === false && $live_v[2] > $local_v[2]) $upgrade = $levels[2];
+
+	if($upgrade === false) // No upgrade
+	{
+		CommandLine::Puts("Nothing to upgrade. Current Version [".$live_version."]");
+		return false;
+	} else {
+		CommandLine::HeaderBar();
+		CommandLine::Puts("There is a [".$upgrade."] upgrade");
+		$ans = CommandLine::Question("Want to upgrade from [".SKY::Version()."] to [".$live_version."]?");
+
+		if(strtoupper($ans) == 'Y')
+		{
+			CommandLine::Puts('Checking changelog...');
+			$changelog = unserialize(trim(file_get_contents('http://codethesky.com/version/changelog/'.SKY::Version().'/'.$live_version)));
+			CommandLine::HeaderBar();
+			CommandLine::Puts("Change log:");
+			CommandLine::HeaderBar('-');
+			foreach($changelog as $cl)
+				CommandLine::Puts(" => ".$cl['filechanged']);
+			CommandLine::HeaderBar('-');
+			$continue = CommandLine::Question('Want to continue?');
+			if(strtoupper($ans) == 'Y')
+			{
+				CommandLine::Puts('Downloading version ['.$live_version.'] of SKY...');
+				$v_info = unserialize(trim(file_get_contents('http://codethesky.com/version/info/'.$live_version)));
+				mkdir('/tmp/SKYupgrade_'.implode('', $live_v));
+				SKY::DownloadFile(
+					'http://github.com/boxman0617/SKY/archive/'.$v_info['hash'].'.zip', 
+					'/tmp/SKYupgrade_'.implode('', $live_v).'/tmp.zip'
+				);
+				CommandLine::Puts("Upgrading...");
+				echo "[=="; flush();
+				exec('unzip /tmp/SKYupgrade_'.implode('', $live_v).'/tmp.zip -d /tmp/SKYupgrade_'.implode('', $live_v).'/');
+				echo "=="; flush();
+				exec('rm -f /tmp/SKYupgrade_'.implode('', $live_v).'/tmp.zip');
+				echo "=="; flush();
+				SKY::RCP('/tmp/SKYupgrade_'.implode('', $live_v).'/', SKYCORE.'/');
+				CommandLine::Puts("==] Done!");
+				flush();
+			} else
+				CommandLine::End('Good bye!');
+		} else
+			CommandLine::End('Good bye!');
+	}
+}
+
+
+$cli->Run();
+?>

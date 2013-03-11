@@ -1,0 +1,42 @@
+<?php
+//#############################################
+// Enviromet Variable @SafeToEdit
+//#############################################
+$GLOBALS['ENV'] = 'DEV';
+
+//#############################################
+// APP Defines @DoNotEdit
+//#############################################
+// #App Files
+define('DIR_APP', APPROOT.'/app');
+define('DIR_APP_CONTROLLERS', APPROOT.'/app/controllers');
+define('DIR_APP_MAILERS', APPROOT.'/app/mailers');
+define('DIR_APP_MODELS', APPROOT.'/app/models');
+define('DIR_APP_VIEWS', APPROOT.'/app/views');
+
+// #APP Configs Files
+define('DIR_CONFIGS', APPROOT.'/configs');
+
+// #APP Lib Files
+define('DIR_LIB', APPROOT.'/lib');
+define('DIR_LIB_OBJECTS', DIR_LIB.'/objects');
+
+// #APP Log Files
+define('DIR_LOG', APPROOT.'/log');
+define('APP_LOG', DIR_LOG.'/app.log');
+define('CORE_LOG', DIR_LOG.'/core.log');
+
+// #APP Public Files
+define('DIR_PUBLIC', APPROOT.'/public');
+
+// #APP Test Files
+define('DIR_TEST', APPROOT.'/test');
+
+//#############################################
+// USER Defines @SafeToEdit/Add
+//#############################################
+// If you have any local defines, 
+// add them below.
+//#############################################
+
+?>
