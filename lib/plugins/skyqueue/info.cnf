@@ -1,0 +1,5 @@
+# Config file for SKYQueue
+name=SKYQueue
+version=0.0.0
+file=SKYQueue.plugin.php
+class=SKYQueue
