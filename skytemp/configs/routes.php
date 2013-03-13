@@ -8,7 +8,7 @@ class AppRoute extends Route
 	{
 		$this->Home('Home#Index');
 
-		$this->NotFound('Home#Error');
+		$this->NotFound('ErrorPage#NotFound');
 
 		// $this->Match('/test', 'Home#Test', 'GET');
 

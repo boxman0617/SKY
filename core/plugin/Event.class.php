@@ -105,6 +105,7 @@ class Event implements iEvent
                 //}
             }
         }
+        return true;
     }
 }
 ?>

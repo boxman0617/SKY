@@ -33,24 +33,21 @@ function BuildNewProject($path)
 {
 	SKY::RCP(SKYCORE.'/skytemp', $path);
 	CommandLine::HeaderBar();
+	$dirs = scandir(SKYCORE.'/skytemp');
 	CommandLine::Puts('Creating new SKY project:');
-	CommandLine::Puts(" => app");
-	CommandLine::Puts("\t => app/controllers");
-	CommandLine::Puts("\t => app/mailers");
-	CommandLine::Puts("\t => app/models");
-	CommandLine::Puts("\t => app/views");
-	CommandLine::Puts(" => configs");
-	CommandLine::Puts(" => lib");
-	CommandLine::Puts("\t => lib/objects");
-	CommandLine::Puts("\t => lib/plugins");
-	CommandLine::Puts("\t => lib/tasks");
-	CommandLine::Puts("\t => lib/tmp");
-	CommandLine::Puts(" => log");
-	CommandLine::Puts(" => public");
-	CommandLine::Puts("\t => public/stylesheet");
-	CommandLine::Puts("\t => public/javascript");
-	CommandLine::Puts("\t => public/images");
-	CommandLine::Puts(" => test");
+	foreach($dirs as $d)
+	{
+		if(is_dir(SKYCORE.'/skytemp/'.$d) && $d != '.' && $d != '..')
+		{
+			CommandLine::Puts(" => ".$d);
+			$inner = scandir(SKYCORE.'/skytemp/'.$d);
+			foreach ($inner as $inner_d) 
+			{
+				if(is_dir(SKYCORE.'/skytemp/'.$d.'/'.$inner_d) && $inner_d != '.' && $inner_d != '..')
+					CommandLine::Puts("\t => ".$d.'/'.$inner_d);
+			}
+		}
+	}
 	CommandLine::HeaderBar();
 	chmod($path.'/log', 0777);
 }

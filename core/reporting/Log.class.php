@@ -79,6 +79,7 @@ class Log
                 fwrite($f, $r);
             }
             fclose($f);
+            chmod(APP_LOG, 0777);
         }
     }
 

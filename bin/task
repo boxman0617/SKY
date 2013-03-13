@@ -1,10 +1,8 @@
 #!/usr/bin/php
 <?php
-require_once(dirname(__FILE__).'/../configs/defines.php');
-require_once(dirname(__FILE__).'/../configs/configure.php');
-import(PRELOADER);
-import(PREIMPORTS);
-import(CORE_DIR.'/Task.class.php');
+require_once(getenv('SKYCORE').'/core/utils/SKY.class.php');
+SKY::LoadCore();
+import(TASK_CLASS);
 
 $task = new Task($argv);
 if(isset($argv[1]))

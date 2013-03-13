@@ -1,1 +1,4 @@
-<h2><?= $error; ?></h2>
+<div id="error">
+	<h1>404</h1>
+	<h3>Page not found</h3>
+</div>

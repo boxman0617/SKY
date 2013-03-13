@@ -2,7 +2,7 @@
 import(LOG_CLASS);
 import(PLUGIN_CLASS);
 import(EVENT_CLASS);
-//import('/plugins.php');
+import(DIR_CONFIGS.'/plugins.php');
 import(SKYCORE_CONFIGS.'/preloader.php');
 import(HTML_CLASS);
 import(ERROR_CLASS);

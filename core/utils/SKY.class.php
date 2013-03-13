@@ -50,5 +50,17 @@ class SKY
 
 	    return true;
 	}
+
+	public static function LoadCore()
+	{
+		require_once(getenv('SKYCORE').'/configs/defines.php');
+		define('APPROOT', getcwd());
+
+		require_once(APPROOT.'/configs/defines.php');
+		require_once(DIR_CONFIGS.'/configure.php');
+
+		require_once(SKYCORE_CONFIGS.'/configure.php');
+		require_once(SKYCORE_CONFIGS.'/loadcore.php');
+	}
 }
 ?>

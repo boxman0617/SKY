@@ -30,7 +30,7 @@ class CommandLine
 				{
 					if(function_exists($this->delegates[$key][$value][0]))
 					{
-						if(isset($this->delegates[$key][$value][1]))
+						if(!isset($this->delegates[$key][$value][1]))
 						{
 							call_user_func(
 								$this->delegates[$key][$value][0]

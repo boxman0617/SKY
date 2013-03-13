@@ -232,12 +232,15 @@ class Router
                 }
             }
 
-            $class = ucfirst(strtolower($indirect_matches[$winner]['controller']));
-                    import(DIR_APP_CONTROLLERS.'/'.strtolower($class).'.controller.php');
-            $obj = new $class($indirect_matches[$winner]['params']);
-            $obj->HandleRequest(ucfirst(strtolower($winner)));
-                    $this->status = STATUS_FOUND;
-                    return true;
+            if(!is_null($winner))
+            {
+                $class = ucfirst(strtolower($indirect_matches[$winner]['controller']));
+                import(DIR_APP_CONTROLLERS.'/'.strtolower($class).'.controller.php');
+                $obj = new $class($indirect_matches[$winner]['params']);
+                $obj->HandleRequest(ucfirst(strtolower($winner)));
+                $this->status = STATUS_FOUND;
+                return true;
+            }
         }
 
         $this->status = STATUS_NOTFOUND;

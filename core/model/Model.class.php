@@ -504,29 +504,26 @@ abstract class Model implements Iterator
     {
         $r = $this->_getHasOne($name);
         if(!is_null($r))
-    {
+        {
             foreach($r as $obj)
                 $obj->delete();
         }
     }
     
     private function _deleteHasMany($name)
-        {
+    {
         $r = $this->_getHasMany($name);
         if(!is_null($r))
-            {
+        {
             foreach($r as $obj)
                 $obj->delete();
         }
-            }
+    }
 
     public function delete_set()
     {
         if(count(self::$_array[$this->_object_id]) > 0)
-            {
-            foreach(self::$_array[$this->_object_id] as $obj)
-                $obj->delete();
-            }
+            foreach(self::$_array[$this->_object_id] as $obj) $obj->delete();
     }
 
     /**
@@ -535,18 +532,23 @@ abstract class Model implements Iterator
      * @return bool
      */
     public function delete()
-            {
+    {
+        Event::PublishActionHook('/Model/delete/start', array(&$this->_data));
         Log::corewrite('Deleting record', 3, __CLASS__, __FUNCTION__);
         $pri = $this->getPrimary();
+        Event::PublishActionHook('/Model/delete/primarykey', array(&$pri));
         foreach($this->has_one as $model => $options)
             if(is_array($options) && isset($options['dependent'])) $this->_deleteHasOne($model);
         
         foreach($this->has_many as $model => $options)
             if(is_array($options) && isset($options['dependent'])) $this->_deleteHasMany($model);
+
         Log::corewrite('At the end of method', 2, __CLASS__, __FUNCTION__);
+        Event::PublishActionHook('/Model/delete/before', array(&$this, $pri, $this->_data, $this->_child));
         $ret = self::$_static_info[$this->_child]['db']->delete($pri, $this->_data[$pri]);
+        Event::PublishActionHook('/Model/delete/after', array(&$this, $ret));
         return $ret;
-            }
+    }
 
 
 
@@ -560,7 +562,7 @@ abstract class Model implements Iterator
      * @return $this
      */
     public function all()
-            {
+    {
         $this->_query_material = array(
             'select' => array(),
             'from' => array(),
@@ -571,7 +573,7 @@ abstract class Model implements Iterator
             'groupby' => array()
         );
         return $this;
-            }
+    }
 
     /**
      * Allows associative array to be passed to create query
@@ -650,9 +652,9 @@ abstract class Model implements Iterator
      * @return mixed
      */
     public function current()
-        {
+    {
         return self::$_array[$this->_object_id][self::$_position[$this->_object_id]];
-        }
+    }
 
     /**
      * Magic iterator method
@@ -661,7 +663,7 @@ abstract class Model implements Iterator
      * @return integer
      */
     public function key()
-        {
+    {
         return self::$_position[$this->_object_id];
     }
     
@@ -682,7 +684,7 @@ abstract class Model implements Iterator
      * @return bool
      */
     public function valid()
-        {
+    {
         return isset(self::$_array[$this->_object_id][self::$_position[$this->_object_id]]);
     }
 
@@ -807,13 +809,13 @@ abstract class Model implements Iterator
         $data = $this->_data;
         if(!empty($this->_pre_data))
         {
-                $tmp = array();
-                foreach($data as $field => $value)
-                {
-                        if($field != 'updated_at' && $field != 'created_at' && $field != $pri && $value != $this->_pre_data[$field])
-                                $tmp[$field] = $value;
-                        }
-                $data = $tmp;
+            $tmp = array();
+            foreach($data as $field => $value)
+            {
+                if($field != 'updated_at' && $field != 'created_at' && $field != $pri && $value != $this->_pre_data[$field])
+                    $tmp[$field] = $value;
+            }
+            $data = $tmp;
         }
         
         $ret = self::$_static_info[$this->_child]['db']->save($data);
@@ -826,8 +828,8 @@ abstract class Model implements Iterator
             {
                 if(is_array($options) && isset($options['create']))
                     $this->_createHasOne($table, $ret);
-                }
             }
+        }
         return $ret;
     }
     
@@ -1206,6 +1208,12 @@ abstract class Model implements Iterator
                 return $stack['object'];
             }
         }
+    }
+
+    public function isEmpty()
+    {
+        if($this->_result_count == 0) return true;
+        return false;
     }
 }
 ?>

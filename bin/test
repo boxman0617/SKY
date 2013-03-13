@@ -1,10 +1,9 @@
 #!/usr/bin/php
 <?php
-require_once(dirname(__FILE__).'/../configs/defines.php');
+require_once(getenv('SKYCORE').'/core/utils/SKY.class.php');
+SKY::LoadCore();
 $GLOBALS['ENV'] = 'TEST';
-import(PREIMPORTS);
-import(PRELOADER);
-import(CORE_DIR.'/Test.class.php');
+import(TEST_CLASS);
 
 $test = new TestMaster();
 if(isset($argv[1]))
