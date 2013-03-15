@@ -125,18 +125,9 @@ class MongoDBDriver implements iDriver
 		return addslashes(rtrim($value));
 	}
 	
-	public function buildQuery($material)
+	public function buildQuery()
 	{
-		var_dump($material);
-		$query = array();
-		if(!empty($material['select']))
-		{
-			$this->select = $material['select'];
-		}
-		if(!empty($material['where']))
-		{
-			
-		}
+		
 	}
 }
 ?>

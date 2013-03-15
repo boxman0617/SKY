@@ -21,30 +21,18 @@
  */
 
 import(MODEL_CLASS);
+import(RENDER_CLASS);
 
-/**
- * Constant RENDER_NONE, tells controller not to render anything
- */
-define('RENDER_NONE', 0);
-/**
- * Constant RENDER_HTML, tells controller to render HTML page
- */
-define('RENDER_HTML', 1);
-/**
- * Constant RENDER_JSON, tells controller to render JSON code
- */
-define('RENDER_JSON', 2);
-/**
- * Constant RENDERD, tells controller that it has been rendered
- */
+define('RENDER_NONE', 'RenderNONE');
+define('RENDER_HTML', 'RenderHTML');
+define('RENDER_JSON', 'RenderJSON');
+define('RENDER_XML', 'RenderXML');
+
 define('RENDERED', true);
-/**
- * Constant NOT_RENDERD, tells controller that it has not been rendered yet
- */
 define('NOT_RENDERED', false);
 
-define('YIELD_BEFORE', 'before');
-define('YIELD_AFTER', 'after');
+define('SUBVIEW_BEFORE', 'before');
+define('SUBVIEW_AFTER', 'after');
 
 /**
  * Controller class
@@ -53,88 +41,26 @@ define('YIELD_AFTER', 'after');
  */
 abstract class Controller
 {
-    public static $_yield_queue = array(
+    protected $before_filter = array();
+    protected $after_filter = array();
+
+    protected $render_info = array(
+        'layout' => 'layout/layout.view.php',
+        'method' => null,
+        'status' => NOT_RENDERED,
+        'render' => RENDER_HTML
+    );
+    public static $_subview_info = array(
+        'dir' => null,
+        'view' => null
+    );
+
+    public $params = array();
+    public static $_variables = array();
+    public static $_subview_queue = array(
         'before' => array(),
         'after' => array()
     );
-    /**
-     * What to render flag
-     *
-     * @access private
-     * @var integer
-     */
-    private $render = RENDER_HTML;
-    /**
-     * Rendered Status
-     *
-     * @access private
-     * @var bool
-     */
-    private $render_status = NOT_RENDERED;
-    /**
-     * Redirect directive
-     *
-     * @access protected
-     * @var string
-     */
-    protected $redirect = null;
-    /**
-     * Data to pass to JSON render method
-     *
-     * @access private
-     * @var mixed
-     */
-    private $render_info = null;
-    /**
-     * Method to render
-     *
-     * @access protected
-     * @var string
-     */
-    protected $method;
-    /**
-     * Layout name
-     *
-     * @access protected
-     * @var string
-     */
-    protected $layout = 'layout/layout.view.php';
-    /**
-     * $_POST params
-     *
-     * @access public
-     * @var array
-     */
-    public $params = array();
-    /**
-     * A filter applied before a controller action
-     *
-     * @access protected
-     * @var array
-     */
-    protected $before_filter = array();
-    /**
-     * A filter applied around a controller action
-     *
-     * @access protected
-     * @todo Not sure if this will be fully implemented
-     * @var array
-     */
-    protected $around_filter = array();
-    /**
-     * A filter applied after a controller action
-     *
-     * @access protected
-     * @var array
-     */
-    protected $after_filter = array();
-    /**
-     * The variables that will be passed to the Views
-     *
-     * @access public
-     * @var array
-     */
-    public static $_variables = array();
 
     /**
      * Constructor method. Gets called at object initialization.
@@ -176,11 +102,8 @@ abstract class Controller
         }
         elseif(isset($params['flag']))
         {
-            $this->render = $params['flag'];
-            if(isset($params['info']))
-            {
-                $this->render_info = $params['info'];
-            }
+            $this->render_info['render'] = $params['flag'];
+            if(isset($params['info'])) $this->render_info['info'] = $params['info'];
         }
 		elseif(isset($params['view']))
 		{
@@ -190,13 +113,13 @@ abstract class Controller
         {
             $this->GetFile($params['file']);
         }
-        elseif(isset($params['yield']))
+        elseif(isset($params['subview']))
         {
-            self::$_yield_queue[$params['yield']][] = array(
-                'view_page' => strtolower($this->method),
+            self::$_subview_queue[$params['subview']][] = array(
+                'view_page' => strtolower($this->render_info['method']),
                 'view_dir' => strtolower(get_called_class())
             );
-            $this->render = RENDER_NONE;
+            $this->render_info['render'] = RENDER_NONE;
         }
     }
 
@@ -247,7 +170,7 @@ abstract class Controller
         header("Content-Transfer-Encoding: binary");
         header("Content-Length: ".filesize($filename));
         readfile("$filename");
-        $this->render = RENDER_NONE;
+        $this->render_info['render'] = RENDER_NONE;
     }
 
     /**
@@ -260,7 +183,7 @@ abstract class Controller
      */
     protected function SetLayout($layout_name)
     {
-        $this->layout = $layout_name;
+        $this->render_info['layout'] = $layout_name;
     }
 
     /**
@@ -299,12 +222,12 @@ abstract class Controller
                     if(is_array($options['only']))
                     {
                         $options['only'] = array_map('strtolower', $options['only']);
-                        if(in_array(strtolower($this->method), $options['only']))
+                        if(in_array(strtolower($this->render_info['method']), $options['only']))
                         {
                             call_user_func(array($this, $filter));
                         }
                     } else {
-                        if(strtolower($this->method) == strtolower($options['only']))
+                        if(strtolower($this->render_info['method']) == strtolower($options['only']))
                         {
                             call_user_func(array($this, $filter));
                         }
@@ -313,12 +236,12 @@ abstract class Controller
                     if(is_array($options['exclude']))
                     {
                         $options['exclude'] = array_map('strtolower', $options['exclude']);
-                        if(!in_array(strtolower($this->method), $options['exclude']))
+                        if(!in_array(strtolower($this->render_info['method']), $options['exclude']))
                         {
                             call_user_func(array($this, $filter));
                         }
                     } else {
-                        if(strtolower($this->method) != strtolower($options['exclude']))
+                        if(strtolower($this->render_info['method']) != strtolower($options['exclude']))
                         {
                             call_user_func(array($this, $filter));
                         }
@@ -353,51 +276,30 @@ abstract class Controller
      * @param string $method Name of child method to run.
      * @param mixed $pass default null Array of parameters to pass to child method.
      */
-    public function HandleRequest($method, $pass = null)
+    public function HandleRequest($method)
     {
         Log::corewrite('Handling request by [%s]', 3, __CLASS__, __FUNCTION__, array($method));
         Event::PublishActionHook('/Controller/before/HandleRequest/', array($this));
-        $this->method = $method;
+        $this->render_info['method'] = $method;
+        self::$_subview_info['dir'] = strtolower(get_class($this));
+        self::$_subview_info['view'] = strtolower($this->render_info['method']);
+        unset($method);
+
+        // Run Action Determined by Router
         $this->HandleBeforeFilters();
-        call_user_func(array($this, $method), $pass);
+        call_user_func(array($this, $this->render_info['method']));
         $this->HandleAfterFilters();
-        switch($this->render)
+
+        // Render
+        if($this->render_info['render'] != RENDER_NONE)
         {
-            case RENDER_HTML:
-                if(!$this->render_status)
-                {
-                    $this->RenderHTML();
-                }
-                break;
-            case RENDER_JSON:
-                $this->RenderJSON();
-                break;
-            case RENDER_NONE:
-                break;
+            $class = $this->render_info['render'];
+            $obj = new $class();
+            $obj->Render($this->render_info);
         }
+
         Event::PublishActionHook('/Controller/after/HandleRequest/', array($this));
         Log::corewrite('At the end of method', 2, __CLASS__, __FUNCTION__);
-    }
-
-    /**
-     * Renders data in JSON format.
-     *
-     * This methods runs property $render_info through the json_encode function.
-     *
-     * @todo Check if json_encode is available, if not... Create way of encoding.
-     */
-    protected function RenderJSON()
-    {
-        Event::PublishActionHook('/Controller/before/RenderJSON/', array($this->render_info));
-        if(!is_null($this->render_info))
-        {
-            echo json_encode($this->render_info);
-            Event::PublishActionHook('/Controller/after/RenderJSON/', array($this));
-            return true;
-        }
-        echo json_encode(array());
-        Event::PublishActionHook('/Controller/after/RenderJSON/', array($this));
-        return false;
     }
 
     /**
@@ -412,43 +314,25 @@ abstract class Controller
     }
 
     /**
-     * Renders data HTML page.
-     *
-     * Declares variables that have been assigned to this action
-     * then includes the correct Layout view.
-     */
-    protected function RenderHTML()
-    {
-        Event::PublishActionHook('/Controller/before/RenderHTML/', array($this));
-        extract(self::$_variables);
-        self::$_variables['_MAIN_DIR'] = strtolower(get_class($this));
-        self::$_variables['_MAIN_PAGE'] = strtolower($this->method);
-        self::$_variables['_secure_post'] = Router::CreateHash(Router::GetSalt());
-        include_once(DIR_APP_VIEWS.'/'.$this->layout);
-        $this->render_status = RENDERED;
-        Event::PublishActionHook('/Controller/after/RenderHTML/', array($this));
-    }
-
-    /**
      * Includes action view inside Layout view.
      *
      * This static method allows the view of the action to be included
      * inside the current Layout view.
      */
-    public static function yield()
+    public static function RenderSubView()
     {
         extract(self::$_variables);
-        foreach(self::$_yield_queue['before'] as $yield)
+        foreach(self::$_subview_queue['before'] as $subview)
         {
-            Log::corewrite('Opening yielded page: [%s/%s]', 1, __CLASS__, __FUNCTION__, array($yield['view_dir'], $yield['view_page']));
-            include_once(DIR_APP_VIEWS.'/'.$yield['view_dir'].'/'.$yield['view_page'].'.view.php');
+            Log::corewrite('Opening subviewed page: [%s/%s]', 1, __CLASS__, __FUNCTION__, array($subview['view_dir'], $subview['view_page']));
+            include_once(DIR_APP_VIEWS.'/'.$subview['view_dir'].'/'.$subview['view_page'].'.view.php');
         }
-        Log::corewrite('Opening page: [%s/%s]', 1, __CLASS__, __FUNCTION__, array(self::$_variables['_MAIN_DIR'], self::$_variables['_MAIN_PAGE']));
-        include_once(DIR_APP_VIEWS.'/'.self::$_variables['_MAIN_DIR'].'/'.self::$_variables['_MAIN_PAGE'].'.view.php');
-        foreach(self::$_yield_queue['after'] as $yield)
+        Log::corewrite('Opening page: [%s/%s]', 1, __CLASS__, __FUNCTION__, array(self::$_subview_info['dir'], self::$_subview_info['view']));
+        include_once(DIR_APP_VIEWS.'/'.self::$_subview_info['dir'].'/'.self::$_subview_info['view'].'.view.php');
+        foreach(self::$_subview_queue['after'] as $subview)
         {
-            Log::corewrite('Opening yielded page: [%s/%s]', 1, __CLASS__, __FUNCTION__, array($yield['view_dir'], $yield['view_page']));
-            include_once(DIR_APP_VIEWS.'/'.$yield['view_dir'].'/'.$yield['view_page'].'.view.php');
+            Log::corewrite('Opening subviewed page: [%s/%s]', 1, __CLASS__, __FUNCTION__, array($subview['view_dir'], $subview['view_page']));
+            include_once(DIR_APP_VIEWS.'/'.$subview['view_dir'].'/'.$subview['view_page'].'.view.php');
         }
     }
 

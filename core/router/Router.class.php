@@ -129,17 +129,14 @@ class Router
         Event::PublishActionHook('/Route/before/SecurePOST/');
         if($request_method == 'POST' || $request_method == 'PUT')
         {
-            if(!isset($_POST['token']))
-            {
-                //$this->error->Toss("Not Authorized! [No token past]", E_USER_WARNING);
-            }
+            if(!isset($_POST['token'])) trigger_error("Not Authorized! [No token passed]", E_USER_WARNING);
             if($_POST['token'] != Route::CreateHash(Route::GetSalt()))
             {
                 Log::corewrite('Authorized token incorrect [%s] = [%s]', 1, __CLASS__, __FUNCTION__, array($_POST['token'], Route::CreateHash(Route::GetSalt())));
                 $session = Session::getInstance();
                 $id = $session->getSessionId();
                 Log::corewrite('Getting stats [%s] [%s]', 1, __CLASS__, __FUNCTION__, array($id, self::$salt));
-                //$this->error->Toss('Not Authorized! [Incorrect token]', E_USER_ERROR);
+                trigger_error('Not Authorized! [Incorrect token]', E_USER_ERROR);
             }
         }
         Event::PublishActionHook('/Route/after/SecurePOST/');

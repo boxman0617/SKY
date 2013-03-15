@@ -82,28 +82,28 @@ abstract class Model implements Iterator
         if(!isset(self::$_static_info[$this->_child]['db']))
         {
             self::$_static_info[$this->_child]['driver'] = MODEL_DRIVER.'Driver';
-        if(is_file(SKYCORE_CORE_MODEL."/drivers/".MODEL_DRIVER.".driver.php"))
-        {
-            Log::corewrite('Found driver [%s]', 1, __CLASS__, __FUNCTION__, array(MODEL_DRIVER));
-            import(SKYCORE_CORE_MODEL."/drivers/".MODEL_DRIVER.".driver.php");
-                self::$_static_info[$this->_child]['db'] = new self::$_static_info[$this->_child]['driver']($this->db_array);
-                if(!self::$_static_info[$this->_child]['db'] instanceof iDriver)
-                trigger_error('Driver loaded is not an instance of iDriver interface!', E_USER_ERROR);
-                if(!isset($this->table_name))
+            if(is_file(SKYCORE_CORE_MODEL."/drivers/".MODEL_DRIVER.".driver.php"))
             {
-                Log::corewrite('::$table_name is NOT set. Attempting to create name out of class', 1, __CLASS__, __FUNCTION__);
-                    if(!self::$_static_info[$this->_child]['db']->doesTableExist(get_class($this)))
-                    trigger_error('No table name specified. Please add property $table_name to model.', E_USER_ERROR);
-                else
-                        $this->table_name = strtolower(get_class($this));
+                Log::corewrite('Found driver [%s]', 1, __CLASS__, __FUNCTION__, array(MODEL_DRIVER));
+                import(SKYCORE_CORE_MODEL."/drivers/".MODEL_DRIVER.".driver.php");
+                    self::$_static_info[$this->_child]['db'] = new self::$_static_info[$this->_child]['driver']($this->db_array);
+                    if(!self::$_static_info[$this->_child]['db'] instanceof iDriver)
+                    trigger_error('Driver loaded is not an instance of iDriver interface!', E_USER_ERROR);
+                    if(!isset($this->table_name))
+                {
+                    Log::corewrite('::$table_name is NOT set. Attempting to create name out of class', 1, __CLASS__, __FUNCTION__);
+                        if(!self::$_static_info[$this->_child]['db']->doesTableExist(get_class($this)))
+                        trigger_error('No table name specified. Please add property $table_name to model.', E_USER_ERROR);
+                    else
+                            $this->table_name = strtolower(get_class($this));
+                }
+                    self::$_static_info[$this->_child]['db']->setTableName($this->table_name);
+                    self::$_static_info[$this->_child]['db']->setSchema();
+                    self::$_static_info[$this->_child]['table_name'] = $this->table_name;
+                Log::corewrite('Model was set properly [%s]', 2, __CLASS__, __FUNCTION__, array(get_class($this)));
+            } else {
+                trigger_error('No driver found for model! Model: '.get_class($this).' | Driver: '.MODEL_DRIVER, E_USER_ERROR);
             }
-                self::$_static_info[$this->_child]['db']->setTableName($this->table_name);
-                self::$_static_info[$this->_child]['db']->setSchema();
-                self::$_static_info[$this->_child]['table_name'] = $this->table_name;
-            Log::corewrite('Model was set properly [%s]', 2, __CLASS__, __FUNCTION__, array(get_class($this)));
-        } else {
-            trigger_error('No driver found for model! Model: '.get_class($this).' | Driver: '.MODEL_DRIVER, E_USER_ERROR);
-        }
         }
         
         self::$_table_schema[$this->_child] = self::$_static_info[$this->_child]['db']->getSchema();
@@ -136,7 +136,12 @@ abstract class Model implements Iterator
      */
     public function __call($method, $args)
     {
-        if(substr($method, 0, 7) == 'find_by')
+        if(method_exists(self::$_static_info[$this->_child]['db'], $method))
+        {
+            call_user_func_array(array(self::$_static_info[$this->_child]['db'], $method), $args);
+            return $this;
+        }
+        elseif(substr($method, 0, 7) == 'find_by')
         {
             $options = substr($method, 8);
             $conditions = $this->create_conditions_from_underscored_string($options, $args);
@@ -834,272 +839,6 @@ abstract class Model implements Iterator
     }
     
 
-
-    //============================================================================//
-    // Query Builder Methods                                                      //
-    //============================================================================//
-
-    /**
-     * Allows selection of specific fields in table
-     *
-     * @example
-     * <?php
-     * $users = new Users();
-     * $users->select('name', 'number')->run();
-     * ?>
-     * 
-     * @access public
-     * @return $this
-     */
-    public function select()
-    {
-        $this->_query_material['select'] = array();
-        for($i=0;$i<func_num_args();$i++)
-            $this->_query_material['select'][] = func_get_arg($i);
-        return $this;
-    }
-    
-    /**
-     * Allows user to overwrite what table query will be selecting from.
-     * Usually used internally by Association Methods
-     *
-     * @example
-     * <?php
-     * $users = new Users();
-     * $users->from('adminusers')->run();
-     * ?>
-     * 
-     * @access public
-     * @return $this
-     */
-    public function from($from)
-    {
-        $this->_query_material['from'] = $from;
-        return $this;
-    }
-
-    /**
-     * Gives query a where clause. Allows different ways of
-     * determining how the clause will be constructed.
-     *
-     * Allows the following parameters:
-     * // Regular string based //////////////////////////////////////////////////////////////////////
-     * ::where(String)                                                                          
-     *     PHP: "`name` = 'Alan'"
-     *     SQL: WHERE `name` = 'Alan'
-     * // Array based ///////////////////////////////////////////////////////////////////////////////
-     * ::where(Array)                                                                           
-     *     PHP: array(1, 2, 3, 4, 5, 6)
-     *     SQL: WHERE `field` IN (1, 2, 3, 4, 5, 6)
-     * // Associative substitution based ////////////////////////////////////////////////////////////
-     * ::where(String $query, Array $sub)                                                       
-     *     PHP: "`name` = :name", array('name' => 'Alan')
-     *     SQL: WHERE `name` = 'Alan'
-     * // Ordered substitution based ////////////////////////////////////////////////////////////////
-     * ::where(String $query, String $sub [, String $...])                                      
-     *     PHP: "`name` = ? AND `age` = ?", 'Alan', 2
-     *     SQL: WHERE `name` = 'Alan' AND `age` = 23
-     * // Multiple Associative-Array based //////////////////////////////////////////////////////////
-     * ::where(String $query, Array $sub [, Array $...])                                        
-     *     PHP: array('name' => 'Alan'), array('hobbies', => array('programming', 'music'))
-     *     SQL: WHERE name = 'Alan' AND hobbies IN ('programming', 'music')
-     * 
-     * @access public
-     * @return $this
-     */
-    public function where()
-    {
-        Log::corewrite('Adding where clause to query', 2, __CLASS__, __FUNCTION__);
-
-        // Regular string where clause. No extra work needed
-        // PHP: "`name` = 'Alan'"
-        // SQL: WHERE `name` = 'Alan'
-        if(func_num_args() == 1 && is_string(func_get_arg(0)))
-        {
-            $this->_query_material['where'][] = func_get_arg(0);
-        }
-        // Array based where clause. Turning array into IN() where clause:
-        // PHP: array('id' => array(1, 2, 3, 4, 5, 6))
-        // SQL: WHERE `id` IN (1, 2, 3, 4, 5, 6)
-        elseif(func_num_args() == 1 && is_array(func_get_arg(0)))
-        {
-            foreach(func_get_arg(0) as $key => $value)
-            {
-                $operator = '=';
-                if(is_array($value))
-                    $operator = 'IN';
-                $this->_query_material['where'][] = array(
-                    'field' => self::$_static_info[$this->_child]['db']->escape($key),
-                    'operator' => $operator,
-                    'value' => $value
-                );
-            }
-        }
-        // Associative substitution based where clause. 
-        // Substitution of symbol like patterns (:symbol) in first parameter
-        // PHP: "`name` = :name", array('name' => 'Alan')
-        // SQL: WHERE `name` = 'Alan'
-        elseif(func_num_args() == 2 && is_string(func_get_arg(0)) && is_array(func_get_arg(1)) && strpos(func_get_arg(0), ":") > -1)
-        {
-            $tmp = func_get_arg(0);
-            $data = func_get_arg(1);
-            preg_match_all('/\:([a-zA-Z0-9]+)/', $tmp, $matches);
-            foreach($matches[1] as $field)
-            {
-                $tmp = preg_replace('/(\:'.$field.')/', "'".self::$_static_info[$this->_child]['db']->escape($data[$field])."'", $tmp);
-            }
-            $this->_query_material['where'][] = $tmp;
-        }
-        // Ordered substitution based where clause.
-        // Substitution of ? characters in first parameter with remaining parameters
-        // PHP: "`name` = ? AND `age` = ?", 'Alan', 23
-        // SQL: WHERE `name` = 'Alan' AND `age` = 23
-        elseif(func_num_args() > 1 && is_string(func_get_arg(0)) && strpos(func_get_arg(0), "?") > -1)
-        {
-            $tmp = func_get_arg(0);
-            Log::corewrite('Passed ? where clause [%s]', 1, __CLASS__, __FUNCTION__, array($tmp));
-            $count = substr_count($tmp, "?");
-            $broken = explode("?", $tmp);
-            $where = "";
-            for($i=0;$i<$count;$i++)
-            {
-                if($broken[$i] != "")
-                    $where .= trim($broken[$i])." '".self::$_static_info[$this->_child]['db']->escape(func_get_arg($i+1))."' ";
-            }
-            $this->_query_material['where'][] = trim($where);
-        }
-        // Multiple Associative-Array based where clause.
-        // Allows multiple arrays to be passed where
-        // the key is the field and the value is the value
-        // PHP: array('name' => 'Alan'), array('hobbies', => array('programming', 'music'))
-        // SQL: WHERE name = 'Alan' AND hobbies IN ('programming', 'music')
-        elseif(func_num_args() > 0 && is_array(func_get_arg(0)))
-        {
-            for($i=0;$i<func_num_args();$i++)
-            {
-                $arg = func_get_arg($i);
-                if(!is_array($arg))
-                {
-                    trigger_error(__CLASS__."::".__FUNCTION__." Must be an array");
-                }
-                foreach($arg as $key => $value)
-                {
-                    $operator = '=';
-                    if(is_array($value))
-                        $operator = 'IN';
-                    $this->_query_material['where'][] = array(
-                        'field' => self::$_static_info[$this->_child]['db']->escape($key),
-                        'operator' => $operator,
-                        'value' => $value
-                    );
-                }
-            }
-        }
-        return $this;
-    }
-
-    /**
-     * Allows the joining of other tables
-     *
-     * @example
-     * <?php
-     * $users = new Users();
-     * $users->joins('addresses ON (users.id = addresses.user_id)')->run();
-     * ?>
-     *
-     * @idea Could allow the passing of objects to then allow this method to
-     *       find the associations?
-     * @access public
-     * @return $this
-     */
-    public function joins($join)
-    {
-        if(is_string($join))
-            $this->_query_material['joins'][] = $join;
-        return $this;
-    }
-
-    /**
-     * Allows limiting and offsetting of results set
-     *
-     * Allows the following parameters:
-     * // Default Limit //////////////////////////////////////////////////////////////////////
-     * ::limit()
-     *     SQL: LIMIT 1
-     * // Regular Limit //////////////////////////////////////////////////////////////////////
-     * ::limit(Integer $limit)
-     *     PHP: 10
-     *     SQL: LIMIT 10
-     * // Offset Limit ///////////////////////////////////////////////////////////////////////
-     * ::limit(Integer $offset, Integer $limit)
-     *     PHP: 10, 100
-     *     SQL: LIMIT 10, 100
-     * 
-     * @example
-     * <?php
-     * $users = new Users();
-     * $users->limit(10)->run();
-     * ?>
-     *
-     * @idea Could allow the passing of objects to then allow this method to
-     *       find the associations?
-     * @access public
-     * @return $this
-     */
-    public function limit()
-    {
-        if(func_num_args() == 0)
-            $this->_query_material['limit'] = 1;
-        elseif(func_num_args() == 1)
-            $this->_query_material['limit'] = func_get_arg(0);
-        elseif(func_num_args() == 2)
-        {
-            $this->_query_material['limit'] = array(
-                "offset" => func_get_arg(0),
-                "limit" => func_get_arg(1)
-            );
-        }
-        return $this;
-    }
-
-    /**
-     * Allows the sorting clause 'order by'
-     *
-     * @example
-     * <?php
-     * $users = new Users();
-     * $users->orderby('age')->run();
-     * ?>
-     * 
-     * @access public
-     * @return $this
-     */
-    public function orderby($by)
-    {
-        $this->_query_material['orderby'][] = $by;
-        return $this;
-    }
-
-    /**
-     * Allows the grouping clause 'group by'
-     *
-     * @example
-     * <?php
-     * $users = new Users();
-     * $users->groupby('age')->run();
-     * ?>
-     * 
-     * @access public
-     * @return $this
-     */
-    public function groupby($by)
-    {
-        $this->_query_material['groupby'][] = $by;
-        return $this;
-    }
-
-
-
     //============================================================================//
     // Query Methods                                                              //
     //============================================================================//
@@ -1112,7 +851,7 @@ abstract class Model implements Iterator
     public function run()
     {
         Log::corewrite('Running query...', 3, __CLASS__, __FUNCTION__);
-        $query = self::$_static_info[$this->_child]['db']->buildQuery($this->_query_material);
+        $query = self::$_static_info[$this->_child]['db']->buildQuery();
         $this->_last_query = $query;
         if($GLOBALS['ENV'] != 'PRO')
         {
@@ -1155,7 +894,7 @@ abstract class Model implements Iterator
      */
     public function printQuery()
     {
-        Log::predebug(self::$_static_info[$this->_child]['db']->buildQuery($this->_query_material));
+        Log::predebug(self::$_static_info[$this->_child]['db']->buildQuery());
 		return $this;
     }
 	

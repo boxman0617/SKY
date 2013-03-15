@@ -27,7 +27,7 @@ interface iDriver {
     public function save($data);
     
     public function escape($value);
-    public function buildQuery($material);
+    public function buildQuery();
     
 }
 ?>
