@@ -22,92 +22,47 @@ import(SKYCORE_CORE_MODEL."/Driver.interface.php");
 class MongoDBDriver implements iDriver
 {
 	private static $db;
+	private static $collection;
 	private static $table_schema;
-	private static $coll;
-	private $collection_name;
+	private $server;
 	
-	private $select = NULL;
-	private $where = NULL;
-	
-	public function __construct()
+	public function __construct($db_array = NULL)
 	{
-		if(!self::$db)
-		{
-			$m = new Mongo('mongodb://'.DB_USERNAME.':'.DB_PASSWORD.'@'.DB_SERVER.'/');
-			self::$db = $m->selectDB(DB_DATABASE) ;
-		}
+		$this->server = DB_SERVER;
+		if(!is_null($db_array) && isset($db_array['DB_SERVER'])) $this->server = $db_array['DB_SERVER'];
+        $db = array(
+        	'DB_SERVER' => DB_SERVER,
+        	'DB_USERNAME' => DB_USERNAME,
+        	'DB_PASSWORD' => DB_PASSWORD,
+        	'DB_DATABASE' => DB_DATABASE
+        );
+        if(!is_null($db_array)) $db = $db_array;
+        if(!isset(self::$db[$this->server]))
+        {
+        	$m = new MongoClient('mongodb://'.$db['DB_USERNAME'].':'.$db['DB_PASSWORD'].'@'.$db['DB_SERVER'].'/');
+        	self::$db[$this->server] = $m->$db['DB_DATABASE'];
+        }
+
 	}
 	
 	public function setTableName($name)
 	{
-		self::$coll[$name] = self::$db->$name;
-		$this->collection_name = $name;
+		self::$collection = self::$db[$this->server]->$name;
 	}
 	
 	public function setSchema()
 	{
-		$r = self::$coll[$this->collection_name]->findOne();
-		foreach($r as $key => $value)
-		{
-			$k = "NULL";
-			if($key == "_id")
-			{
-				$k = "PRI";
-			}
-			self::$table_schema[$this->collection_name][$key] = array(
-				"Type" => gettype($value),
-				"Null" => true,
-				"Key" => $k,
-				"Default" => "",
-				"Extra" => ""
-			);
-		}
+		return true;
 	}
 	
 	public function getSchema()
 	{
-		if(!isset(self::$table_schema[$this->collection_name]))
-			$this->setSchema();
-		return self::$table_schema[$this->collection_name];
+		return array();
 	}
 	
 	public function doesTableExist($class_name)
 	{
-		preg_match_all('/[A-Z][^A-Z]*/', $class_name, $strings);
-		$table_name = false;
-		if(isset($strings[0]))
-			$table_name = strtolower(implode('_', $strings[0]));
-		else
-			return false;
-		
-		if($table_name)
-		{
-			$c = self::$db->listCollections();	
-			foreach($c as $v)
-			{
-				if(preg_match('/\.('.$table_name.')$/', $v) === 1)
-				{
-					$this->collection_name = $table_name;
-					return true;
-				}
-			}
-		}
-	}
-	
-	private function autoIncrement()
-	{
-		$r = $db = self::$db->command(array(
-			'findandmodify' => 'counters',
-			'query' => array(
-				'_id' => $this->collection_name.'_id'
-			),
-			'update' => array(
-				'$inc' => array(
-					'c' => 1
-				)
-			)
-		));
-		return $r['value']['c'];
+		return true;
 	}
 	
 	public function runQuery($query)
