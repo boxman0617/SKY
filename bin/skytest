@@ -1,0 +1,13 @@
+#!/usr/bin/php
+<?php
+require_once(getenv('SKYCORE').'/core/utils/SKY.class.php');
+SKY::LoadCore('TEST');
+import(TEST_CLASS);
+import(DBBUILD_CLASS);
+
+$test = new TestMaster();
+if(isset($argv[1]))
+	$test->RunTestClass($argv[1]);
+else
+    echo "No arguments passed... :-/\n";
+?>
