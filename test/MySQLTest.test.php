@@ -23,7 +23,7 @@ class MySQLTest
 		$m = new Mysqltests();
 		$r = $m->where('age > 20')->run();
 		foreach($r as $a)
-			var_dump($a);
+			echo $a->name." ".$a->age." ".$a->occupation."\n";
 	}
 
 	public function InsertRowsIntoTable()
