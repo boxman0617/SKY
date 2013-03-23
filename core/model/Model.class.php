@@ -138,13 +138,14 @@ abstract class Model implements Iterator, ArrayAccess
 				$this->_iterator_position
 			);
 			$this->_iterator_data[$this->_iterator_position] = $UPDATED['updated'];
+			return $UPDATED['status'];
 		//# Save New Record
 		} else {
 			$DOCUMENT = self::$_static_info[$this->_child]['driver']->savenew(
 				$this->_iterator_data[$this->_iterator_position]
 			);
 			$this->_iterator_data[$this->_iterator_position][$this->PrimaryKey] = $DOCUMENT['data'];
-			return $DOCUMENT['_id'];
+			return $DOCUMENT['pri'];
 		}
 	}
 

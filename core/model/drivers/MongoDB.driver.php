@@ -112,7 +112,7 @@ class MongoDBDriver implements iDriver
         $data['updated_at'] = new MongoTimestamp();
         self::$DB[$this->Server]->insert($data);
         return array(
-            '_id' => $DOCUMENT_ID,
+            'pri' => $DOCUMENT_ID,
             'data' => $data
         );
     }

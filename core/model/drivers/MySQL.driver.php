@@ -77,6 +77,44 @@ class MySQLDriver implements iDriver
         return $RETURN;
     }
 
+    public function update(&$unaltered, &$data, $position)
+    {
+        if(isset($unaltered[$position]))
+        {
+            $CHANGES = array_diff($data, $unaltered[$position]);
+            $QUERY   = 'UPDATE `'.$this->TableName.'` SET (';
+
+            if(isset($CHANGES['created_at'])) unset($CHANGES['created_at']);
+            if(isset($CHANGES['updated_at'])) unset($CHANGES['updated_at']);
+
+            foreach($CHANGES as $FIELD => $VALUE)
+                $QUERY .= "`".$FIELD."` = '".self::$DB[$this->Server]->real_escape_string($VALUE)."',";
+            $QUERY = substr($QUERY, 0, -1).") WHERE `".$this->PrimaryKey."` = '".$data[$this->PrimaryKey]."'";
+            if($GLOBALS['ENV'] == 'DEV')
+            {
+                $f = fopen(DIR_LOG."/development.log", 'a');
+                fwrite($f, "START: ".date('H:i:s')."\t".trim($QUERY)."\n");
+                fclose($f);
+            }
+            $STATUS = self::$DB[$this->Server]->query($QUERY);
+            if($GLOBALS['ENV'] == 'DEV')
+            {
+                $f = fopen(DIR_LOG."/development.log", 'a');
+                fwrite($f, "END: ".date('H:i:s')."\n");
+                fclose($f);
+            }
+            return array(
+                'status' => $STATUS,
+                'updated' => array_merge($CHANGES, $data)
+            );
+        }
+    }
+
+    public function savenew(&$data)
+    {
+
+    }
+
 
 
     //============================================================================//
