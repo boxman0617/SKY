@@ -49,11 +49,9 @@ class Testpersons extends Model
         $m = new Testpersons();
         $r = $m->find(array('name' => 'Alan'))->run();
         TestMaster::AssertEqual($r->age, 23, 'Document age not set to 23');
-        var_dump($r->updated_at);
         $r->age = 24;
         TestMaster::AssertEqual($r->age, 24, 'Document age not set to 24');
         $r->save();
-        var_dump($r->updated_at);
 
         $m = new Testpersons();
         $r = $m->find(array('name' => 'Alan'))->run();

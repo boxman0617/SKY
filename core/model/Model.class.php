@@ -208,12 +208,13 @@ abstract class Model implements Iterator, ArrayAccess
 
 	public function offsetGet($offset)
 	{
-		if(isset($this->_iterator_data[$offset]))
+		if(is_null($offset))
 		{
-			$this->_iterator_position = $offset;
+			++$this->_iterator_position;
 			return $this->current();
 		}
-		return null;
+		$this->_iterator_position = $offset;
+		return $this->current();
 	}
 
 	public function offsetSet($offset, $value)

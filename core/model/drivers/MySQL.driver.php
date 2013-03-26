@@ -41,6 +41,11 @@ class MySQLDriver implements iDriver
         $this->PrimaryKey = $key;
     }
 
+    public function getPrimaryKey()
+    {
+        return $this->PrimaryKey;
+    }
+
     public function escape($value)
     {
     	return self::$DB[$this->Server]->real_escape_string($value);
@@ -82,26 +87,27 @@ class MySQLDriver implements iDriver
         if(isset($unaltered[$position]))
         {
             $CHANGES = array_diff($data, $unaltered[$position]);
-            $QUERY   = 'UPDATE `'.$this->TableName.'` SET (';
+            $QUERY   = 'UPDATE `'.$this->TableName.'` SET ';
 
             if(isset($CHANGES['created_at'])) unset($CHANGES['created_at']);
             if(isset($CHANGES['updated_at'])) unset($CHANGES['updated_at']);
 
             foreach($CHANGES as $FIELD => $VALUE)
                 $QUERY .= "`".$FIELD."` = '".self::$DB[$this->Server]->real_escape_string($VALUE)."',";
-            $QUERY = substr($QUERY, 0, -1).") WHERE `".$this->PrimaryKey."` = '".$data[$this->PrimaryKey]."'";
-            if($GLOBALS['ENV'] == 'DEV')
+            $QUERY = substr($QUERY, 0, -1)." WHERE `".$this->PrimaryKey."` = '".$data[$this->PrimaryKey]."'";
+            if($GLOBALS['ENV'] != 'PRO')
             {
-                $f = fopen(DIR_LOG."/development.log", 'a');
-                fwrite($f, "START: ".date('H:i:s')."\t".trim($QUERY)."\n");
-                fclose($f);
+                $LOG = fopen(DIR_LOG."/development.log", 'a');
+                fwrite($LOG, "\033[36mSTART\033[0m: ".date('H:i:s')."\t".trim($QUERY)."\n");
+                fclose($LOG);
             }
             $STATUS = self::$DB[$this->Server]->query($QUERY);
-            if($GLOBALS['ENV'] == 'DEV')
+            if($GLOBALS['ENV'] != 'PRO')
             {
-                $f = fopen(DIR_LOG."/development.log", 'a');
-                fwrite($f, "END: ".date('H:i:s')."\n");
-                fclose($f);
+                $LOG = fopen(DIR_LOG."/development.log", 'a');
+                if($STATUS === false) fwrite($LOG, "\033[31mERROR\033[0m: ".self::$DB[$this->Server]->error."\n");
+                fwrite($LOG, "\033[35mEND\033[0m: ".date('H:i:s')."\n");
+                fclose($LOG);
             }
             return array(
                 'status' => $STATUS,
@@ -112,7 +118,32 @@ class MySQLDriver implements iDriver
 
     public function savenew(&$data)
     {
-
+        $QUERY = 'INSERT INTO `'.$this->TableName.'` SET ';
+        $NOW = date('Y-m-d H:i:s');
+        $data['created_at'] = $NOW;
+        $data['updated_at'] = $NOW;
+        foreach($data as $FIELD => $VALUE)
+            $QUERY .= ' `'.$FIELD.'` = "'.$this->escape($VALUE).'",';
+        $QUERY = substr($QUERY, 0, -1);
+        if($GLOBALS['ENV'] != 'PRO')
+        {
+            $LOG = fopen(DIR_LOG."/development.log", 'a');
+            fwrite($LOG, "\033[36mSTART\033[0m: ".date('H:i:s')."\t".trim($QUERY)."\n");
+            fclose($LOG);
+        }
+        $ID = self::$DB[$this->Server]->query($QUERY);
+        if($GLOBALS['ENV'] != 'PRO')
+        {
+            $LOG = fopen(DIR_LOG."/development.log", 'a');
+            if($ID === false) fwrite($LOG, "\033[31mERROR\033[0m: ".self::$DB[$this->Server]->error."\n");
+            fwrite($LOG, "\033[35mEND\033[0m: ".date('H:i:s')."\n");
+            fclose($LOG);
+        }
+        if($ID) $ID = self::$DB[$this->Server]->insert_id;
+        return array(
+            'pri' => $ID,
+            'data' => $data
+        );
     }
 
 
