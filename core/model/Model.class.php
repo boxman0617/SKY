@@ -151,7 +151,14 @@ abstract class Model implements Iterator, ArrayAccess
 
 	public function save_all()
 	{
-
+		$RETURN = true;
+		for($i = 0; $i < count($this->_iterator_data); $i++)
+		{
+			$this->_iterator_position = $i;
+			$STATUS = $this->save();
+			if((bool)$STATUS === false) $RETURN = false;
+		}
+		return $RETURN;
 	}
 
 	//############################################################

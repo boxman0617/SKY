@@ -58,35 +58,27 @@ class MySQLTest
 	}
 
 	public function DeleteRow()
-    {
-        $m = new Mysqltests();
-        $r = $m->where('name = ?', 'Alan')->run();
-        $BOOL = $r->delete();
-        TestMaster::Assert($BOOL, 'Was not deleted!');
-    }
+  {
+      $m = new Mysqltests();
+      $r = $m->where('name = ?', 'Alan')->run();
+      $BOOL = $r->delete();
+      TestMaster::Assert($BOOL, 'Was not deleted!');
+  }
 
-	// private function randVowel()
-	// {
-	// 	$vowels = array("a", "e", "i", "o", "u");
-	// 	return $vowels[array_rand($vowels, 1)];
-	// }
-
-	// private function randConsonant()
-	// {
-	// 	$consonants = array("a", "b", "c", "d", "v", "g", "t");
-	// 	return $consonants[array_rand($consonants, 1)];
-	// }
-
-	// public function LoadTestSaving()
-	// {
-	// 	$m = new Mysqltests();
-	// 	for($i = 0; $i < 100; $i++)
-	// 	{
-	// 		$m[$i]->name = ucfirst($this->randConsonant().$this->randVowel().$this->randConsonant().$this->randVowel().$this->randVowel());
-	// 		$m[$i]->age = rand(1, 100);
-	// 		$m[$i]->occupation = 'Person';
-	// 	}
-	// 	$m->save_all();
-	// }
+	public function LoadTestSaving()
+	{
+		$m = new Mysqltests();
+		for($i = 0; $i < 100; $i++)
+		{
+			$m[$i]->name = ucfirst(randConsonant().randVowel().randConsonant().randVowel().randVowel());
+			$m[$i]->age = rand(1, 100);
+			$m[$i]->occupation = 'Person';
+		}
+		$_START = microtime(true);
+		$RETURN = $m->save_all();
+    $_END = microtime(true);
+    TestMaster::Assert($RETURN, 'Something went wrong!');
+    TestMaster::Assert((2.59776 > ($_END - $_START)), 'Query took too long! ['.($_END - $_START).'s]');
+	}
 }
 ?>

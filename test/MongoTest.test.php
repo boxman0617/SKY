@@ -8,13 +8,19 @@ class MongoTest
         $db = $m->skytest;
         $db->drop();
 
-		$class = "<?php
+		$class = '<?php
 class Testpersons extends Model
 {
-
+    protected $DatabaseOverwrite    = array(
+        "DB_SERVER"     => "localhost",
+        "DB_USERNAME"   => "",
+        "DB_PASSWORD"   => "",
+        "DB_DATABASE"   => "skytest",
+        "MODEL_DRIVER"  => "MongoDB"
+    );
 }
 ?>
-";
+';
         $f = fopen(DIR_APP_MODELS."/Testpersons.model.php", "w");
         fwrite($f, $class);
         fclose($f);
@@ -80,14 +86,26 @@ class Testpersons extends Model
     {
         $m = new Testpersons();
         $r = $m->find()->run();
-        var_dump($r->to_set());
         $m = new Testpersons();
         $r = $m->find(array('name' => 'Alan'))->run();
         $BOOL = $r->delete();
         TestMaster::Assert($BOOL, 'Was not deleted!');
+    }
+
+    public function LoadTestSaving()
+    {
         $m = new Testpersons();
-        $r = $m->find()->run();
-        var_dump($r->to_set());
+        for($i = 0; $i < 100; $i++)
+        {
+            $m[$i]->name = ucfirst(randConsonant().randVowel().randConsonant().randVowel().randVowel());
+            $m[$i]->age = rand(1, 100);
+            $m[$i]->occupation = 'Person';
+        }
+        $_START = microtime(true);
+        $RETURN = $m->save_all();
+        $_END = microtime(true);
+        TestMaster::Assert($RETURN, 'Something went wrong!');
+        echo ($_END - $_START)." TIME\n";
     }
 }
 ?>

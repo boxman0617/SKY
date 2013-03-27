@@ -132,9 +132,13 @@ class MongoDBDriver implements iDriver
         {
             $_END = microtime(true);
             $LOG = fopen(DIR_LOG."/development.log", 'a');
+            if(!is_null($STATUS['err']))
+                fwrite($LOG, "\033[35mERROR\033[0m: ".date('H:i:s')."\tMSG:\033[0m [".$STATUS['err']."]\n");
             fwrite($LOG, "\033[35mEND\033[0m: ".date('H:i:s')."\tTime\033[0m [".round($_END - $_START, 5)."]\n");
             fclose($LOG);
         }
+        if((float)$STATUS['ok'] === (float)1) return true;
+        return false;
     }
 
     //============================================================================//

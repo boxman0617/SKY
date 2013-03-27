@@ -15,6 +15,11 @@ class MySQLDriver implements iDriver
 		self::$DB[$this->Server] = new mysqli($db['DB_SERVER'], $db['DB_USERNAME'], $db['DB_PASSWORD'], $db['DB_DATABASE']);
 	}
 
+    public function modelMethodOverwrite()
+    {
+        
+    }
+
 	public function buildModelInfo(&$model)
 	{
 		$this->Model = $model;
