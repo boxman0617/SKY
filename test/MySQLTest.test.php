@@ -57,28 +57,36 @@ class MySQLTest
 		}
 	}
 
-	private function randVowel()
-	{
-		$vowels = array("a", "e", "i", "o", "u");
-		return $vowels[array_rand($vowels, 1)];
-	}
+	public function DeleteRow()
+    {
+        $m = new Mysqltests();
+        $r = $m->where('name = ?', 'Alan')->run();
+        $BOOL = $r->delete();
+        TestMaster::Assert($BOOL, 'Was not deleted!');
+    }
 
-	private function randConsonant()
-	{
-		$consonants = array("a", "b", "c", "d", "v", "g", "t");
-		return $consonants[array_rand($consonants, 1)];
-	}
+	// private function randVowel()
+	// {
+	// 	$vowels = array("a", "e", "i", "o", "u");
+	// 	return $vowels[array_rand($vowels, 1)];
+	// }
 
-	public function LoadTestSaving()
-	{
-		$m = new Mysqltests();
-		for($i = 0; $i < 100; $i++)
-		{
-			$m[$i]->name = ucfirst($this->randConsonant().$this->randVowel().$this->randConsonant().$this->randVowel().$this->randVowel());
-			$m[$i]->age = rand(1, 100);
-			$m[$i]->occupation = 'Person';
-		}
-		$m->save_all();
-	}
+	// private function randConsonant()
+	// {
+	// 	$consonants = array("a", "b", "c", "d", "v", "g", "t");
+	// 	return $consonants[array_rand($consonants, 1)];
+	// }
+
+	// public function LoadTestSaving()
+	// {
+	// 	$m = new Mysqltests();
+	// 	for($i = 0; $i < 100; $i++)
+	// 	{
+	// 		$m[$i]->name = ucfirst($this->randConsonant().$this->randVowel().$this->randConsonant().$this->randVowel().$this->randVowel());
+	// 		$m[$i]->age = rand(1, 100);
+	// 		$m[$i]->occupation = 'Person';
+	// 	}
+	// 	$m->save_all();
+	// }
 }
 ?>

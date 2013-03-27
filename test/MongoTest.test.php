@@ -3,6 +3,11 @@ class MongoTest
 {
 	public function __construct()
 	{
+        unlink(DIR_APP_MODELS.'/Testpersons.model.php');
+        $m = new MongoClient('mongodb://localhost');
+        $db = $m->skytest;
+        $db->drop();
+
 		$class = "<?php
 class Testpersons extends Model
 {
@@ -71,12 +76,18 @@ class Testpersons extends Model
         TestMaster::AssertEqual($r->_id, $id, 'Returned _id from insert does not match! ['.$r->_id.']['.$id.']');
     }
 
-	public function __destruct()
-	{
-		unlink(DIR_APP_MODELS.'/Testpersons.model.php');
-        $m = new MongoClient('mongodb://localhost');
-        $db = $m->skytest;
-        $db->drop();
-	}
+    public function DeleteRow()
+    {
+        $m = new Testpersons();
+        $r = $m->find()->run();
+        var_dump($r->to_set());
+        $m = new Testpersons();
+        $r = $m->find(array('name' => 'Alan'))->run();
+        $BOOL = $r->delete();
+        TestMaster::Assert($BOOL, 'Was not deleted!');
+        $m = new Testpersons();
+        $r = $m->find()->run();
+        var_dump($r->to_set());
+    }
 }
 ?>

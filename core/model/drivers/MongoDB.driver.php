@@ -52,7 +52,7 @@ class MongoDBDriver implements iDriver
 
     public function escape($value)
     {
-    	
+    	return $value;
     }
 
     public function run()
@@ -117,20 +117,38 @@ class MongoDBDriver implements iDriver
         );
     }
 
-
+    public function delete(&$ID)
+    {
+        $QUERY = array($this->PrimaryKey => new MongoId((string)$ID));
+        if($GLOBALS['ENV'] != 'PRO')
+        {
+            $LOG = fopen(DIR_LOG."/development.log", 'a');
+            fwrite($LOG, "\033[36mSTART\033[0m: ".date('H:i:s')."\tREMOVE: ".trim(var_export($QUERY, true))."\n");
+            fclose($LOG);
+            $_START = microtime(true);
+        }
+        $STATUS = self::$DB[$this->Server]->remove($QUERY, array('justOne' => true));
+        if($GLOBALS['ENV'] != 'PRO')
+        {
+            $_END = microtime(true);
+            $LOG = fopen(DIR_LOG."/development.log", 'a');
+            fwrite($LOG, "\033[35mEND\033[0m: ".date('H:i:s')."\tTime\033[0m [".round($_END - $_START, 5)."]\n");
+            fclose($LOG);
+        }
+    }
 
     //============================================================================//
     // Query Builder Methods                                                      //
     //============================================================================//
     
-    public function projection($projections)
+    public function projection($projections = array())
     {
     	$driver_info = &$this->Model->__GetDriverInfo('query_material');
     	if(is_array($projections))
     		$driver_info['projection'] = $projections;
     }
 
-    public function find($matches)
+    public function find($matches = array())
     {
     	$driver_info = &$this->Model->__GetDriverInfo('query_material');
     	if(is_array($matches))

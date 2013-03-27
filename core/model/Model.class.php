@@ -155,6 +155,19 @@ abstract class Model implements Iterator, ArrayAccess
 	}
 
 	//############################################################
+	//# Delete Methods
+	//############################################################
+	
+	public function delete()
+	{
+		if(isset($this->_iterator_data[$this->_iterator_position][$this->PrimaryKey]))
+		{
+			return self::$_static_info[$this->_child]['driver']->delete($this->_iterator_data[$this->_iterator_position][$this->PrimaryKey]);
+		}
+		return false;
+	}
+
+	//############################################################
 	//# To_ Methods
 	//############################################################
 	

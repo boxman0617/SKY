@@ -146,6 +146,12 @@ class MySQLDriver implements iDriver
         );
     }
 
+    public function delete(&$ID)
+    {
+        $QUERY = 'DELETE FROM `'.$this->TableName.'` WHERE `'.$this->PrimaryKey.'` = "'.$this->escape($ID).'"';
+        return self::$DB[$this->Server]->query($QUERY);
+    }
+
 
 
     //============================================================================//

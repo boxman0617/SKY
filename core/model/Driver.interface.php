@@ -94,5 +94,7 @@ interface iDriver {
      *                     primary key, created_at, and updated_at values.
      */
     public function savenew(&$data);
+
+    public function delete(&$ID);
 }
 ?>
