@@ -87,7 +87,12 @@ abstract class Model implements Iterator, ArrayAccess
 		}
 		if(array_key_exists($key, $this->OutputFormat))
 		{
-			// @ToDo: Put output format code here...
+			if(method_exists($this, $this->OutputFormat[$key]))
+			{
+				return call_user_func(array($this, $this->OutputFormat[$key]), $this->_iterator_data[$this->_iterator_position][$key]);
+			} else {
+				return sprintf($this->OutputFormat[$key], $this->_iterator_data[$this->_iterator_position][$key]);
+			}
 		}
 		return $this->_iterator_data[$this->_iterator_position][$key];
 	}
@@ -172,6 +177,18 @@ abstract class Model implements Iterator, ArrayAccess
 			return self::$_static_info[$this->_child]['driver']->delete($this->_iterator_data[$this->_iterator_position][$this->PrimaryKey]);
 		}
 		return false;
+	}
+
+	public function delete_all()
+	{
+		$RETURN = true;
+		for($i = 0; $i < count($this->_iterator_data); $i++)
+		{
+			$this->_iterator_position = $i;
+			$STATUS = $this->delete();
+			if((bool)$STATUS === false) $RETURN = false;
+		}
+		return $RETURN;
 	}
 
 	//############################################################

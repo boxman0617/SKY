@@ -18,6 +18,11 @@ class Testpersons extends Model
         "DB_DATABASE"   => "skytest",
         "MODEL_DRIVER"  => "MongoDB"
     );
+
+    public function setOutputFormat($name, $action)
+    {
+        $this->OutputFormat[$name] = $action;
+    }
 }
 ?>
 ';
@@ -106,6 +111,28 @@ class Testpersons extends Model
         $_END = microtime(true);
         TestMaster::Assert($RETURN, 'Something went wrong!');
         echo ($_END - $_START)." TIME\n";
+    }
+
+    public function LoadTestUpdating()
+    {
+        $m = new Testpersons();
+        $r = $m->find()->run();
+        $c = $r->ResultCount();
+        for($i = 0; $i < $c; $i++)
+            $r[$i]->occupation = 'Alien';
+        $_START = microtime(true);
+        $RETURN = $r->save_all();
+        $_END = microtime(true);
+        TestMaster::Assert($RETURN, 'Something went wrong!');
+        TestMaster::Assert((10 > ($_END - $_START)), 'Query took too long! ['.($_END - $_START).'s]');
+    }
+
+    public function LoadTestDeleteAll()
+    {
+        $m = new Testpersons();
+        $r = $m->find()->run();
+        $RETURN = $r->delete_all();
+        TestMaster::Assert($RETURN, 'Something went wrong!');
     }
 }
 ?>

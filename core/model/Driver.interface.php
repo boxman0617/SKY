@@ -96,5 +96,9 @@ interface iDriver {
     public function savenew(&$data);
 
     public function delete(&$ID);
+
+    // #Needed private methods
+    // private function LogBeforeAction($action_name, $action);
+    // private function LogAfterAction(&$_START, $STATUS);
 }
 ?>

@@ -15,6 +15,20 @@ class MySQLTest
 		);
 		$b = new DBBuild($a);
 		$b->HandleInput();
+		unlink(DIR_APP_MODELS.'/Mysqltests.model.php');
+		$class = '<?php
+class Mysqltests extends Model
+{
+    public function setOutputFormat($name, $action)
+    {
+        $this->OutputFormat[$name] = $action;
+    }
+}
+?>
+';
+        $f = fopen(DIR_APP_MODELS."/Mysqltests.model.php", "w");
+        fwrite($f, $class);
+        fclose($f);
 	}
 
 	public function InsertRowsIntoTable()
@@ -76,9 +90,31 @@ class MySQLTest
 		}
 		$_START = microtime(true);
 		$RETURN = $m->save_all();
-    $_END = microtime(true);
-    TestMaster::Assert($RETURN, 'Something went wrong!');
-    TestMaster::Assert((2.59776 > ($_END - $_START)), 'Query took too long! ['.($_END - $_START).'s]');
+	    $_END = microtime(true);
+	    TestMaster::Assert($RETURN, 'Something went wrong!');
+	    TestMaster::Assert((10 > ($_END - $_START)), 'Query took too long! ['.($_END - $_START).'s]');
 	}
+
+	public function LoadTestUpdating()
+	{
+		$m = new Mysqltests();
+		$r = $m->run();
+		$c = $r->ResultCount();
+		for($i = 0; $i < $c; $i++)
+			$r[$i]->occupation = 'Alien';
+		$_START = microtime(true);
+		$RETURN = $r->save_all();
+		$_END = microtime(true);
+		TestMaster::Assert($RETURN, 'Something went wrong!');
+		TestMaster::Assert((10 > ($_END - $_START)), 'Query took too long! ['.($_END - $_START).'s]');
+	}
+
+	public function LoadTestDeleteAll()
+    {
+        $m = new Mysqltests();
+        $r = $m->run();
+        $RETURN = $r->delete_all();
+        TestMaster::Assert($RETURN, 'Something went wrong!');
+    }
 }
 ?>

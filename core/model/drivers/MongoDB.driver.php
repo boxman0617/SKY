@@ -1,4 +1,4 @@
-<?php
+±<?php
 import(SKYCORE_CORE_MODEL."/Driver.interface.php");
 
 class MongoDBDriver implements iDriver
@@ -62,21 +62,9 @@ class MongoDBDriver implements iDriver
     		$driver_info['query'],
     		$driver_info['projection']
     	);
-        if($GLOBALS['ENV'] != 'PRO')
-        {
-            $LOG = fopen(DIR_LOG."/development.log", 'a');
-            fwrite($LOG, "\033[36mSTART\033[0m: ".date('H:i:s')."\t".trim(var_export($QUERY, true))."\n");
-            fclose($LOG);
-            $_START = microtime(true);
-        }
+            $_START = $this->LogBeforeAction('SELECT', $QUERY);
         $CURSOR = call_user_func_array(array(self::$DB[$this->Server], 'find'), $QUERY);
-        if($GLOBALS['ENV'] != 'PRO')
-        {
-            $_END = microtime(true);
-            $LOG = fopen(DIR_LOG."/development.log", 'a');
-            fwrite($LOG, "\033[35mEND\033[0m: ".date('H:i:s')."\t\033[1;36mResults\033[0m [".count($CURSOR)."] \033[1;32mTime\033[0m [".round($_END - $_START, 5)."]\n");
-            fclose($LOG);
-        }
+            $this->LogAfterAction($_START, array());
         $RETURN = array();
         foreach($CURSOR as $C)
         {
@@ -92,11 +80,18 @@ class MongoDBDriver implements iDriver
         if(isset($unaltered[$position]))
         {
             $CHANGES = array_diff($data, $unaltered[$position]);
+            if(empty($CHANGES))
+                return array(
+                    'status' => true,
+                    'updated' => $data
+                );
             $CHANGES['updated_at'] = new MongoTimestamp();
+                $_START = $this->LogBeforeAction('UPDATE: '.(string)$data[$this->PrimaryKey].' => ', array('$set' => $CHANGES));
             $STATUS = self::$DB[$this->Server]->update(
                 array($this->PrimaryKey => $data[$this->PrimaryKey]),
                 array('$set' => $CHANGES)
             );
+                $this->LogAfterAction($_START, $STATUS);
             return array(
                 'status' => $STATUS,
                 'updated' => array_merge($CHANGES, $data)
@@ -110,7 +105,9 @@ class MongoDBDriver implements iDriver
         $data[$this->PrimaryKey] = $DOCUMENT_ID;
         $data['created_at'] = new MongoDate();
         $data['updated_at'] = new MongoTimestamp();
-        self::$DB[$this->Server]->insert($data);
+            $_START = $this->LogBeforeAction('INSERT', $data);
+        $STATUS = self::$DB[$this->Server]->insert($data);
+            $this->LogAfterAction($_START, $STATUS);
         return array(
             'pri' => $DOCUMENT_ID,
             'data' => $data
@@ -120,25 +117,42 @@ class MongoDBDriver implements iDriver
     public function delete(&$ID)
     {
         $QUERY = array($this->PrimaryKey => new MongoId((string)$ID));
+            $_START = $this->LogBeforeAction('REMOVE', $QUERY);
+        $STATUS = self::$DB[$this->Server]->remove($QUERY, array('justOne' => true));
+            $this->LogAfterAction($_START, $STATUS);
+        if((float)$STATUS['ok'] === (float)1) return true;
+        return false;
+    }
+
+    //============================================================================//
+    // Log Method                                                                 //
+    //============================================================================//
+
+    private function LogBeforeAction($action_name, $action)
+    {
         if($GLOBALS['ENV'] != 'PRO')
         {
             $LOG = fopen(DIR_LOG."/development.log", 'a');
-            fwrite($LOG, "\033[36mSTART\033[0m: ".date('H:i:s')."\tREMOVE: ".trim(var_export($QUERY, true))."\n");
+            fwrite($LOG, "\033[36mSTART\033[0m: ".date('H:i:s')."\t".$action_name.": ".trim(var_export($action, true))."\n");
             fclose($LOG);
-            $_START = microtime(true);
         }
-        $STATUS = self::$DB[$this->Server]->remove($QUERY, array('justOne' => true));
+        return microtime(true);
+    }
+
+    private function LogAfterAction(&$_START, $STATUS)
+    {
         if($GLOBALS['ENV'] != 'PRO')
         {
             $_END = microtime(true);
             $LOG = fopen(DIR_LOG."/development.log", 'a');
-            if(!is_null($STATUS['err']))
+            if(isset($STATUS['err']) && !is_null($STATUS['err']))
+            {
                 fwrite($LOG, "\033[35mERROR\033[0m: ".date('H:i:s')."\tMSG:\033[0m [".$STATUS['err']."]\n");
+                trigger_error("[MongoDB ERROR] => ".$STATUS['err'], E_USER_WARNING);
+            }
             fwrite($LOG, "\033[35mEND\033[0m: ".date('H:i:s')."\tTime\033[0m [".round($_END - $_START, 5)."]\n");
             fclose($LOG);
         }
-        if((float)$STATUS['ok'] === (float)1) return true;
-        return false;
     }
 
     //============================================================================//

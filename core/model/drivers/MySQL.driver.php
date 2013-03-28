@@ -15,11 +15,6 @@ class MySQLDriver implements iDriver
 		self::$DB[$this->Server] = new mysqli($db['DB_SERVER'], $db['DB_USERNAME'], $db['DB_PASSWORD'], $db['DB_DATABASE']);
 	}
 
-    public function modelMethodOverwrite()
-    {
-        
-    }
-
 	public function buildModelInfo(&$model)
 	{
 		$this->Model = $model;
@@ -59,26 +54,9 @@ class MySQLDriver implements iDriver
     public function run()
     {
         $QUERY = $this->buildQuery();
-        if($GLOBALS['ENV'] != 'PRO')
-        {
-            $LOG = fopen(DIR_LOG."/development.log", 'a');
-            fwrite($LOG, "\033[36mSTART\033[0m: ".date('H:i:s')."\t".trim($QUERY)."\n");
-            fclose($LOG);
-            $_START = microtime(true);
-        }
+            $_START = $this->LogBeforeAction('DELETE', $QUERY);
         $RESULTS = self::$DB[$this->Server]->query($QUERY);
-        if($GLOBALS['ENV'] != 'PRO')
-        {
-            $_END = microtime(true);
-            $LOG = fopen(DIR_LOG."/development.log", 'a');
-            fwrite($LOG, "\033[35mEND\033[0m: ".date('H:i:s')."\t\033[1;36mResults\033[0m [".count($RESULTS)."] \033[1;32mTime\033[0m [".round($_END - $_START, 5)."]\n");
-            fclose($LOG);
-        }
-        if($RESULTS === false && isset(self::$DB[$this->Server]->error))
-        {
-            trigger_error("[MySQL ERROR] => ".self::$DB[$this->Server]->error, E_USER_WARNING);
-            return array();
-        }
+            $this->LogAfterAction($_START, $RESULTS);
         if($RESULTS === true)
             return $RESULTS;
         $RETURN = array();
@@ -92,6 +70,11 @@ class MySQLDriver implements iDriver
         if(isset($unaltered[$position]))
         {
             $CHANGES = array_diff($data, $unaltered[$position]);
+            if(empty($CHANGES))
+                return array(
+                    'status' => true,
+                    'updated' => $data
+                );
             $QUERY   = 'UPDATE `'.$this->TableName.'` SET ';
 
             if(isset($CHANGES['created_at'])) unset($CHANGES['created_at']);
@@ -100,20 +83,9 @@ class MySQLDriver implements iDriver
             foreach($CHANGES as $FIELD => $VALUE)
                 $QUERY .= "`".$FIELD."` = '".self::$DB[$this->Server]->real_escape_string($VALUE)."',";
             $QUERY = substr($QUERY, 0, -1)." WHERE `".$this->PrimaryKey."` = '".$data[$this->PrimaryKey]."'";
-            if($GLOBALS['ENV'] != 'PRO')
-            {
-                $LOG = fopen(DIR_LOG."/development.log", 'a');
-                fwrite($LOG, "\033[36mSTART\033[0m: ".date('H:i:s')."\t".trim($QUERY)."\n");
-                fclose($LOG);
-            }
+                $_START = $this->LogBeforeAction('DELETE', $QUERY);
             $STATUS = self::$DB[$this->Server]->query($QUERY);
-            if($GLOBALS['ENV'] != 'PRO')
-            {
-                $LOG = fopen(DIR_LOG."/development.log", 'a');
-                if($STATUS === false) fwrite($LOG, "\033[31mERROR\033[0m: ".self::$DB[$this->Server]->error."\n");
-                fwrite($LOG, "\033[35mEND\033[0m: ".date('H:i:s')."\n");
-                fclose($LOG);
-            }
+                $this->LogAfterAction($_START, $STATUS);
             return array(
                 'status' => $STATUS,
                 'updated' => array_merge($CHANGES, $data)
@@ -130,20 +102,9 @@ class MySQLDriver implements iDriver
         foreach($data as $FIELD => $VALUE)
             $QUERY .= ' `'.$FIELD.'` = "'.$this->escape($VALUE).'",';
         $QUERY = substr($QUERY, 0, -1);
-        if($GLOBALS['ENV'] != 'PRO')
-        {
-            $LOG = fopen(DIR_LOG."/development.log", 'a');
-            fwrite($LOG, "\033[36mSTART\033[0m: ".date('H:i:s')."\t".trim($QUERY)."\n");
-            fclose($LOG);
-        }
+            $_START = $this->LogBeforeAction('DELETE', $QUERY);
         $ID = self::$DB[$this->Server]->query($QUERY);
-        if($GLOBALS['ENV'] != 'PRO')
-        {
-            $LOG = fopen(DIR_LOG."/development.log", 'a');
-            if($ID === false) fwrite($LOG, "\033[31mERROR\033[0m: ".self::$DB[$this->Server]->error."\n");
-            fwrite($LOG, "\033[35mEND\033[0m: ".date('H:i:s')."\n");
-            fclose($LOG);
-        }
+            $this->LogAfterAction($_START, $ID);
         if($ID) $ID = self::$DB[$this->Server]->insert_id;
         return array(
             'pri' => $ID,
@@ -154,7 +115,41 @@ class MySQLDriver implements iDriver
     public function delete(&$ID)
     {
         $QUERY = 'DELETE FROM `'.$this->TableName.'` WHERE `'.$this->PrimaryKey.'` = "'.$this->escape($ID).'"';
-        return self::$DB[$this->Server]->query($QUERY);
+            $_START = $this->LogBeforeAction('DELETE', $QUERY);
+        $RETURN = self::$DB[$this->Server]->query($QUERY);
+            $this->LogAfterAction($_START, $RETURN);
+        return $RETURN;
+    }
+
+    //============================================================================//
+    // Log Method                                                                 //
+    //============================================================================//
+
+    private function LogBeforeAction($action_name, $action)
+    {
+        if($GLOBALS['ENV'] != 'PRO')
+        {
+            $LOG = fopen(DIR_LOG."/development.log", 'a');
+            fwrite($LOG, "\033[36mSTART\033[0m: ".date('H:i:s')."\t".$action_name.": ".trim($action)."\n");
+            fclose($LOG);
+        }
+        return microtime(true);
+    }
+
+    private function LogAfterAction(&$_START, $STATUS)
+    {
+        if($GLOBALS['ENV'] != 'PRO')
+        {
+            $_END = microtime(true);
+            $LOG = fopen(DIR_LOG."/development.log", 'a');
+            if($STATUS === false && isset(self::$DB[$this->Server]->error))
+            {
+                fwrite($LOG, "\033[35mERROR\033[0m: ".date('H:i:s')."\tMSG:\033[0m [".self::$DB[$this->Server]->error."\n");
+                trigger_error("[MySQL ERROR] => ".self::$DB[$this->Server]->error, E_USER_WARNING);
+            }
+            fwrite($LOG, "\033[35mEND\033[0m: ".date('H:i:s')."\tTime\033[0m [".round($_END - $_START, 5)."]\n");
+            fclose($LOG);
+        }
     }
 
 
