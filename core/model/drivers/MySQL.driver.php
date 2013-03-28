@@ -1,164 +1,168 @@
 <?php
-/**
- * MySQL Driver
- *
- * This driver interfaces the Model core class
- * to a MySQL server.
- *
- * LICENSE:
- *
- * This file may not be redistributed in whole or significant part, or
- * used on a web site without licensing of the enclosed code, and
- * software features.
- *
- * @author      Alan Tirado <root@deeplogik.com>
- * @copyright   2013 DeepLogik, All Rights Reserved
- * @license     http://www.codethesky.com/license
- * @link        http://www.codethesky.com/docs/mysqldriver
- * @package     Sky.Core
- */
-
 import(SKYCORE_CORE_MODEL."/Driver.interface.php");
 
-/**
- * MySQLDriver Driver Class Implements iDriver interface
- * This class talks MySQL
- * @package Sky.Driver
- * @subpackage MySQL
- */
 class MySQLDriver implements iDriver
 {
-    /**
-     * MySQLi's database instance
-     * @access static private
-     * @var object
-     */
-    private static $db = array();
-    /**
-     * Schema of current table
-     * @access static private
-     * @var array
-     */
-    private static $table_schema;
-    /**
-     * Model's table name
-     * @access private
-     * @var string
-     */
-    private $table_name;
-    
-    private $db_flag = false;
-    private $db_array = array();
-    private $server;
+	private $TableName;
+	private $PrimaryKey;
+	private $Server;
+	private static $DB;
+	private $Model;
 
-    protected $_query_material = array(
-        'select' => array(),
-        'from' => array(),
-        'joins' => array(),
-        'where' => array(),
-        'limit' => null,
-        'orderby' => array(),
-        'groupby' => array()
-    );
+	public function __construct($db)
+	{
+		$this->Server = $db['DB_SERVER'];
+		self::$DB[$this->Server] = new mysqli($db['DB_SERVER'], $db['DB_USERNAME'], $db['DB_PASSWORD'], $db['DB_DATABASE']);
+	}
 
-    /**
-     * Sets up self::$db[$this->server] if not instantiated with mysqli object
-     */
-    public function __construct($db_array = NULL)
+    public function modelMethodOverwrite()
     {
-        if(is_null($db_array))
-        {
-            $this->server = DB_SERVER;
-            if(!isset(self::$db[$this->server]))
-                self::$db[$this->server] = new mysqli(DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_DATABASE);
-        }
-        else
-        {
-            $this->server = $db_array['DB_SERVER'];
-            $this->db_flag = true;
-            $this->db_array = $db_array;
-            if(!isset(self::$db[$this->server]))
-                self::$db[$this->server] = new mysqli($db_array['DB_SERVER'], $db_array['DB_USERNAME'], $db_array['DB_PASSWORD'], $db_array['DB_DATABASE']);
-        }
+        
     }
 
-    /**
-     * Sets current table for object {@link $table_name}
-     * @param string $name
-     */
+	public function buildModelInfo(&$model)
+	{
+		$this->Model = $model;
+		$driver_info = &$this->Model->__GetDriverInfo('query_material');
+		$driver_info = array(
+			'select' 	=> array(),
+	        'from' 		=> array(),
+	        'joins' 	=> array(),
+	        'where' 	=> array(),
+	        'limit' 	=> null,
+	        'orderby' 	=> array(),
+	        'groupby' 	=> array()
+		);
+	}
+
     public function setTableName($name)
     {
-        $this->table_name = $name;
+    	$this->TableName = $name;
     }
 
-    /**
-     * Returns table's schema, if not set it will figure out the schema then return
-     * @return array self::$table_schema[$this->table_name]
-     */ 
-    public function getSchema()
+    public function setPrimaryKey(&$key)
     {
-        if(!isset(self::$table_schema[$this->table_name]))
-            $this->setSchema();
-        return self::$table_schema[$this->table_name];
-    }
-    
-    /**
-     * Figures out table's schema and sets it {@link self::$table_schema}
-     * @return bool
-     */
-    public function setSchema()
-    {
-        if(!isset(self::$table_schema[$this->table_name]))
-        {
-            $r = self::$db[$this->server]->query("DESCRIBE `".$this->table_name."`");
-            while($row = $r->fetch_assoc())
-            {
-                self::$table_schema[$this->table_name][$row['Field']] = array(
-                    "Type" => $row['Type'],
-                    "Null" => $row['Null'],
-                    "Key" => $row['Key'],
-                    "Default" => $row['Default'],
-                    "Extra" => $row['Extra']
-                );
-            }
-        }
-        return true;
+        if(is_null($key)) $key = 'id';
+        $this->PrimaryKey = $key;
     }
 
-    /**
-     * Checks to see if table exists in database
-     * @param string $class_name
-     * @return bool
-     */
-    public function doesTableExist($class_name)
+    public function getPrimaryKey()
     {
-        $table_name = strtolower($class_name);
-        Log::corewrite('Checking if table exists [%s]', 1, __CLASS__, __FUNCTION__, array($table_name));
-        if($table_name)
-        {
-            $r = self::$db[$this->server]->query("SHOW TABLES");
-            while($row = $r->fetch_assoc())
-            {
-                if($row['Tables_in_'.(($this->db_flag) ? $this->db_array['DB_DATABASE'] : DB_DATABASE)] == $table_name)
-                {
-                    $this->table_name = $table_name;
-                    return true;
-                }
-            }
-        }
-        return false;
+        return $this->PrimaryKey;
     }
 
-    /**
-     * Escapes string value using mysqli's escape method
-     * @param string $value
-     * @return string
-     */
     public function escape($value)
     {
-        return self::$db[$this->server]->real_escape_string($value);
+    	return self::$DB[$this->Server]->real_escape_string($value);
     }
 
+    public function run()
+    {
+        $QUERY = $this->buildQuery();
+        if($GLOBALS['ENV'] != 'PRO')
+        {
+            $LOG = fopen(DIR_LOG."/development.log", 'a');
+            fwrite($LOG, "\033[36mSTART\033[0m: ".date('H:i:s')."\t".trim($QUERY)."\n");
+            fclose($LOG);
+            $_START = microtime(true);
+        }
+        $RESULTS = self::$DB[$this->Server]->query($QUERY);
+        if($GLOBALS['ENV'] != 'PRO')
+        {
+            $_END = microtime(true);
+            $LOG = fopen(DIR_LOG."/development.log", 'a');
+            fwrite($LOG, "\033[35mEND\033[0m: ".date('H:i:s')."\t\033[1;36mResults\033[0m [".count($RESULTS)."] \033[1;32mTime\033[0m [".round($_END - $_START, 5)."]\n");
+            fclose($LOG);
+        }
+        if($RESULTS === false && isset(self::$DB[$this->Server]->error))
+        {
+            trigger_error("[MySQL ERROR] => ".self::$DB[$this->Server]->error, E_USER_WARNING);
+            return array();
+        }
+        if($RESULTS === true)
+            return $RESULTS;
+        $RETURN = array();
+        while($ROW = $RESULTS->fetch_assoc())
+            $RETURN[] = $ROW;
+        return $RETURN;
+    }
+
+    public function update(&$unaltered, &$data, $position)
+    {
+        if(isset($unaltered[$position]))
+        {
+            $CHANGES = array_diff($data, $unaltered[$position]);
+            $QUERY   = 'UPDATE `'.$this->TableName.'` SET ';
+
+            if(isset($CHANGES['created_at'])) unset($CHANGES['created_at']);
+            if(isset($CHANGES['updated_at'])) unset($CHANGES['updated_at']);
+
+            foreach($CHANGES as $FIELD => $VALUE)
+                $QUERY .= "`".$FIELD."` = '".self::$DB[$this->Server]->real_escape_string($VALUE)."',";
+            $QUERY = substr($QUERY, 0, -1)." WHERE `".$this->PrimaryKey."` = '".$data[$this->PrimaryKey]."'";
+            if($GLOBALS['ENV'] != 'PRO')
+            {
+                $LOG = fopen(DIR_LOG."/development.log", 'a');
+                fwrite($LOG, "\033[36mSTART\033[0m: ".date('H:i:s')."\t".trim($QUERY)."\n");
+                fclose($LOG);
+            }
+            $STATUS = self::$DB[$this->Server]->query($QUERY);
+            if($GLOBALS['ENV'] != 'PRO')
+            {
+                $LOG = fopen(DIR_LOG."/development.log", 'a');
+                if($STATUS === false) fwrite($LOG, "\033[31mERROR\033[0m: ".self::$DB[$this->Server]->error."\n");
+                fwrite($LOG, "\033[35mEND\033[0m: ".date('H:i:s')."\n");
+                fclose($LOG);
+            }
+            return array(
+                'status' => $STATUS,
+                'updated' => array_merge($CHANGES, $data)
+            );
+        }
+    }
+
+    public function savenew(&$data)
+    {
+        $QUERY = 'INSERT INTO `'.$this->TableName.'` SET ';
+        $NOW = date('Y-m-d H:i:s');
+        $data['created_at'] = $NOW;
+        $data['updated_at'] = $NOW;
+        foreach($data as $FIELD => $VALUE)
+            $QUERY .= ' `'.$FIELD.'` = "'.$this->escape($VALUE).'",';
+        $QUERY = substr($QUERY, 0, -1);
+        if($GLOBALS['ENV'] != 'PRO')
+        {
+            $LOG = fopen(DIR_LOG."/development.log", 'a');
+            fwrite($LOG, "\033[36mSTART\033[0m: ".date('H:i:s')."\t".trim($QUERY)."\n");
+            fclose($LOG);
+        }
+        $ID = self::$DB[$this->Server]->query($QUERY);
+        if($GLOBALS['ENV'] != 'PRO')
+        {
+            $LOG = fopen(DIR_LOG."/development.log", 'a');
+            if($ID === false) fwrite($LOG, "\033[31mERROR\033[0m: ".self::$DB[$this->Server]->error."\n");
+            fwrite($LOG, "\033[35mEND\033[0m: ".date('H:i:s')."\n");
+            fclose($LOG);
+        }
+        if($ID) $ID = self::$DB[$this->Server]->insert_id;
+        return array(
+            'pri' => $ID,
+            'data' => $data
+        );
+    }
+
+    public function delete(&$ID)
+    {
+        $QUERY = 'DELETE FROM `'.$this->TableName.'` WHERE `'.$this->PrimaryKey.'` = "'.$this->escape($ID).'"';
+        return self::$DB[$this->Server]->query($QUERY);
+    }
+
+
+
+    //============================================================================//
+    // Query Builder Methods                                                      //
+    //============================================================================//
+    
     /**
      * Builds MySQL query from Model's material
      * @param array $material
@@ -166,24 +170,25 @@ class MySQLDriver implements iDriver
      */
     public function buildQuery()
     {
+        $driver_info = $this->Model->__GetDriverInfo('query_material');
         $query = "SELECT ";
-        if(empty($this->_query_material['select']))
-            $this->_query_material['select'][] = $this->table_name.".*";
-        $query .= implode(',', $this->_query_material['select']);
-        if(empty($this->_query_material['from']))
-            $this->_query_material['from'] = $this->table_name;
-        $query .= " FROM ".$this->_query_material['from']." ";
-        if(!empty($this->_query_material['joins']))
+        if(empty($driver_info['select']))
+            $driver_info['select'][] = $this->TableName.".*";
+        $query .= implode(',', $driver_info['select']);
+        if(empty($driver_info['from']))
+            $driver_info['from'] = $this->TableName;
+        $query .= " FROM ".$driver_info['from']." ";
+        if(!empty($driver_info['joins']))
         {
-            foreach($this->_query_material['joins'] as $value)
+            foreach($driver_info['joins'] as $value)
             {
                 $query .= $value;
             }
         }
-        if(!empty($this->_query_material['where']))
+        if(!empty($driver_info['where']))
         {
             $query .= " WHERE ";
-            foreach($this->_query_material['where'] as $where)
+            foreach($driver_info['where'] as $where)
             {
                 if(is_array($where))
                 {
@@ -201,152 +206,38 @@ class MySQLDriver implements iDriver
             }
             $query = substr($query, 0, -4);
         }
-        if(!empty($this->_query_material['groupby']))
+        if(!empty($driver_info['groupby']))
         {
             $query .= " GROUP BY ";
-            foreach($this->_query_material['groupby'] as $value)
+            foreach($driver_info['groupby'] as $value)
             {
                 $query .= '`'.$value."`,";
             }
             $query = substr($query, 0, -1);
         }
-        if(!empty($this->_query_material['orderby']))
+        if(!empty($driver_info['orderby']))
         {
             $query .= " ORDER BY ";
-            foreach($this->_query_material['orderby'] as $value)
+            foreach($driver_info['orderby'] as $value)
             {
                 $query .= $value.",";
             }
             $query = substr($query, 0, -1);
         }
-        if(!empty($this->_query_material['limit']))
+        if(!empty($driver_info['limit']))
         {
             $query .= " LIMIT ";
-            if(!is_array($this->_query_material['limit']))
+            if(!is_array($driver_info['limit']))
             {
-                $query .= $this->_query_material['limit'];
+                $query .= $driver_info['limit'];
             }
             else
             {
-                $query .= $this->_query_material['limit']["offset"].",".$this->_query_material['limit']["limit"];
+                $query .= $driver_info['limit']["offset"].",".$driver_info['limit']["limit"];
             }
         }
         return $query;
     }
-
-    /**
-     * Executes query on mysqli's query method
-     * @param string $query
-     * @return array
-     */
-    public function runQuery($query)
-    {
-        $r = self::$db[$this->server]->query($query);
-        $return = array();
-        $i = 0;
-        if(!$r)
-        {
-            if(isset(self::$db[$this->server]->error)) trigger_error("[MySQL ERROR] => ".self::$db[$this->server]->error, E_USER_WARNING);
-            return $return;
-        }
-        if($r === true)
-            return true;
-        while($row = $r->fetch_assoc())
-        {
-            foreach($row as $key => $value)
-            {
-                if(is_null($value))
-                    $return[$i][$key] = "NULL";
-                else
-                    $return[$i][$key] = $value;
-            }
-            $i++;
-        }
-        return $return;
-    }
-
-    /**
-     * Deletes current model from database
-     * @access public
-     * @return bool
-     */
-    public function delete($field, $value)
-    {
-        $sql = "DELETE FROM `".$this->table_name."` ";
-        if(!is_array($value))
-            $value = array($value);
-        $where = "WHERE `".self::$db[$this->server]->real_escape_string($field)."` IN (";
-        foreach($value as $v)
-        {
-            $where .= "'".self::$db[$this->server]->real_escape_string($v)."',";
-        }
-        $where = substr($where, 0, -1);
-        $where .= ")";
-        if($GLOBALS['ENV'] == 'DEV')
-        {
-            $f = fopen(DIR_LOG."/development.log", 'a');
-            fwrite($f, "START: ".date('H:i:s')."\t".trim($sql.$where)."\n");
-            fclose($f);
-        }
-        return self::$db[$this->server]->query($sql.$where);
-    }
-
-    /**
-     * Saves current model's data to database
-     * @param array $data
-     * @return mixed
-     */
-    public function save($data)
-    {
-        $where = "";
-        foreach(self::$table_schema[$this->table_name] as $field => $detail)
-        {
-            if($detail['Key'] == 'PRI')
-            {
-                $pri = $field;
-                continue;
-            }
-        }
-        if($data[$pri] === NULL)
-        {
-            $query = 'INSERT INTO `'.$this->table_name.'` SET ';
-        } else {
-            $query = 'UPDATE `'.$this->table_name.'` SET ';
-            $where = ' WHERE `'.$pri.'` = "'.$data[$pri].'"';
-        }
-
-        foreach($data as $field => $value)
-        {
-            if($field != $pri && $field != 'updated_at' && $field != 'created_at' && isset(self::$table_schema[$this->table_name][$field]))
-            {
-                $query .= "`".$field."` = '".self::$db[$this->server]->real_escape_string($value)."',";
-            }
-            elseif($field == 'created_at' && $data[$pri] === NULL)
-            {
-                $query .= "`created_at` = NOW(),";
-            }
-        }
-        $query = substr($query,0,-1);
-        if($GLOBALS['ENV'] == 'DEV')
-        {
-            $f = fopen(DIR_LOG."/development.log", 'a');
-            fwrite($f, "START: ".date('H:i:s')."\t".trim($query.$where)."\n");
-            fclose($f);
-        }
-        if(self::$db[$this->server]->query($query.$where))
-        {
-            if(self::$db[$this->server]->insert_id !== 0)
-                return self::$db[$this->server]->insert_id;
-            else
-                return true;
-        } else {
-            return false;
-        }
-    }
-
-    //============================================================================//
-    // Query Builder Methods                                                      //
-    //============================================================================//
 
 
     /**
@@ -363,9 +254,10 @@ class MySQLDriver implements iDriver
      */
     public function select()
     {
-        $this->_query_material['select'] = array();
+        $driver_info = &$this->Model->__GetDriverInfo('query_material');
+        $driver_info['select'] = array();
         for($i=0;$i<func_num_args();$i++)
-            $this->_query_material['select'][] = func_get_arg($i);
+            $driver_info['select'][] = func_get_arg($i);
     }
 
     /**
@@ -383,7 +275,8 @@ class MySQLDriver implements iDriver
      */
     public function from($from)
     {
-        $this->_query_material['from'] = $from;
+        $driver_info = &$this->Model->__GetDriverInfo('query_material');
+        $driver_info['from'] = $from;
     }
 
     /**
@@ -418,13 +311,14 @@ class MySQLDriver implements iDriver
     public function where()
     {
         Log::corewrite('Adding where clause to query', 2, __CLASS__, __FUNCTION__);
+        $driver_info = &$this->Model->__GetDriverInfo('query_material');
 
         // Regular string where clause. No extra work needed
         // PHP: "`name` = 'Alan'"
         // SQL: WHERE `name` = 'Alan'
         if(func_num_args() == 1 && is_string(func_get_arg(0)))
         {
-            $this->_query_material['where'][] = func_get_arg(0);
+            $driver_info['where'][] = func_get_arg(0);
         }
         // Array based where clause. Turning array into IN() where clause:
         // PHP: array('id' => array(1, 2, 3, 4, 5, 6))
@@ -436,7 +330,7 @@ class MySQLDriver implements iDriver
                 $operator = '=';
                 if(is_array($value))
                     $operator = 'IN';
-                $this->_query_material['where'][] = array(
+                $driver_info['where'][] = array(
                     'field' => $this->escape($key),
                     'operator' => $operator,
                     'value' => $value
@@ -456,7 +350,7 @@ class MySQLDriver implements iDriver
             {
                 $tmp = preg_replace('/(\:'.$field.')/', "'".$this->escape($data[$field])."'", $tmp);
             }
-            $this->_query_material['where'][] = $tmp;
+            $driver_info['where'][] = $tmp;
         }
         // Ordered substitution based where clause.
         // Substitution of ? characters in first parameter with remaining parameters
@@ -474,7 +368,7 @@ class MySQLDriver implements iDriver
                 if($broken[$i] != "")
                     $where .= trim($broken[$i])." '".$this->escape(func_get_arg($i+1))."' ";
             }
-            $this->_query_material['where'][] = trim($where);
+            $driver_info['where'][] = trim($where);
         }
         // Multiple Associative-Array based where clause.
         // Allows multiple arrays to be passed where
@@ -487,15 +381,13 @@ class MySQLDriver implements iDriver
             {
                 $arg = func_get_arg($i);
                 if(!is_array($arg))
-                {
                     trigger_error(__CLASS__."::".__FUNCTION__." Must be an array");
-                }
                 foreach($arg as $key => $value)
                 {
                     $operator = '=';
                     if(is_array($value))
                         $operator = 'IN';
-                    $this->_query_material['where'][] = array(
+                    $driver_info['where'][] = array(
                         'field' => $this->escape($key),
                         'operator' => $operator,
                         'value' => $value
@@ -521,8 +413,9 @@ class MySQLDriver implements iDriver
      */
     public function joins($join)
     {
+        $driver_info = &$this->Model->__GetDriverInfo('query_material');
         if(is_string($join))
-            $this->_query_material['joins'][] = $join;
+            $driver_info['joins'][] = $join;
     }
 
     /**
@@ -554,13 +447,14 @@ class MySQLDriver implements iDriver
      */
     public function limit()
     {
+        $driver_info = &$this->Model->__GetDriverInfo('query_material');
         if(func_num_args() == 0)
-            $this->_query_material['limit'] = 1;
+            $driver_info['limit'] = 1;
         elseif(func_num_args() == 1)
-            $this->_query_material['limit'] = func_get_arg(0);
+            $driver_info['limit'] = func_get_arg(0);
         elseif(func_num_args() == 2)
         {
-            $this->_query_material['limit'] = array(
+            $driver_info['limit'] = array(
                 "offset" => func_get_arg(0),
                 "limit" => func_get_arg(1)
             );
@@ -581,7 +475,8 @@ class MySQLDriver implements iDriver
      */
     public function orderby($by)
     {
-        $this->_query_material['orderby'][] = $by;
+        $driver_info = &$this->Model->__GetDriverInfo('query_material');
+        $driver_info['orderby'][] = $by;
     }
 
     /**
@@ -598,7 +493,8 @@ class MySQLDriver implements iDriver
      */
     public function groupby($by)
     {
-        $this->_query_material['groupby'][] = $by;
+        $driver_info = &$this->Model->__GetDriverInfo('query_material');
+        $driver_info['groupby'][] = $by;
     }
 }
 ?>

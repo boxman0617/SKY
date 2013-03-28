@@ -1,88 +1,162 @@
 <?php
-/**
- * MongoDB Driver
- *
- * This driver interfaces the Model core class
- * to a MongoDB server. It is still incomplete...
- *
- * LICENSE:
- *
- * This file may not be redistributed in whole or significant part, or
- * used on a web site without licensing of the enclosed code, and
- * software features.
- *
- * @author      Alan Tirado <root@deeplogik.com>
- * @copyright   2013 DeepLogik, All Rights Reserved
- * @license     http://www.codethesky.com/license
- * @link        http://www.codethesky.com/docs/mongodbdriver
- * @package     Sky.Core
- */
-
 import(SKYCORE_CORE_MODEL."/Driver.interface.php");
+
 class MongoDBDriver implements iDriver
 {
-	private static $db;
-	private static $collection;
-	private static $table_schema;
-	private $server;
-	
-	public function __construct($db_array = NULL)
-	{
-		$this->server = DB_SERVER;
-		if(!is_null($db_array) && isset($db_array['DB_SERVER'])) $this->server = $db_array['DB_SERVER'];
-        $db = array(
-        	'DB_SERVER' => DB_SERVER,
-        	'DB_USERNAME' => DB_USERNAME,
-        	'DB_PASSWORD' => DB_PASSWORD,
-        	'DB_DATABASE' => DB_DATABASE
-        );
-        if(!is_null($db_array)) $db = $db_array;
-        if(!isset(self::$db[$this->server]))
-        {
-        	$m = new MongoClient('mongodb://'.$db['DB_USERNAME'].':'.$db['DB_PASSWORD'].'@'.$db['DB_SERVER'].'/');
-        	self::$db[$this->server] = $m->$db['DB_DATABASE'];
-        }
+	private $Client;
+	private $Database;
+	private $Collection;
+	private $PrimaryKey;
+	private $Server;
+	private static $DB;
+	private $Model;
 
-	}
-	
-	public function setTableName($name)
+	public function __construct($db)
 	{
-		self::$collection = self::$db[$this->server]->$name;
+		$this->Server = $db['DB_SERVER'];
+		$CONNECTION_STRING = 'mongodb://';
+		if($db['DB_USERNAME'] != '') $CONNECTION_STRING .= $db['DB_USERNAME'];
+		if($db['DB_PASSWORD'] != '') $CONNECTION_STRING .= ':'.$db['DB_PASSWORD'];
+		if($db['DB_USERNAME'] != '') $CONNECTION_STRING .= '@';
+		$CONNECTION_STRING .= $this->Server;
+		$this->Client = new MongoClient($CONNECTION_STRING);
+		$this->Database = $this->Client->$db['DB_DATABASE'];
 	}
-	
-	public function setSchema()
+
+	public function buildModelInfo(&$model)
 	{
-		return true;
+		$this->Model = $model;
+		$driver_info = &$this->Model->__GetDriverInfo('query_material');
+		$driver_info = array(
+			'query' 	=> array(),
+	        'projection'=> array()
+		);
 	}
-	
-	public function getSchema()
-	{
-		return array();
-	}
-	
-	public function doesTableExist($class_name)
-	{
-		return true;
-	}
-	
-	public function runQuery($query)
-	{
-		
-	}
-	
-	public function save($data)
-	{
-		
-	}
-	
-	public function escape($value)
-	{
-		return addslashes(rtrim($value));
-	}
-	
-	public function buildQuery()
-	{
-		
-	}
+
+    public function setTableName($name)
+    {
+    	$this->Collection = $name;
+    	self::$DB[$this->Server] = $this->Database->$name;
+    }
+
+    public function setPrimaryKey(&$key)
+    {
+        if(is_null($key)) $key = '_id';
+    	$this->PrimaryKey = $key;
+    }
+
+    public function getPrimaryKey()
+    {
+        return $this->PrimaryKey;
+    }
+
+    public function escape($value)
+    {
+    	return $value;
+    }
+
+    public function run()
+    {
+    	$driver_info = $this->Model->__GetDriverInfo('query_material');
+    	$QUERY = array(
+    		$driver_info['query'],
+    		$driver_info['projection']
+    	);
+        if($GLOBALS['ENV'] != 'PRO')
+        {
+            $LOG = fopen(DIR_LOG."/development.log", 'a');
+            fwrite($LOG, "\033[36mSTART\033[0m: ".date('H:i:s')."\t".trim(var_export($QUERY, true))."\n");
+            fclose($LOG);
+            $_START = microtime(true);
+        }
+        $CURSOR = call_user_func_array(array(self::$DB[$this->Server], 'find'), $QUERY);
+        if($GLOBALS['ENV'] != 'PRO')
+        {
+            $_END = microtime(true);
+            $LOG = fopen(DIR_LOG."/development.log", 'a');
+            fwrite($LOG, "\033[35mEND\033[0m: ".date('H:i:s')."\t\033[1;36mResults\033[0m [".count($CURSOR)."] \033[1;32mTime\033[0m [".round($_END - $_START, 5)."]\n");
+            fclose($LOG);
+        }
+        $RETURN = array();
+        foreach($CURSOR as $C)
+        {
+            $C['created_at'] = date('Y-m-d H:i:s', $C['created_at']->sec);
+            $C['updated_at'] = date('Y-m-d H:i:s', $C['updated_at']->sec);
+        	$RETURN[] = $C;
+        }
+        return $RETURN;
+    }
+
+    public function update(&$unaltered, &$data, $position)
+    {
+        if(isset($unaltered[$position]))
+        {
+            $CHANGES = array_diff($data, $unaltered[$position]);
+            $CHANGES['updated_at'] = new MongoTimestamp();
+            $STATUS = self::$DB[$this->Server]->update(
+                array($this->PrimaryKey => $data[$this->PrimaryKey]),
+                array('$set' => $CHANGES)
+            );
+            return array(
+                'status' => $STATUS,
+                'updated' => array_merge($CHANGES, $data)
+            );
+        }
+    }
+
+    public function savenew(&$data)
+    {
+        $DOCUMENT_ID = new MongoID();
+        $data[$this->PrimaryKey] = $DOCUMENT_ID;
+        $data['created_at'] = new MongoDate();
+        $data['updated_at'] = new MongoTimestamp();
+        self::$DB[$this->Server]->insert($data);
+        return array(
+            'pri' => $DOCUMENT_ID,
+            'data' => $data
+        );
+    }
+
+    public function delete(&$ID)
+    {
+        $QUERY = array($this->PrimaryKey => new MongoId((string)$ID));
+        if($GLOBALS['ENV'] != 'PRO')
+        {
+            $LOG = fopen(DIR_LOG."/development.log", 'a');
+            fwrite($LOG, "\033[36mSTART\033[0m: ".date('H:i:s')."\tREMOVE: ".trim(var_export($QUERY, true))."\n");
+            fclose($LOG);
+            $_START = microtime(true);
+        }
+        $STATUS = self::$DB[$this->Server]->remove($QUERY, array('justOne' => true));
+        if($GLOBALS['ENV'] != 'PRO')
+        {
+            $_END = microtime(true);
+            $LOG = fopen(DIR_LOG."/development.log", 'a');
+            if(!is_null($STATUS['err']))
+                fwrite($LOG, "\033[35mERROR\033[0m: ".date('H:i:s')."\tMSG:\033[0m [".$STATUS['err']."]\n");
+            fwrite($LOG, "\033[35mEND\033[0m: ".date('H:i:s')."\tTime\033[0m [".round($_END - $_START, 5)."]\n");
+            fclose($LOG);
+        }
+        if((float)$STATUS['ok'] === (float)1) return true;
+        return false;
+    }
+
+    //============================================================================//
+    // Query Builder Methods                                                      //
+    //============================================================================//
+    
+    public function projection($projections = array())
+    {
+    	$driver_info = &$this->Model->__GetDriverInfo('query_material');
+    	if(is_array($projections))
+    		$driver_info['projection'] = $projections;
+    }
+
+    public function find($matches = array())
+    {
+    	$driver_info = &$this->Model->__GetDriverInfo('query_material');
+    	if(is_array($matches))
+    		$driver_info['query'] = $matches;
+    }
 }
 ?>

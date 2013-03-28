@@ -34,23 +34,41 @@ class TestMaster
             $class = $tmp[0];
             $method = $tmp[1];
         }
-        $files = scandir(TESTS_DIR);
+        $files = scandir(DIR_TEST);
+        $found = false;
         foreach($files as $file)
         {
             $file_name = explode('.', $file);
             if(strtolower($file_name[0]) == strtolower($class))
             {
-                import(TESTS_DIR.'/'.$file); 
+                $found = true;
+                import(DIR_TEST.'/'.$file);
                 break;
             }
         }
+        if(!$found)
+        {
+            $files = scandir(SKYCORE_TEST);
+            foreach($files as $file)
+            {
+                $file_name = explode('.', $file);
+                if(strtolower($file_name[0]) == strtolower($class))
+                {
+                    $found = true;
+                    import(SKYCORE_TEST.'/'.$file);
+                    break;
+                }
+            }
+        }
+        if(!$found) die('No test found!');
         $obj = new $class();
         if(is_null($method))
         {
-        $methods = get_class_methods($obj);
-        foreach($methods as $method)
-        {
+            $methods = get_class_methods($obj);
+            foreach($methods as $method)
+            {
                 if($method == '__construct') continue;
+                if($method == '__destruct') continue;
                 echo $this->to_s($method).": \n";
                 $_start = microtime(true);
                 $obj->$method();
@@ -153,6 +171,16 @@ class TestMaster
     public static function AssertNotNull($var, $msg = null)
     {
         self::_IncreaseCount(!is_null($var), 'NotNull', $msg);
+    }
+
+    public static function AssertIsSet($var, $msg = null)
+    {
+        self::_IncreaseCount(isset($var), 'IsSet', $msg);
+    }
+
+    public static function AssertIsNotSet($var, $msg = null)
+    {
+        self::_IncreaseCount(!isset($var), 'IsNotSet', $msg);
     }
 }
 ?>

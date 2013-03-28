@@ -51,13 +51,15 @@ class SKY
 	    return true;
 	}
 
-	public static function LoadCore()
+	public static function LoadCore($ENV = 'DEV')
 	{
 		require_once(getenv('SKYCORE').'/configs/defines.php');
 		define('APPROOT', getcwd());
 
 		require_once(APPROOT.'/configs/defines.php');
 		require_once(DIR_CONFIGS.'/configure.php');
+
+		$GLOBALS['ENV'] = $ENV;
 
 		require_once(SKYCORE_CONFIGS.'/configure.php');
 		require_once(SKYCORE_CONFIGS.'/loadcore.php');
