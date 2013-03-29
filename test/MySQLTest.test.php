@@ -99,7 +99,7 @@ class Mysqltests extends Model
 	{
 		$m = new Mysqltests();
 		$r = $m->run();
-		$c = $r->ResultCount();
+		$c = count($r);
 		for($i = 0; $i < $c; $i++)
 			$r[$i]->occupation = 'Alien';
 		$_START = microtime(true);

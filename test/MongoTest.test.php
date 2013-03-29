@@ -117,7 +117,7 @@ class Testpersons extends Model
     {
         $m = new Testpersons();
         $r = $m->find()->run();
-        $c = $r->ResultCount();
+        $c = count($r);
         for($i = 0; $i < $c; $i++)
             $r[$i]->occupation = 'Alien';
         $_START = microtime(true);

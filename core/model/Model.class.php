@@ -1,5 +1,5 @@
 <?php
-abstract class Model implements Iterator, ArrayAccess
+abstract class Model implements Iterator, ArrayAccess, Countable
 {
 	private $_unaltered_data		= array();
 	private $_iterator_data 		= array();
@@ -76,6 +76,16 @@ abstract class Model implements Iterator, ArrayAccess
 		return $this->_driver_info[$hash_key];
 	}
 
+	public function get_raw($key)
+	{
+		if(!array_key_exists($key, $this->_iterator_data[$this->_iterator_position]))
+    {
+      trigger_error(__CLASS__."::".__FUNCTION__." No field by the name [".$name."]", E_USER_NOTICE);
+      return null;
+    }
+    return $this->_iterator_data[$this->_iterator_position][$key];
+	}
+
 	public function __get($key)
 	{
 		if(!array_key_exists($this->_iterator_position, $this->_iterator_data))
@@ -106,16 +116,31 @@ abstract class Model implements Iterator, ArrayAccess
 
 		if(array_key_exists($key, $this->InputFormat))
 		{
-			// @ToDo: Put input format code here...
+			if(method_exists($this, $this->InputFormat[$key]))
+			{
+				$this->_iterator_data[$this->_iterator_position][$key] = call_user_func(array($this, $this->InputFormat[$key]), $value);
+			} else {
+				$this->_iterator_data[$this->_iterator_position][$key] = sprintf($this->InputFormat[$key], $value);
+			}
 		}
 		elseif(in_array($key, $this->EncryptField))
 		{
-			// @ToDo: Put encryption format code here...
+			$this->_iterator_data[$this->_iterator_position][$key] = $this->Encrypt($value);
 		}
 		else
 		{
 			$this->_iterator_data[$this->_iterator_position][$key] = $value;
 		}
+	}
+
+	public function __isset($key)
+	{
+		return isset($this->_iterator_data[$this->_iterator_position][$key]);
+	}
+
+	public function __unset($key)
+	{
+		unset($this->_iterator_data[$this->_iterator_position][$key]);
 	}
 
 	//############################################################
@@ -192,6 +217,15 @@ abstract class Model implements Iterator, ArrayAccess
 	}
 
 	//############################################################
+	//# Output Format Methods
+	//############################################################
+	
+	public function Encrypt($value)
+	{
+		return md5(AUTH_SALT.$value);
+	}
+
+	//############################################################
 	//# To_ Methods
 	//############################################################
 	
@@ -203,6 +237,15 @@ abstract class Model implements Iterator, ArrayAccess
 	public function to_set()
 	{
 		return $this->_iterator_data;
+	}
+
+	//############################################################
+	//# Countable Methods
+	//############################################################
+	
+	public function count()
+	{
+		return count($this->_iterator_data);
 	}
 
 	//############################################################
@@ -265,11 +308,6 @@ abstract class Model implements Iterator, ArrayAccess
 	public function offsetUnset($offset)
 	{
 		unset($this->_iterator_data[$offset]);
-	}
-
-	public function ResultCount()
-	{
-		return count($this->_iterator_data);
 	}
 }
 ?>
