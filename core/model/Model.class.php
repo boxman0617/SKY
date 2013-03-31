@@ -17,13 +17,16 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 		'DB_DATABASE' 	=> null,
 		'MODEL_DRIVER' 	=> null
 	);
-	protected $TableName 				= null;
+	protected $TableName 			= null;
 	protected $PrimaryKey 			= null;
 	protected $OutputFormat			= array();
 	protected $InputFormat			= array();
 	protected $EncryptField			= array();
 	//# Association Properties
-	protected $BelongsTo				= array();
+	protected $BelongsTo			= array();
+	protected $HasOne				= array();
+	protected $HasMany				= array();
+	protected $HasAndBelongsToMany	= array();
 
 	//############################################################
 	//# Magic Methods
@@ -81,11 +84,11 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	public function get_raw($key)
 	{
 		if(!array_key_exists($key, $this->_iterator_data[$this->_iterator_position]))
-    {
-      trigger_error(__CLASS__."::".__FUNCTION__." No field by the name [".$name."]", E_USER_NOTICE);
-      return null;
-    }
-    return $this->_iterator_data[$this->_iterator_position][$key];
+		{
+		  trigger_error(__CLASS__."::".__FUNCTION__." No field by the name [".$name."]", E_USER_NOTICE);
+		  return null;
+		}
+		return $this->_iterator_data[$this->_iterator_position][$key];
 	}
 
 	public function __get($key)
@@ -94,7 +97,26 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 			return null;
 		if(!array_key_exists($key, $this->_iterator_data[$this->_iterator_position]))
 		{
-			
+			if(SKY::singularize($key) === false) // Key is Singular
+			{
+				if(array_key_exists($key, $this->BelongsTo))
+				{
+					
+				}
+				if(array_key_exists($key, $this->HasOne))
+				{
+
+				}
+			} else { // Key is plural
+				if(array_key_exists($key, $this->HasMany))
+				{
+
+				}
+				if(array_key_exists($key, $this->HasAndBelongsToMany))
+				{
+					
+				}
+			}
 			return null;
 		}
 		if(array_key_exists($key, $this->OutputFormat))

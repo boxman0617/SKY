@@ -119,9 +119,16 @@ class Mysqltests extends Model
 
 	public function TestingBelongsToLogic()
 	{
-			$o = new Orders();
-			$r = $o->where('id = ?', 1)->run();
-			$r->customer;
+			$m = new Mysqltests();
+			$m->name = 'James';
+			$m->age = 25;
+			$m->occupation = 'Bum';
+			$m->save();
+			
+			$m = new Mysqltests();
+			$r = $m->where('name = ?', 'James')->run();
+			$r->apple;
+			$r->apples;
 	}
 }
 ?>
