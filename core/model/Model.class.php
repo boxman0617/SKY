@@ -17,11 +17,13 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 		'DB_DATABASE' 	=> null,
 		'MODEL_DRIVER' 	=> null
 	);
-	protected $TableName 			= null;
+	protected $TableName 				= null;
 	protected $PrimaryKey 			= null;
 	protected $OutputFormat			= array();
 	protected $InputFormat			= array();
 	protected $EncryptField			= array();
+	//# Association Properties
+	protected $BelongsTo				= array();
 
 	//############################################################
 	//# Magic Methods
@@ -92,7 +94,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 			return null;
 		if(!array_key_exists($key, $this->_iterator_data[$this->_iterator_position]))
 		{
-			// @ToDo: Put association code here...
+			
 			return null;
 		}
 		if(array_key_exists($key, $this->OutputFormat))
@@ -142,6 +144,12 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	{
 		unset($this->_iterator_data[$this->_iterator_position][$key]);
 	}
+
+	//############################################################
+	//# Association Methods
+	//############################################################
+	
+
 
 	//############################################################
 	//# Run Methods

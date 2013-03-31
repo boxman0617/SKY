@@ -19,16 +19,16 @@ class MySQLTest
 		$class = '<?php
 class Mysqltests extends Model
 {
-    public function setOutputFormat($name, $action)
-    {
-        $this->OutputFormat[$name] = $action;
-    }
+		public function setOutputFormat($name, $action)
+		{
+				$this->OutputFormat[$name] = $action;
+		}
 }
 ?>
 ';
-        $f = fopen(DIR_APP_MODELS."/Mysqltests.model.php", "w");
-        fwrite($f, $class);
-        fclose($f);
+				$f = fopen(DIR_APP_MODELS."/Mysqltests.model.php", "w");
+				fwrite($f, $class);
+				fclose($f);
 	}
 
 	public function InsertRowsIntoTable()
@@ -72,12 +72,12 @@ class Mysqltests extends Model
 	}
 
 	public function DeleteRow()
-  {
-      $m = new Mysqltests();
-      $r = $m->where('name = ?', 'Alan')->run();
-      $BOOL = $r->delete();
-      TestMaster::Assert($BOOL, 'Was not deleted!');
-  }
+	{
+			$m = new Mysqltests();
+			$r = $m->where('name = ?', 'Alan')->run();
+			$BOOL = $r->delete();
+			TestMaster::Assert($BOOL, 'Was not deleted!');
+	}
 
 	public function LoadTestSaving()
 	{
@@ -90,9 +90,9 @@ class Mysqltests extends Model
 		}
 		$_START = microtime(true);
 		$RETURN = $m->save_all();
-	    $_END = microtime(true);
-	    TestMaster::Assert($RETURN, 'Something went wrong!');
-	    TestMaster::Assert((10 > ($_END - $_START)), 'Query took too long! ['.($_END - $_START).'s]');
+			$_END = microtime(true);
+			TestMaster::Assert($RETURN, 'Something went wrong!');
+			TestMaster::Assert((10 > ($_END - $_START)), 'Query took too long! ['.($_END - $_START).'s]');
 	}
 
 	public function LoadTestUpdating()
@@ -110,11 +110,18 @@ class Mysqltests extends Model
 	}
 
 	public function LoadTestDeleteAll()
-    {
-        $m = new Mysqltests();
-        $r = $m->run();
-        $RETURN = $r->delete_all();
-        TestMaster::Assert($RETURN, 'Something went wrong!');
-    }
+	{
+			$m = new Mysqltests();
+			$r = $m->run();
+			$RETURN = $r->delete_all();
+			TestMaster::Assert($RETURN, 'Something went wrong!');
+	}
+
+	public function TestingBelongsToLogic()
+	{
+			$o = new Orders();
+			$r = $o->where('id = ?', 1)->run();
+			$r->customer;
+	}
 }
 ?>
