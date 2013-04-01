@@ -7,6 +7,7 @@ define('SKYCORE_LIB', SKYCORE.'/lib' );
 define('SKYCORE_BIN', SKYCORE.'/bin' );
 define('SKYCORE_SCRIPTS', SKYCORE.'/scripts');
 define('SKYCORE_TEST', SKYCORE.'/test');
+define('SKYCORE_FIXTURES', SKYCORE.'/test/fixtures');
 
 // #Defining ROOT/CORE dirs
 define('SKYCORE_CORE_CONTROLLER', SKYCORE_CORE.'/controller');

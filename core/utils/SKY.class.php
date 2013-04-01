@@ -182,5 +182,14 @@ class SKY
 		}
 		return false;
 	}
+
+	public static function UnderscoreToUpper($word)
+	{
+		$tmp = explode('_', $word);
+		$return = "";
+		foreach($tmp as $sub)
+			$return .= ucfirst($sub);
+		return $return;
+	}
 }
 ?>

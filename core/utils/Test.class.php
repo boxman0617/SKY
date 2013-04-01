@@ -18,6 +18,8 @@
  * @package     Sky.Core
  */
 
+import(FIXTURE_CLASS);
+
 class TestMaster
 {
     public static $score = array(

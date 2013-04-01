@@ -31,6 +31,7 @@ define('DIR_PUBLIC', APPROOT.'/public');
 
 // #APP Test Files
 define('DIR_TEST', APPROOT.'/test');
+define('DIR_FIXTURES', APPROOT.'/test/fixtures');
 
 //#############################################
 // USER Defines @SafeToEdit/Add

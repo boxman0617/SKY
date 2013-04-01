@@ -8,6 +8,7 @@ class MySQLDriver implements iDriver
 	private $Server;
 	private static $DB;
 	private $Model;
+    public static $DefaultPrimaryKey = 'id';
 
 	public function __construct($db)
 	{
@@ -37,7 +38,7 @@ class MySQLDriver implements iDriver
 
     public function setPrimaryKey(&$key)
     {
-        if(is_null($key)) $key = 'id';
+        if(is_null($key)) $key = self::$DefaultPrimaryKey;
         $this->PrimaryKey = $key;
     }
 
@@ -54,9 +55,9 @@ class MySQLDriver implements iDriver
     public function run()
     {
         $QUERY = $this->buildQuery();
-            $_START = $this->LogBeforeAction('DELETE', $QUERY);
+            $_START = $this->LogBeforeAction('RUN', $QUERY);
         $RESULTS = self::$DB[$this->Server]->query($QUERY);
-            $this->LogAfterAction($_START, $RESULTS);
+            $this->LogAfterAction($_START, $RESULTS, array('RESULTS' => $RESULTS->num_rows));
         if($RESULTS === true)
             return $RESULTS;
         $RETURN = array();
@@ -83,7 +84,7 @@ class MySQLDriver implements iDriver
             foreach($CHANGES as $FIELD => $VALUE)
                 $QUERY .= "`".$FIELD."` = '".self::$DB[$this->Server]->real_escape_string($VALUE)."',";
             $QUERY = substr($QUERY, 0, -1)." WHERE `".$this->PrimaryKey."` = '".$data[$this->PrimaryKey]."'";
-                $_START = $this->LogBeforeAction('DELETE', $QUERY);
+                $_START = $this->LogBeforeAction('UPDATE', $QUERY);
             $STATUS = self::$DB[$this->Server]->query($QUERY);
                 $this->LogAfterAction($_START, $STATUS);
             return array(
@@ -93,16 +94,26 @@ class MySQLDriver implements iDriver
         }
     }
 
+    public static function created_at()
+    {
+        return date('Y-m-d H:i:s');
+    }
+
+    public static function updated_at()
+    {
+        return date('Y-m-d H:i:s');
+    }
+
     public function savenew(&$data)
     {
         $QUERY = 'INSERT INTO `'.$this->TableName.'` SET ';
-        $NOW = date('Y-m-d H:i:s');
+        $NOW = self::created_at();
         $data['created_at'] = $NOW;
         $data['updated_at'] = $NOW;
         foreach($data as $FIELD => $VALUE)
             $QUERY .= ' `'.$FIELD.'` = "'.$this->escape($VALUE).'",';
         $QUERY = substr($QUERY, 0, -1);
-            $_START = $this->LogBeforeAction('DELETE', $QUERY);
+            $_START = $this->LogBeforeAction('INSERT', $QUERY);
         $ID = self::$DB[$this->Server]->query($QUERY);
             $this->LogAfterAction($_START, $ID);
         if($ID) $ID = self::$DB[$this->Server]->insert_id;
@@ -136,7 +147,7 @@ class MySQLDriver implements iDriver
         return microtime(true);
     }
 
-    private function LogAfterAction(&$_START, $STATUS)
+    private function LogAfterAction(&$_START, $STATUS, $EXTRA = array())
     {
         if($GLOBALS['ENV'] != 'PRO')
         {
@@ -147,17 +158,54 @@ class MySQLDriver implements iDriver
                 fwrite($LOG, "\033[35mERROR\033[0m: ".date('H:i:s')."\tMSG:\033[0m [".self::$DB[$this->Server]->error."\n");
                 trigger_error("[MySQL ERROR] => ".self::$DB[$this->Server]->error, E_USER_WARNING);
             }
-            fwrite($LOG, "\033[35mEND\033[0m: ".date('H:i:s')."\tTime\033[0m [".round($_END - $_START, 5)."]\n");
+            $EXTRA_INFO = "";
+            foreach($EXTRA as $KEY => $VALUE)
+                $EXTRA_INFO .= $KEY." [".$VALUE."] ";
+            fwrite($LOG, "\033[35mEND\033[0m: ".date('H:i:s')."\tTime\033[0m [".round($_END - $_START, 5)."] ".$EXTRA_INFO."\n");
             fclose($LOG);
         }
     }
 
+    //============================================================================//
+    // Create Table Methods                                                       //
+    //============================================================================//
 
+    public static function DropTable($name)
+    {
+        $db = new mysqli(DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_DATABASE);
+        return $db->query("DROP TABLE `".$name."`");
+    }
+
+    public static function CreateTable($name, $fields)
+    {
+        $CREATE_STATEMENT = "CREATE TABLE `".$name."`\n (`".self::$DefaultPrimaryKey."` INT(11) NOT NULL AUTO_INCREMENT, \n";
+        foreach($fields as $name => $type)
+        {
+            $tmp = explode('_', $type);
+            $data_type = $tmp[0].'('.$tmp[1].')';
+            $CREATE_STATEMENT .= "`".$name."` ".$data_type." NOT NULL, \n";
+        }
+        $CREATE_STATEMENT .= "`created_at` DATETIME NOT NULL,\n `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n PRIMARY KEY (`".self::$DefaultPrimaryKey."`)\n)";
+        $CREATE_STATEMENT .= "ENGINE=INNODB DEFAULT CHARSET=latin1";
+        $db = new mysqli(DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_DATABASE);
+        return $db->query($CREATE_STATEMENT);
+    }
 
     //============================================================================//
     // Query Builder Methods                                                      //
     //============================================================================//
     
+    public function search($where = array())
+    {
+        $this->where($where);
+    }
+
+    public function findOne($where = array())
+    {
+        $this->where($where);
+        $this->limit(1);
+    }
+
     /**
      * Builds MySQL query from Model's material
      * @param array $material
@@ -372,7 +420,8 @@ class MySQLDriver implements iDriver
         // SQL: WHERE name = 'Alan' AND hobbies IN ('programming', 'music')
         elseif(func_num_args() > 0 && is_array(func_get_arg(0)))
         {
-            for($i=0;$i<func_num_args();$i++)
+            $count = func_num_args();
+            for($i=0;$i<$count;$i++)
             {
                 $arg = func_get_arg($i);
                 if(!is_array($arg))

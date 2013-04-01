@@ -10,6 +10,7 @@ class MongoDBDriver implements iDriver
 	private $Server;
 	private static $DB;
 	private $Model;
+    public static $DefaultPrimaryKey = '_id';
 
 	public function __construct($db)
 	{
@@ -41,7 +42,7 @@ class MongoDBDriver implements iDriver
 
     public function setPrimaryKey(&$key)
     {
-        if(is_null($key)) $key = '_id';
+        if(is_null($key)) $key = self::$DefaultPrimaryKey;
     	$this->PrimaryKey = $key;
     }
 
@@ -99,12 +100,22 @@ class MongoDBDriver implements iDriver
         }
     }
 
+    public static function created_at()
+    {
+        return new MongoDate();
+    }
+
+    public static function updated_at()
+    {
+        return new MongoTimestamp();
+    }
+
     public function savenew(&$data)
     {
         $DOCUMENT_ID = new MongoID();
         $data[$this->PrimaryKey] = $DOCUMENT_ID;
-        $data['created_at'] = new MongoDate();
-        $data['updated_at'] = new MongoTimestamp();
+        $data['created_at'] = self::created_at();
+        $data['updated_at'] = self::updated_at();
             $_START = $this->LogBeforeAction('INSERT', $data);
         $STATUS = self::$DB[$this->Server]->insert($data);
             $this->LogAfterAction($_START, $STATUS);
@@ -156,9 +167,44 @@ class MongoDBDriver implements iDriver
     }
 
     //============================================================================//
+    // Create Table Methods                                                       //
+    //============================================================================//
+
+    public static function DropTable($name)
+    {
+        $Server = DB_SERVER;
+        $CONNECTION_STRING = 'mongodb://';
+        if(DB_USERNAME != '') $CONNECTION_STRING .= DB_USERNAME;
+        if(DB_PASSWORD != '') $CONNECTION_STRING .= ':'.DB_PASSWORD;
+        if(DB_USERNAME != '') $CONNECTION_STRING .= '@';
+        $CONNECTION_STRING .= $Server;
+        $m = new MongoClient($CONNECTION_STRING);
+
+        $DB = DB_DATABASE;
+        $db = $m->$DB;
+        $c = $db->$name;
+        $c->drop();
+    }
+
+    public static function CreateTable($name, $fields)
+    {
+        return true;
+    }
+
+    //============================================================================//
     // Query Builder Methods                                                      //
     //============================================================================//
     
+    public function search($where = array())
+    {
+        $this->find($where);
+    }
+
+    public function findOne($where = array())
+    {
+        $this->findOne($where);
+    }
+
     public function projection($projections = array())
     {
     	$driver_info = &$this->Model->__GetDriverInfo('query_material');

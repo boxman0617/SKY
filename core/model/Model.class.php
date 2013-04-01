@@ -101,11 +101,13 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 			{
 				if(array_key_exists($key, $this->BelongsTo))
 				{
-					
+					if($this->_BelongsTo($key))
+						return $this->_iterator_data[$this->_iterator_position][$key];
 				}
 				if(array_key_exists($key, $this->HasOne))
 				{
-
+					if($this->_HasOne($key))
+						return $this->_iterator_data[$this->_iterator_position][$key];
 				}
 			} else { // Key is plural
 				if(array_key_exists($key, $this->HasMany))
@@ -170,8 +172,61 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	//############################################################
 	//# Association Methods
 	//############################################################
-	
 
+	public function getPrimaryKey()
+	{
+		return $this->PrimaryKey;
+	}
+
+	private function _GetModel($model_name)
+	{
+		if(SKY::singularize($model_name) === false) $model_name = SKY::pluralize($model_name);
+		return new $model_name();
+	}
+	
+	private function _BelongsTo($model_name)
+	{
+		$obj = $this->_GetModel($model_name);
+		if($obj instanceof Model)
+		{
+			$r = $obj->findOne(array(
+				$obj->getPrimaryKey() => $this->_iterator_data[$this->_iterator_position][$model_name.'_id']
+			))->run();
+			$this->_iterator_data[$this->_iterator_position][$model_name] = $r;
+			return true;
+		}
+		return false;
+	}
+
+	private function _HasOne($model_name)
+	{
+		$obj = $this->_GetModel($model_name);
+		if($obj instanceof Model)
+		{
+			$r = $obj->findOne(array(
+				strtolower(SKY::singularize($this->_child).'_id') => $this->_iterator_data[$this->_iterator_position][$this->getPrimaryKey()]
+			))->run();
+			$this->_iterator_data[$this->_iterator_position][$model_name] = $r;
+			return true;
+		}
+	}
+
+	private function _HasMany($model_name)
+	{
+		$obj = $this->_GetModel($model_name);
+		if($obj instanceof Model)
+		{
+			$r = $obj->search(array(
+				strtolower(SKY::singularize($this->_child).'_id') => $this->_iterator_data[$this->_iterator_position][$this->getPrimaryKey()]
+			))->run();
+			$this->_iterator_data[$this->_iterator_position][$model_name] = $r;
+		}
+	}
+
+	private function _HasAndBelongsToMany()
+	{
+
+	}
 
 	//############################################################
 	//# Run Methods
@@ -186,6 +241,11 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	//############################################################
 	//# Save Methods
 	//############################################################
+
+	public function create($hash = array())
+	{
+		// @ToDo: Create object with hash
+	}
 	
 	public function save()
 	{
