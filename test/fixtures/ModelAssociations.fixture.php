@@ -18,10 +18,10 @@ Fixture::CreateModels('MySQL', array(
 
 Fixture::CreateAssociations(array(
 	'supplier' => array(
-		'has_one' => array('account')
+		'has_one' => array('account' => true)
 	),
 	'order' => array(
-		'belongs_to' => array('customer')
+		'belongs_to' => array('customer' => true)
 	)
 ));
 

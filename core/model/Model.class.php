@@ -5,6 +5,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	private $_iterator_data 		= array();
 	private $_iterator_position 	= 0;
 
+	private $_readonly				= false;
 	private $_child;
 	private $_object_id;
 	private $_driver_info 			= array();
@@ -27,6 +28,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	protected $HasOne				= array();
 	protected $HasMany				= array();
 	protected $HasAndBelongsToMany	= array();
+	
 
 	//############################################################
 	//# Magic Methods
@@ -62,7 +64,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 		}
 
 		$this->PrimaryKey = self::$_static_info[$this->_child]['driver']->getPrimaryKey();
-		$this->_object_id = md5($this->_child.rand(0, 9999));
+		$this->_object_id = md5($this->_child.rand(0, 9999).date('YmdHis'));
 		self::$_static_info[$this->_child]['driver']->buildModelInfo($this);
 	}
 
@@ -85,8 +87,8 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	{
 		if(!array_key_exists($key, $this->_iterator_data[$this->_iterator_position]))
 		{
-		  trigger_error(__CLASS__."::".__FUNCTION__." No field by the name [".$name."]", E_USER_NOTICE);
-		  return null;
+			trigger_error(__CLASS__."::".__FUNCTION__." No field by the name [".$name."]", E_USER_NOTICE);
+			return null;
 		}
 		return $this->_iterator_data[$this->_iterator_position][$key];
 	}
@@ -97,28 +99,29 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 			return null;
 		if(!array_key_exists($key, $this->_iterator_data[$this->_iterator_position]))
 		{
+			$SUCCESS = false;
 			if(SKY::singularize($key) === false) // Key is Singular
 			{
 				if(array_key_exists($key, $this->BelongsTo))
 				{
-					if($this->_BelongsTo($key))
-						return $this->_iterator_data[$this->_iterator_position][$key];
+					$SUCCESS = $this->_BelongsTo($key);
 				}
 				if(array_key_exists($key, $this->HasOne))
 				{
-					if($this->_HasOne($key))
-						return $this->_iterator_data[$this->_iterator_position][$key];
+					$SUCCESS = $this->_HasOne($key);
 				}
 			} else { // Key is plural
 				if(array_key_exists($key, $this->HasMany))
 				{
-
+					$SUCCESS = $this->_HasMany($key);
 				}
 				if(array_key_exists($key, $this->HasAndBelongsToMany))
 				{
-					
+					$SUCCESS = $this->_HasAndBelongsToMany($key);
 				}
 			}
+			if($SUCCESS)
+				return $this->_iterator_data[$this->_iterator_position][$key];
 			return null;
 		}
 		if(array_key_exists($key, $this->OutputFormat))
@@ -186,12 +189,27 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	
 	private function _BelongsTo($model_name)
 	{
+		$original_name = $model_name;
+		$OPTIONS = $this->BelongsTo[$original_name];
+		if(!is_array($OPTIONS)) $OPTIONS = array();
+		if(array_key_exists(':model_name', $OPTIONS)) $model_name = $OPTIONS[':model_name'];
 		$obj = $this->_GetModel($model_name);
 		if($obj instanceof Model)
 		{
-			$r = $obj->findOne(array(
-				$obj->getPrimaryKey() => $this->_iterator_data[$this->_iterator_position][$model_name.'_id']
-			))->run();
+			$FOREIGN_KEY = $original_name.'_id';
+			if(array_key_exists(':foreign_key', $OPTIONS)) $FOREIGN_KEY = $OPTIONS[':foreign_key'];
+			$SEARCH = array(
+				$obj->getPrimaryKey() => $this->_iterator_data[$this->_iterator_position][$FOREIGN_KEY]
+			);
+			if(array_key_exists(':conditions', $OPTIONS))
+			{
+				$CONDITIONS = &$OPTIONS[':conditions'];
+				$COUNT = count($CONDITIONS);
+				for($i=0; $i<$COUNT; $i++)
+					$SEARCH = array_merge($SEARCH, $CONDITIONS[$i]);
+			}
+			$r = $obj->findOne($SEARCH)->run();
+			if(array_key_exists(':readonly', $OPTIONS)) $r->setToReadOnly();
 			$this->_iterator_data[$this->_iterator_position][$model_name] = $r;
 			return true;
 		}
@@ -200,15 +218,31 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 
 	private function _HasOne($model_name)
 	{
+		$original_name = $model_name;
+		$OPTIONS = $this->HasOne[$original_name];
+		if(!is_array($OPTIONS)) $OPTIONS = array();
+		if(array_key_exists(':model_name', $OPTIONS)) $model_name = $OPTIONS[':model_name'];
 		$obj = $this->_GetModel($model_name);
 		if($obj instanceof Model)
 		{
-			$r = $obj->findOne(array(
-				strtolower(SKY::singularize($this->_child).'_id') => $this->_iterator_data[$this->_iterator_position][$this->getPrimaryKey()]
-			))->run();
+			$FOREIGN_KEY = SKY::singularize($this->_child).'_id';
+			if(array_key_exists(':foreign_key', $OPTIONS)) $FOREIGN_KEY = $OPTIONS[':foreign_key'];
+			$SEARCH = array(
+				strtolower($FOREIGN_KEY) => $this->_iterator_data[$this->_iterator_position][$this->getPrimaryKey()]
+			);
+			if(array_key_exists(':conditions', $OPTIONS))
+			{
+				$CONDITIONS = &$OPTIONS[':conditions'];
+				$COUNT = count($CONDITIONS);
+				for($i=0; $i<$COUNT; $i++)
+					$SEARCH = array_merge($SEARCH, $CONDITIONS[$i]);
+			}
+			$r = $obj->findOne($SEARCH)->run();
+			if(array_key_exists(':readonly', $OPTIONS)) $r->setToReadOnly();
 			$this->_iterator_data[$this->_iterator_position][$model_name] = $r;
 			return true;
 		}
+		return false;
 	}
 
 	private function _HasMany($model_name)
@@ -241,6 +275,11 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	//############################################################
 	//# Save Methods
 	//############################################################
+	
+	public function setToReadOnly()
+	{
+		$this->_readonly = true;
+	}
 
 	public function create($hash = array())
 	{
@@ -249,6 +288,11 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	
 	public function save()
 	{
+		if($this->_readonly)
+		{
+			trigger_error('This record is set to ReadOnly mode!', E_USER_WARNING);
+			return false;
+		}
 		//# Update Record
 		if(isset($this->_iterator_data[$this->_iterator_position][$this->PrimaryKey]))
 		{
@@ -327,6 +371,11 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	public function to_set()
 	{
 		return $this->_iterator_data;
+	}
+
+	public function is_null()
+	{
+		return empty($this->_iterator_data[$this->_iterator_position]);
 	}
 
 	//############################################################

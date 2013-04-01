@@ -78,8 +78,8 @@ class ".ucfirst($name)." extends Model
 				foreach($info['associations'] as $type => $models)
 				{
 					$class .= "protected $".SKY::UnderscoreToUpper($type)." = array(";
-					foreach($models as $model)
-						$class .= "'".$model."' => true,";
+					foreach($models as $model => $options)
+						$class .= "'".$model."' => ".var_export($options, true).",";
 					$class = substr($class, 0, -1);
 					$class .= ");\n";
 				}
