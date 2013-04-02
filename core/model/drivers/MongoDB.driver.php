@@ -195,9 +195,12 @@ class MongoDBDriver implements iDriver
     // Query Builder Methods                                                      //
     //============================================================================//
     
-    public function search($where = array())
+    public function search($where = array(), $select = array())
     {
-        $this->find($where);
+        $FIELDS = array();
+        if(!empty($select))
+            $FIELDS = array_fill_keys($select, true);
+        $this->find($where, $FIELDS);
     }
 
     public function findOne($where = array())

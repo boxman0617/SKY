@@ -21,5 +21,39 @@ class ModelAssociation
 		$SHOULD_BE = 'ojas8d9cja98jd';
 		TestMaster::AssertEqual($r->account->account_number, $SHOULD_BE, 'Account number is not the same!');
 	}
+
+	public function TestingHasManyLogic()
+	{
+		$c = new Customers();
+		$r = $c->search(array('name' => 'Bob'))->run();
+		$ORDERS = &$c->orders;
+		$SHOULD_BE = 3;
+		$COUNT = count($ORDERS);
+		TestMaster::AssertEqual($COUNT, $SHOULD_BE, 'Orders where more then '.$SHOULD_BE.' ['.$COUNT.']');
+	}
+
+	public function TestingHasManyThroughLogic()
+	{
+		$patient = new Patients();
+		$pa = $patient->findOne(array('name' => 'Alex'))->run();
+
+		$PHYSICIAN_NAME = $pa->physicians->name;
+
+		$physician = new Physicians();
+		$ph = $physician->findOne(array('name' => $PHYSICIAN_NAME))->run();
+
+		$PATIENT_NAME = $ph->patients->name;
+
+		TestMaster::AssertEqual($pa->name, $PATIENT_NAME, 'Patient name is not the equal!');
+		TestMaster::AssertEqual($ph->name, $PHYSICIAN_NAME, 'Physician name is not the equal!');
+	}
+
+	public function TestingHasOneThroughLogic()
+	{
+		$s = new Suppliers();
+		$r = $s->search(array('name' => 'Nancy'))->run();
+
+		TestMaster::AssertEqual($r->account_history->credit_rating, 10, 'Nancy\'s credit rating is not 10!?');
+	}
 }
 ?>

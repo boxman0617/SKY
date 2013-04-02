@@ -57,7 +57,11 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 				$_DRIVER_CLASS = $_DB['MODEL_DRIVER'].'Driver';
 				self::$_static_info[$this->_child]['driver'] = new $_DRIVER_CLASS($_DB);
 				if(is_null($this->TableName))
-					$this->TableName = strtolower(get_class($this));
+				{
+					$TABLE_NAME = get_class($this);
+					$TABLE_NAME = preg_replace('/\B([A-Z])/', '_$1', $TABLE_NAME);
+					$this->TableName = strtolower($TABLE_NAME);
+				}
 				self::$_static_info[$this->_child]['driver']->setTableName($this->TableName);
 				self::$_static_info[$this->_child]['driver']->setPrimaryKey($this->PrimaryKey);
 			}
@@ -183,6 +187,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 
 	private function _GetModel($model_name)
 	{
+		if(strpos($model_name, '_') !== false) $model_name = SKY::UnderscoreToUpper($model_name);
 		if(SKY::singularize($model_name) === false) $model_name = SKY::pluralize($model_name);
 		return new $model_name();
 	}
@@ -230,6 +235,16 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 			$SEARCH = array(
 				strtolower($FOREIGN_KEY) => $this->_iterator_data[$this->_iterator_position][$this->getPrimaryKey()]
 			);
+			if(array_key_exists(':through', $OPTIONS))
+			{
+				$MID_FOREIGN_KEY = strtolower($OPTIONS[':through'].'_id');
+				$MID_obj = $this->_GetModel($OPTIONS[':through']);
+				$PRI = $MID_obj->getPrimaryKey();
+				$r = $MID_obj->search($SEARCH, array($MID_obj->getPrimaryKey()))->run();
+				$SEARCH = array(
+					$MID_FOREIGN_KEY => $r->$PRI
+				);
+			}
 			if(array_key_exists(':conditions', $OPTIONS))
 			{
 				$CONDITIONS = &$OPTIONS[':conditions'];
@@ -247,14 +262,40 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 
 	private function _HasMany($model_name)
 	{
+		$original_name = $model_name;
+		$OPTIONS = $this->HasMany[$original_name];
+		if(!is_array($OPTIONS)) $OPTIONS = array();
+		if(array_key_exists(':model_name', $OPTIONS)) $model_name = $OPTIONS[':model_name'];
 		$obj = $this->_GetModel($model_name);
 		if($obj instanceof Model)
 		{
-			$r = $obj->search(array(
-				strtolower(SKY::singularize($this->_child).'_id') => $this->_iterator_data[$this->_iterator_position][$this->getPrimaryKey()]
-			))->run();
+			$FOREIGN_KEY = strtolower(SKY::singularize($this->_child).'_id');
+			if(array_key_exists(':foreign_key', $OPTIONS)) $FOREIGN_KEY = strtolower($OPTIONS[':foreign_key']);
+			$SEARCH = array(
+				$FOREIGN_KEY => $this->_iterator_data[$this->_iterator_position][$this->getPrimaryKey()]
+			);
+			if(array_key_exists(':through', $OPTIONS))
+			{
+				$MID_FOREIGN_KEY = strtolower(SKY::singularize($model_name).'_id');
+				$MID_obj = $this->_GetModel($OPTIONS[':through']);
+				$r = $MID_obj->search($SEARCH, array($MID_FOREIGN_KEY))->run();
+				$SEARCH = array(
+					$obj->getPrimaryKey() => $r->$MID_FOREIGN_KEY
+				);
+			}
+			if(array_key_exists(':conditions', $OPTIONS))
+			{
+				$CONDITIONS = &$OPTIONS[':conditions'];
+				$COUNT = count($CONDITIONS);
+				for($i=0; $i<$COUNT; $i++)
+					$SEARCH = array_merge($SEARCH, $CONDITIONS[$i]);
+			}
+			$r = $obj->search($SEARCH)->run();
+			if(array_key_exists(':readonly', $OPTIONS)) $r->setToReadOnly();
 			$this->_iterator_data[$this->_iterator_position][$model_name] = $r;
+			return true;
 		}
+		return false;
 	}
 
 	private function _HasAndBelongsToMany()

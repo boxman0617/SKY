@@ -41,10 +41,15 @@ class Fixture
 	{
 		foreach($associations as $model => $association)
 		{
-			$tmp = array_keys($association);
-			$type = $tmp[0];
-			if($type == 'belongs_to' || $type == 'has_one')
+			if(strpos($model, '_') !== false)
+			{
+				$tmp = explode('_', $model);
+				$COUNT = count($tmp);
+				$tmp[$COUNT-1] = SKY::pluralize($tmp[$COUNT-1]);
+				$model = implode('_', $tmp);
+			} else {
 				$model = SKY::pluralize($model);
+			}
 			self::$Models[$model]['associations'] = $association;
 		}
 	}
@@ -69,8 +74,10 @@ class Fixture
 			$DRIVER = $info['driver'].'Driver';
 			$DRIVER::DropTable($name);
 			$DRIVER::CreateTable($name, $info['fields']);
+			$MODEL = ucfirst($name);
+			if(strpos($name, '_') !== false) $MODEL = SKY::UnderscoreToUpper($name);
 			$class = "<?php
-class ".ucfirst($name)." extends Model
+class ".$MODEL." extends Model
 {
 ";
 			if($info['associations'] !== false)
@@ -87,7 +94,6 @@ class ".ucfirst($name)." extends Model
 			$class .= "}
 ?>
 ";
-			$MODEL = ucfirst($name);
 			if(file_exists(DIR_APP_MODELS."/".$MODEL.".model.php")) unlink(DIR_APP_MODELS."/".$MODEL.".model.php");
 	        $f = fopen(DIR_APP_MODELS."/".$MODEL.".model.php", "w");
 	        fwrite($f, $class);

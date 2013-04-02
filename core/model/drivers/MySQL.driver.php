@@ -195,8 +195,9 @@ class MySQLDriver implements iDriver
     // Query Builder Methods                                                      //
     //============================================================================//
     
-    public function search($where = array())
+    public function search($where = array(), $select = array())
     {
+        if(!empty($select)) call_user_func_array(array($this, 'select'), $select);
         $this->where($where);
     }
 
