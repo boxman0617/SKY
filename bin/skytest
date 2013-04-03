@@ -7,6 +7,9 @@ import(DBBUILD_CLASS);
 require_once(SKYCORE_TEST.'/test_helper.php');
 require_once(DIR_TEST.'/test_helper.php');
 
+echo "==============================================\n";
+echo "SKYTest Suite v".SKY::Version()."\n";
+echo "==============================================\n";
 $test = new TestMaster();
 if(isset($argv[1]))
 	$test->RunTestClass($argv[1]);

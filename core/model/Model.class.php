@@ -215,7 +215,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 			}
 			$r = $obj->findOne($SEARCH)->run();
 			if(array_key_exists(':readonly', $OPTIONS)) $r->setToReadOnly();
-			$this->_iterator_data[$this->_iterator_position][$model_name] = $r;
+			$this->_iterator_data[$this->_iterator_position][$original_name] = $r;
 			return true;
 		}
 		return false;
@@ -254,7 +254,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 			}
 			$r = $obj->findOne($SEARCH)->run();
 			if(array_key_exists(':readonly', $OPTIONS)) $r->setToReadOnly();
-			$this->_iterator_data[$this->_iterator_position][$model_name] = $r;
+			$this->_iterator_data[$this->_iterator_position][$original_name] = $r;
 			return true;
 		}
 		return false;
@@ -292,15 +292,47 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 			}
 			$r = $obj->search($SEARCH)->run();
 			if(array_key_exists(':readonly', $OPTIONS)) $r->setToReadOnly();
-			$this->_iterator_data[$this->_iterator_position][$model_name] = $r;
+			$this->_iterator_data[$this->_iterator_position][$original_name] = $r;
 			return true;
 		}
 		return false;
 	}
 
-	private function _HasAndBelongsToMany()
+	private function _HasAndBelongsToMany($model_name)
 	{
+		$original_name = $model_name; //Assemblies
+		$OPTIONS = $this->HasAndBelongsToMany[$original_name];
+		if(!is_array($OPTIONS)) $OPTIONS = array();
+		if(array_key_exists(':model_name', $OPTIONS)) $model_name = $OPTIONS[':model_name'];
+		$obj = $this->_GetModel($model_name);
+		if($obj instanceof Model)
+		{
+			$TABLES = array(strtolower($this->_child), strtolower($model_name));
+			sort($TABLES);
+			$JOIN_TABLE = implode('_', $TABLES);
+			$SEARCH = array(
+				SKY::singularize(strtolower($this->_child)).'_id' => $this->_iterator_data[$this->_iterator_position][$this->getPrimaryKey()]
+			);
+			$JOIN_OBJ = $this->_GetModel($JOIN_TABLE);
+			$MODEL_JOIN_KEY = strtolower(SKY::singularize($model_name).'_id');
+			$r = $JOIN_OBJ->search($SEARCH, array($MODEL_JOIN_KEY))->run();
 
+			$SEARCH = array(
+				$obj->getPrimaryKey() => $r->$MODEL_JOIN_KEY
+			);
+			if(array_key_exists(':conditions', $OPTIONS))
+			{
+				$CONDITIONS = &$OPTIONS[':conditions'];
+				$COUNT = count($CONDITIONS);
+				for($i=0; $i<$COUNT; $i++)
+					$SEARCH = array_merge($SEARCH, $CONDITIONS[$i]);
+			}
+			$r = $obj->search($SEARCH)->run();
+			if(array_key_exists(':readonly', $OPTIONS)) $r->setToReadOnly();
+			$this->_iterator_data[$this->_iterator_position][$original_name] = $r;
+			return true;
+		}
+		return false;
 	}
 
 	//############################################################
@@ -324,7 +356,8 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 
 	public function create($hash = array())
 	{
-		// @ToDo: Create object with hash
+		$this->_iterator_data[$this->_iterator_position] = $hash;
+		return $this;
 	}
 	
 	public function save()

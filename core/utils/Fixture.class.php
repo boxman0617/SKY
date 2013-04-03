@@ -16,7 +16,9 @@ class Fixtures
 			trigger_error('No fixture found!', E_USER_ERROR);
 			return false;
 		}
+		echo "# Building Fixtures...\n";
 		Fixture::Build();
+		echo "# Done! Starting tests...\n\n";
 	}
 }
 

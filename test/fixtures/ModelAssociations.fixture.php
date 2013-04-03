@@ -28,6 +28,20 @@ Fixture::CreateModels('MySQL', array(
 	),
 	'patients' => array(
 		'name' => 'varchar_255'
+	),
+	'assemblies' => array(
+		'name' => 'varchar_255'
+	),
+	'assemblies_parts' => array(
+		'assembly_id' => 'int_11',
+		'part_id' => 'int_11'
+	),
+	'parts' => array(
+		'part_number' => 'varchar_255'
+	),
+	'employees' => array(
+		'manager_id' => 'int_11',
+		'name' => 'varchar_255'
 	)
 ));
 
@@ -67,6 +81,29 @@ Fixture::CreateAssociations(array(
 		'has_many' => array(
 			'appointments' => true,
 			'physicians' => array(':through' => 'appointments')
+		)
+	),
+	'assembly' => array(
+		'has_and_belongs_to_many' => array(
+			'parts' => true
+		)
+	),
+	'part' => array(
+		'has_and_belongs_to_many' => array(
+			'assemblies' => true
+		)
+	),
+	'employee' => array(
+		'has_many' => array(
+			'subordinates' => array(
+				':model_name' => 'Employees',
+				':foreign_key' => 'manager_id'
+			)
+		),
+		'belongs_to' => array(
+			'manager' => array(
+				':model_name' => 'Employees'
+			)
 		)
 	)
 ));
@@ -131,5 +168,28 @@ Fixture::AddRow('appointments', array(
 	'physician_id' => $physician_joe->id,
 	'patient_id' => $patient_alex->id,
 	'appointment_number' => 'kn98sdca98sjd9ja'
+));
+
+$assembly_one = Fixture::AddRow('assemblies', array(
+	'name' => 'One'
+));
+
+$part_gear = Fixture::AddRow('parts', array(
+	'part_number' => md5(date('YmdHis'))
+));
+
+Fixture::AddRow('assemblies_parts', array(
+	'assembly_id' => $assembly_one->id,
+	'part_id' => $part_gear->id
+));
+
+$e_alan = Fixture::AddRow('employees', array(
+	'manager_id' => 0,
+	'name' => 'Alan'
+));
+
+$e_bob = Fixture::AddRow('employees', array(
+	'manager_id' => $e_alan->id,
+	'name' => 'Bob'
 ));
 ?>

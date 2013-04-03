@@ -55,5 +55,31 @@ class ModelAssociation
 
 		TestMaster::AssertEqual($r->account_history->credit_rating, 10, 'Nancy\'s credit rating is not 10!?');
 	}
+
+	public function TestingHasAndBelongsToManyLogic()
+	{
+		$a = new Assemblies();
+		$ar = $a->search(array('name' => 'One'))->run();
+
+		$p = new Parts();
+		$pr = $p->findOne()->run();
+
+		$parts = $ar->parts;
+		TestMaster::AssertEqual($parts->part_number, $pr->part_number, 'Assembly\'s part number is not correct!');
+	}
+
+	public function TestingSelfJoins()
+	{
+		$e = new Employees();
+		$r = $e->search(array('name' => 'Bob'))->run();
+
+		$manager = $r->manager;
+		TestMaster::AssertEqual($manager->name, 'Alan', 'Wrong manager!');
+
+		$e =  new Employees();
+		$r = $e->search(array('name' => $manager->name))->run();
+		$subordinates = $r->subordinates;
+		TestMaster::AssertEqual($subordinates->name, 'Bob', 'Wrong subordinate');
+	}
 }
 ?>

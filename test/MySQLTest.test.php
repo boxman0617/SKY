@@ -3,32 +3,7 @@ class MySQLTest
 {
 	public function __construct()
 	{
-		unlink(DIR_APP_MODELS.'/Mysqltests.model.php');
-		$db = new mysqli(DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_DATABASE);
-		$db->query('DROP TABLE `mysqltests`');
-		$a = array(
-			'MySQLTest.test.php',
-			'mysqltests',
-			'name:varchar_255',
-			'age:int_11',
-			'occupation:varchar_255'
-		);
-		$b = new DBBuild($a);
-		$b->HandleInput();
-		unlink(DIR_APP_MODELS.'/Mysqltests.model.php');
-		$class = '<?php
-class Mysqltests extends Model
-{
-		public function setOutputFormat($name, $action)
-		{
-				$this->OutputFormat[$name] = $action;
-		}
-}
-?>
-';
-				$f = fopen(DIR_APP_MODELS."/Mysqltests.model.php", "w");
-				fwrite($f, $class);
-				fclose($f);
+		Fixtures::Start('MySQLTest');
 	}
 
 	public function InsertRowsIntoTable()
@@ -115,20 +90,6 @@ class Mysqltests extends Model
 			$r = $m->run();
 			$RETURN = $r->delete_all();
 			TestMaster::Assert($RETURN, 'Something went wrong!');
-	}
-
-	public function TestingBelongsToLogic()
-	{
-			$m = new Mysqltests();
-			$m->name = 'James';
-			$m->age = 25;
-			$m->occupation = 'Bum';
-			$m->save();
-			
-			$m = new Mysqltests();
-			$r = $m->where('name = ?', 'James')->run();
-			$r->apple;
-			$r->apples;
 	}
 }
 ?>
