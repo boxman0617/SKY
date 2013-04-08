@@ -6,6 +6,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	private $_iterator_position 	= 0;
 
 	private $_readonly				= false;
+	private $_association_key		= array();
 	private $_child;
 	private $_object_id;
 	private $_driver_info 			= array();
@@ -23,6 +24,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	protected $OutputFormat			= array();
 	protected $InputFormat			= array();
 	protected $EncryptField			= array();
+	protected $OnActionCallbacks	= array();
 	//# Association Properties
 	protected $BelongsTo			= array();
 	protected $HasOne				= array();
@@ -180,6 +182,14 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	//# Association Methods
 	//############################################################
 
+	public function setAssociationKey($key_value)
+	{
+		$this->_association_key = array(
+			'key' => $key_value['key'],
+			'value' => $key_value['value']
+		);
+	}
+
 	public function getPrimaryKey()
 	{
 		return $this->PrimaryKey;
@@ -189,7 +199,25 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	{
 		if(strpos($model_name, '_') !== false) $model_name = SKY::UnderscoreToUpper($model_name);
 		if(SKY::singularize($model_name) === false) $model_name = SKY::pluralize($model_name);
+		$model_name = ucfirst($model_name);
 		return new $model_name();
+	}
+
+	private function _BelongsToPolymorphic($model_name)
+	{
+		$PARENT_ID	 = $this->_iterator_data[$this->_iterator_position][strtolower($model_name.'_id')];
+		$PARENT_TYPE = $this->_iterator_data[$this->_iterator_position][strtolower($model_name.'_type')];
+		$obj = $this->_GetModel($PARENT_TYPE);
+		if($obj instanceof Model)
+		{
+			$SEARCH = array(
+				$obj->getPrimaryKey() => $PARENT_ID
+			);
+			$r = $obj->findOne($SEARCH)->run();
+			$this->_iterator_data[$this->_iterator_position][$original_name] = $r;
+			return true;
+		}
+		return false;
 	}
 	
 	private function _BelongsTo($model_name)
@@ -197,6 +225,8 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 		$original_name = $model_name;
 		$OPTIONS = $this->BelongsTo[$original_name];
 		if(!is_array($OPTIONS)) $OPTIONS = array();
+		if(array_key_exists(':polymorphic', $OPTIONS))
+			return $this->_BelongsToPolymorphic($original_name);
 		if(array_key_exists(':model_name', $OPTIONS)) $model_name = $OPTIONS[':model_name'];
 		$obj = $this->_GetModel($model_name);
 		if($obj instanceof Model)
@@ -253,6 +283,10 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 					$SEARCH = array_merge($SEARCH, $CONDITIONS[$i]);
 			}
 			$r = $obj->findOne($SEARCH)->run();
+			$r->setAssociationKey(array(
+				'key' => strtolower($FOREIGN_KEY),
+				'value' => $this->_iterator_data[$this->_iterator_position][$this->getPrimaryKey()]
+			));
 			if(array_key_exists(':readonly', $OPTIONS)) $r->setToReadOnly();
 			$this->_iterator_data[$this->_iterator_position][$original_name] = $r;
 			return true;
@@ -270,10 +304,20 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 		if($obj instanceof Model)
 		{
 			$FOREIGN_KEY = strtolower(SKY::singularize($this->_child).'_id');
-			if(array_key_exists(':foreign_key', $OPTIONS)) $FOREIGN_KEY = strtolower($OPTIONS[':foreign_key']);
+			if(array_key_exists(':as', $OPTIONS))
+			{
+				$FOREIGN_KEY = $OPTIONS[':as'].'_id';
+			}
+			else
+			{
+				if(array_key_exists(':foreign_key', $OPTIONS)) 
+					$FOREIGN_KEY = strtolower($OPTIONS[':foreign_key']);
+			}
 			$SEARCH = array(
 				$FOREIGN_KEY => $this->_iterator_data[$this->_iterator_position][$this->getPrimaryKey()]
 			);
+			if(array_key_exists(':as', $OPTIONS))
+				$SEARCH[$OPTIONS[':as'].'_type'] = strtolower(SKY::singularize($this->_child));
 			if(array_key_exists(':through', $OPTIONS))
 			{
 				$MID_FOREIGN_KEY = strtolower(SKY::singularize($model_name).'_id');
@@ -291,6 +335,10 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 					$SEARCH = array_merge($SEARCH, $CONDITIONS[$i]);
 			}
 			$r = $obj->search($SEARCH)->run();
+			$r->setAssociationKey(array(
+				'key' => $FOREIGN_KEY, 
+				'value' => $this->_iterator_data[$this->_iterator_position][$this->getPrimaryKey()]
+			));
 			if(array_key_exists(':readonly', $OPTIONS)) $r->setToReadOnly();
 			$this->_iterator_data[$this->_iterator_position][$original_name] = $r;
 			return true;
@@ -336,6 +384,51 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	}
 
 	//############################################################
+	//# OnAction Methods
+	//############################################################
+
+	private function ExecuteActions($action)
+	{
+		if(!isset($this->OnActionCallbacks[$action]))
+			return false;
+		$STATUS = true;
+		foreach($this->OnActionCallbacks[$action] as $callback)
+		{
+			$RETURN = call_user_func($callback);
+			if($STATUS === true && $RETURN === false)
+				$STATUS = $RETURN;
+		}
+		return $STATUS;
+	}
+
+	private function OnAction($action, $callback)
+	{
+		if(!isset($this->OnActionCallbacks[$action]))
+			$this->OnActionCallbacks[$action] = array();
+		$this->OnActionCallbacks[$action][] = $callback;
+	}
+
+	public function OnDelete($callback)
+	{
+		$this->OnAction('delete', $callback);
+	}
+
+	public function OnDestroy($callback)
+	{
+		$this->OnAction('destroy', $callback);
+	}
+
+	public function OnSave($callback)
+	{
+		$this->OnAction('save', $callback);
+	}
+
+	public function OnUpdate($callback)
+	{
+		$this->OnAction('update', $callback);
+	}
+
+	//############################################################
 	//# Run Methods
 	//############################################################
 	
@@ -356,7 +449,19 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 
 	public function create($hash = array())
 	{
-		$this->_iterator_data[$this->_iterator_position] = $hash;
+		$PRI = $this->getPrimaryKey();
+		if(array_key_exists($PRI, $this->_iterator_data[$this->_iterator_position]))
+		{
+			$this->_iterator_data[] = array();
+			$this->_iterator_position = count($this->_iterator_data)-1;
+		}
+		if(isset($this->_association_key['key']))
+		{
+			$KEY = $this->_association_key['key'];
+			$this->$KEY = $this->_association_key['value'];
+		}
+		foreach($hash as $key => $value)
+			$this->$key = $value;
 		return $this;
 	}
 	
@@ -370,6 +475,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 		//# Update Record
 		if(isset($this->_iterator_data[$this->_iterator_position][$this->PrimaryKey]))
 		{
+			$this->ExecuteActions('update');
 			$UPDATED = self::$_static_info[$this->_child]['driver']->update(
 				$this->_unaltered_data, 
 				$this->_iterator_data[$this->_iterator_position],
@@ -379,6 +485,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 			return $UPDATED['status'];
 		//# Save New Record
 		} else {
+			$this->ExecuteActions('save');
 			$DOCUMENT = self::$_static_info[$this->_child]['driver']->savenew(
 				$this->_iterator_data[$this->_iterator_position]
 			);
@@ -399,14 +506,25 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 		return $RETURN;
 	}
 
+
 	//############################################################
 	//# Delete Methods
 	//############################################################
+
+	public function destroy()
+	{
+		if($this->delete())
+		{
+			$this->ExecuteActions('destroy');
+			unset($this->_iterator_data[$this->_iterator_position]);
+		}
+	}
 	
 	public function delete()
 	{
 		if(isset($this->_iterator_data[$this->_iterator_position][$this->PrimaryKey]))
 		{
+			$this->ExecuteActions('delete');
 			return self::$_static_info[$this->_child]['driver']->delete($this->_iterator_data[$this->_iterator_position][$this->PrimaryKey]);
 		}
 		return false;

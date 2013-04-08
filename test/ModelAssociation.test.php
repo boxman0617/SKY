@@ -81,5 +81,21 @@ class ModelAssociation
 		$subordinates = $r->subordinates;
 		TestMaster::AssertEqual($subordinates->name, 'Bob', 'Wrong subordinate');
 	}
+
+	public function TestingCreatingInAssociatedObject()
+	{
+		$c = new Customers();
+		$r = $c->search(array('name' => 'Bob'))->run();
+
+		$r->orders->create(array(
+			'name' => 'Laptop'
+		))->save();
+
+		$c = new Customers();
+		$r = $c->search(array('name' => 'Bob'))->run();
+
+		$COUNT = count($r->orders);
+		TestMaster::AssertEqual($COUNT, 4, 'Order was not created properly!');
+	}
 }
 ?>
