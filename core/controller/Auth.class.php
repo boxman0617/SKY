@@ -87,11 +87,11 @@ class Auth implements iAuth
 
     public function WhoAmI()
     {
-        if($this->IsLoggedIn())
+        if(self::IsLoggedIn())
         {
             $user = new $this->user_model();
             $map_username = $this->map['username'];
-            $r = $user->where('id = ?', $this->session->user_id)->run();
+            $r = $user->search(array($user->getPrimaryKey, $this->session->user_id))->run();
             return array(
                 'id' => $this->session->user_id,
                 $map_username => $r->$map_username

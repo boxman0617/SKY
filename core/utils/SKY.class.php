@@ -54,7 +54,7 @@ class SKY
 	public static function LoadCore($ENV = 'DEV')
 	{
 		require_once(getenv('SKYCORE').'/configs/defines.php');
-		define('APPROOT', getcwd());
+		define('APPROOT', $_SERVER['PWD']);
 
 		require_once(APPROOT.'/configs/defines.php');
 		require_once(DIR_CONFIGS.'/configure.php');

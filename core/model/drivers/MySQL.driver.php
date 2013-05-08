@@ -65,12 +65,23 @@ class MySQLDriver implements iDriver
             $RETURN[] = $ROW;
         return $RETURN;
     }
+    
+    private function diff($array1, $array2)
+    {
+        $diff = array();
+        foreach($array1 as $key => $value)
+        {
+            if((string)$value !== (string)$array2[$key])
+                $diff[$key] = $value;
+        }
+        return $diff;
+    }
 
     public function update(&$unaltered, &$data, $position)
     {
         if(isset($unaltered[$position]))
         {
-            $CHANGES = array_diff($data, $unaltered[$position]);
+            $CHANGES = $this->diff($data, $unaltered[$position]);
             if(empty($CHANGES))
                 return array(
                     'status' => true,
@@ -81,8 +92,12 @@ class MySQLDriver implements iDriver
             if(isset($CHANGES['created_at'])) unset($CHANGES['created_at']);
             if(isset($CHANGES['updated_at'])) unset($CHANGES['updated_at']);
 
+            $COLUMNS = $this->ShowColumns();
             foreach($CHANGES as $FIELD => $VALUE)
-                $QUERY .= "`".$FIELD."` = '".self::$DB[$this->Server]->real_escape_string($VALUE)."',";
+            {
+                if(in_array($FIELD, $COLUMNS))
+                    $QUERY .= "`".$FIELD."` = '".self::$DB[$this->Server]->real_escape_string($VALUE)."',";
+            }
             $QUERY = substr($QUERY, 0, -1)." WHERE `".$this->PrimaryKey."` = '".$data[$this->PrimaryKey]."'";
                 $_START = $this->LogBeforeAction('UPDATE', $QUERY);
             $STATUS = self::$DB[$this->Server]->query($QUERY);
@@ -110,8 +125,12 @@ class MySQLDriver implements iDriver
         $NOW = self::created_at();
         $data['created_at'] = $NOW;
         $data['updated_at'] = $NOW;
+        $COLUMNS = $this->ShowColumns();
         foreach($data as $FIELD => $VALUE)
-            $QUERY .= ' `'.$FIELD.'` = "'.$this->escape($VALUE).'",';
+        {
+            if(in_array($FIELD, $COLUMNS))
+                $QUERY .= ' `'.$FIELD.'` = "'.$this->escape($VALUE).'",';
+        }
         $QUERY = substr($QUERY, 0, -1);
             $_START = $this->LogBeforeAction('INSERT', $QUERY);
         $ID = self::$DB[$this->Server]->query($QUERY);
@@ -190,19 +209,45 @@ class MySQLDriver implements iDriver
         $db = new mysqli(DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_DATABASE);
         return $db->query($CREATE_STATEMENT);
     }
+    
+    public function ShowColumns()
+    {
+        $QUERY = "SHOW COLUMNS FROM `".$this->TableName."`";
+        $RESULTS = self::$DB[$this->Server]->query($QUERY);
+        $COLUMNS = array();
+        while($ROW = $RESULTS->fetch_assoc())
+            $COLUMNS[] = $ROW['Field'];
+        return $COLUMNS;
+    }
 
     //============================================================================//
     // Query Builder Methods                                                      //
     //============================================================================//
     
+    private function bool_to_string(&$where)
+    {
+        foreach($where as $field => $value)
+        {
+            if(is_bool($value))
+            {
+                if($value === true)
+                    $where[$field] = 'Y';
+                else
+                    $where[$field] = 'N';
+            }
+        }
+    }
+    
     public function search($where = array(), $select = array())
     {
         if(!empty($select)) call_user_func_array(array($this, 'select'), $select);
+        $this->bool_to_string($where);
         $this->where($where);
     }
 
     public function findOne($where = array())
     {
+        $this->bool_to_string($where);
         $this->where($where);
         $this->limit(1);
     }

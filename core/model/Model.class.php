@@ -4,12 +4,14 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	private $_unaltered_data		= array();
 	private $_iterator_data 		= array();
 	private $_iterator_position 	= 0;
+    private $_unencrypted_data      = array();
 
 	private $_readonly				= false;
 	private $_association_key		= array();
 	private $_child;
 	private $_object_id;
 	private $_driver_info 			= array();
+    private $_validation_errors     = array();
 	private static $_static_info 	= array();
 
 	protected $DatabaseOverwrite 	= array(
@@ -24,7 +26,13 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	protected $OutputFormat			= array();
 	protected $InputFormat			= array();
 	protected $EncryptField			= array();
+<<<<<<< HEAD
 	protected $OnActionCallbacks	= array();
+=======
+    protected $SerializeField  		= array();
+	protected $OnActionCallbacks	= array();
+    protected $Validate             = array();
+>>>>>>> Version 0.0.4
 	//# Association Properties
 	protected $BelongsTo			= array();
 	protected $HasOne				= array();
@@ -144,7 +152,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 
 	public function __set($key, $value)
 	{
-		if(isset($this->_iterator_data[$this->_iterator_position]) && array_key_exists($key, $this->_iterator_data[$this->_iterator_position]))
+		if(!isset($this->_unaltered_data[$this->_iterator_position]) && isset($this->_iterator_data[$this->_iterator_position]) && array_key_exists($key, $this->_iterator_data[$this->_iterator_position]))
 		{
 			$this->_unaltered_data[$this->_iterator_position] = $this->_iterator_data[$this->_iterator_position];
 		}
@@ -160,6 +168,9 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 		}
 		elseif(in_array($key, $this->EncryptField))
 		{
+            if(!isset($this->_unencrypted_data[$this->_iterator_position]))
+                $this->_unencrypted_data[$this->_iterator_position] = array();
+            $this->_unencrypted_data[$this->_iterator_position][$key] = $value;
 			$this->_iterator_data[$this->_iterator_position][$key] = $this->Encrypt($value);
 		}
 		else
@@ -177,6 +188,110 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	{
 		unset($this->_iterator_data[$this->_iterator_position][$key]);
 	}
+
+    //############################################################
+    //# Validation Methods
+	//############################################################
+
+    public function is_valid()
+    {
+        $VALID = true;
+        foreach($this->Validate as $field => $options)
+        {
+            $REQUIRED_PASS = true;
+            foreach($options as $type => $value)
+            {
+                if($type == ':required')
+                {
+                    $field_value = $this->_iterator_data[$this->_iterator_position][$field];
+                    if(in_array($field, $this->EncryptField))
+                        $field_value = $this->_unencrypted_data[$this->_iterator_position][$field];
+                    if(!array_key_exists($field, $this->_iterator_data[$this->_iterator_position]) || empty($field_value))
+                    {
+                        $this->_ValidationError($field, 'ABSENT');
+                        $REQUIRED_PASS = false;
+                        $VALID = false;
+                    }
+                }
+                if($REQUIRED_PASS && $type == ':regex')
+                {
+                    $field_value = $this->_iterator_data[$this->_iterator_position][$field];
+                    if(in_array($field, $this->EncryptField))
+                        $field_value = $this->_unencrypted_data[$this->_iterator_position][$field];
+                    if(!(bool)preg_match($value, $field_value))
+                    {
+                        $this->_ValidationError($field, 'REGEX_FAILED');
+                        $VALID = false;
+                    }
+                }
+                if($REQUIRED_PASS && $type == ':min')
+                {
+                    $field_value = $this->_iterator_data[$this->_iterator_position][$field];
+                    if(in_array($field, $this->EncryptField))
+                        $field_value = $this->_unencrypted_data[$this->_iterator_position][$field];
+                    if(strlen($field_value) < $value)
+                    {
+                        $this->_ValidationError($field, 'TOO_SHORT');
+                        $VALID = false;
+                    }
+                }
+                if($REQUIRED_PASS && $type == ':max')
+                {
+                    $field_value = $this->_iterator_data[$this->_iterator_position][$field];
+                    if(in_array($field, $this->EncryptField))
+                        $field_value = $this->_unencrypted_data[$this->_iterator_position][$field];
+                    if(strlen($field_value) > $value)
+                    {
+                        $this->_ValidationError($field, 'TOO_LONG');
+                        $VALID = false;
+                    }
+                }
+                if($REQUIRED_PASS && $type == ':unique')
+                {
+                    $CHILD = $this->_child;
+                    $obj = new $CHILD();
+                    $r = $obj->search(array($field => $this->_iterator_data[$this->_iterator_position][$field]))->run();
+                    $SEARCH_PRI = $r->getPrimaryKey();
+                    $MY_PRI = $this->getPrimaryKey();
+                    if(($r->$SEARCH_PRI != $this->$MY_PRI) && count($r) > 0)
+                    {
+                        $this->_ValidationError($field, 'NOT_UNIQUE');
+                        $VALID = false;
+                    }
+                }
+                if($REQUIRED_PASS && $type == ':confirm')
+                {
+                    if(array_key_exists($value, $this->_iterator_data[$this->_iterator_position]))
+                    {
+                        $compare = $this->_iterator_data[$this->_iterator_position][$value];
+                        if(in_array($field, $this->EncryptField))
+                            $compare = $this->Encrypt($compare);
+                        if($this->_iterator_data[$this->_iterator_position][$field] != $compare)
+                        {
+                            $this->_ValidationError($field, 'NOT_CONFIRMED');
+                            $VALID = false;
+                        }
+                    } else {
+                        $this->_ValidationError($field, 'NOT_CONFIRMED');
+                        $VALID = false;
+                    }
+                }
+            }
+        }
+        return $VALID;
+    }
+    
+    private function _ValidationError($on, $type)
+    {
+        if(!isset($this->_validation_errors[$on]))
+            $this->_validation_errors[$on] = array();
+        $this->_validation_errors[$on][] = $type;
+    }
+    
+    public function GetValidationErrors()
+    {
+        return $this->_validation_errors;
+    }
 
 	//############################################################
 	//# Association Methods
@@ -394,7 +509,11 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 		$STATUS = true;
 		foreach($this->OnActionCallbacks[$action] as $callback)
 		{
+<<<<<<< HEAD
 			$RETURN = call_user_func($callback);
+=======
+			$RETURN = call_user_func(array($this, $callback));
+>>>>>>> Version 0.0.4
 			if($STATUS === true && $RETURN === false)
 				$STATUS = $RETURN;
 		}
@@ -434,7 +553,23 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	
 	public function run()
 	{
-		$this->_iterator_data = self::$_static_info[$this->_child]['driver']->run();
+        if(!empty($this->SerializeField))
+        {
+            $tmp = self::$_static_info[$this->_child]['driver']->run();
+            $c = count($tmp);
+            $c_s = count($this->SerializeField);
+            for($i=0;$i<$c;$i++)
+            {
+                for($x=0;$x<$c_s;$x++)
+                {
+                    $tmp[$i][$this->SerializeField[$x]] = unserialize($tmp[$i][$this->SerializeField[$x]]);
+                }
+            }
+            $this->_iterator_data = $tmp;
+        } else {
+		    $this->_iterator_data = self::$_static_info[$this->_child]['driver']->run();
+        }
+        $this->_unaltered_data = $this->_iterator_data;
 		return $this;
 	}
 
@@ -450,7 +585,11 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	public function create($hash = array())
 	{
 		$PRI = $this->getPrimaryKey();
+<<<<<<< HEAD
 		if(array_key_exists($PRI, $this->_iterator_data[$this->_iterator_position]))
+=======
+		if(isset($this->_iterator_data[$this->_iterator_position]) && array_key_exists($PRI, $this->_iterator_data[$this->_iterator_position]))
+>>>>>>> Version 0.0.4
 		{
 			$this->_iterator_data[] = array();
 			$this->_iterator_position = count($this->_iterator_data)-1;
@@ -464,6 +603,11 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 			$this->$key = $value;
 		return $this;
 	}
+    
+    public function HasChanged($field)
+    {
+        return ($this->_unaltered_data[$this->_iterator_position][$field] != $this->_iterator_data[$this->_iterator_position][$field]);
+    }
 	
 	public function save()
 	{
@@ -472,27 +616,75 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 			trigger_error('This record is set to ReadOnly mode!', E_USER_WARNING);
 			return false;
 		}
+        if(!$this->is_valid())
+        {
+            Log::corewrite('Model object failed validation!', 1, __CLASS__, __FUNCTION__);
+            // Not sure if an error is the correct action here...
+            return false;
+        }
 		//# Update Record
 		if(isset($this->_iterator_data[$this->_iterator_position][$this->PrimaryKey]))
 		{
+<<<<<<< HEAD
 			$this->ExecuteActions('update');
+=======
+            Log::corewrite('Updating Model object.', 2, __CLASS__, __FUNCTION__);
+			$this->ExecuteActions('update');
+            $this->SerializeThis(true);
+>>>>>>> Version 0.0.4
 			$UPDATED = self::$_static_info[$this->_child]['driver']->update(
 				$this->_unaltered_data, 
 				$this->_iterator_data[$this->_iterator_position],
 				$this->_iterator_position
 			);
 			$this->_iterator_data[$this->_iterator_position] = $UPDATED['updated'];
+            $this->UnserializeThis();
+            Log::corewrite('Ran update method on Driver [%s].', 2, __CLASS__, __FUNCTION__, array($UPDATED['status']));
 			return $UPDATED['status'];
 		//# Save New Record
 		} else {
+<<<<<<< HEAD
 			$this->ExecuteActions('save');
+=======
+            Log::corewrite('Saving new Model object.', 2, __CLASS__, __FUNCTION__);
+			$this->ExecuteActions('save');
+            $this->SerializeThis();
+>>>>>>> Version 0.0.4
 			$DOCUMENT = self::$_static_info[$this->_child]['driver']->savenew(
 				$this->_iterator_data[$this->_iterator_position]
 			);
 			$this->_iterator_data[$this->_iterator_position][$this->PrimaryKey] = $DOCUMENT['data'];
+            $this->UnserializeThis();
+            Log::corewrite('Ran save method on Driver [%s].', 2, __CLASS__, __FUNCTION__, array($DOCUMENT['pri']));
 			return $DOCUMENT['pri'];
 		}
 	}
+    
+    private function SerializeThis($update = false)
+    {
+        if(!empty($this->SerializeField))
+        {
+            $c = count($this->SerializeField);
+            for($x=0;$x<$c;$x++)
+            {
+                $this->_iterator_data[$this->_iterator_position][$this->SerializeField[$x]] = serialize($this->_iterator_data[$this->_iterator_position][$this->SerializeField[$x]]);
+                if($update)
+                    $this->_unaltered_data[$this->_iterator_position][$this->SerializeField[$x]] = serialize($this->_unaltered_data[$this->_iterator_position][$this->SerializeField[$x]]);
+            }
+        }
+    }
+    
+    private function UnserializeThis()
+    {
+        if(!empty($this->SerializeField))
+        {
+            $c = count($this->SerializeField);
+            for($x=0;$x<$c;$x++)
+            {
+                $this->_iterator_data[$this->_iterator_position][$this->SerializeField[$x]] = unserialize($this->_iterator_data[$this->_iterator_position][$this->SerializeField[$x]]);
+            }
+        }
+    }
 
 	public function save_all()
 	{
@@ -557,12 +749,23 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	
 	public function to_array()
 	{
-		return $this->_iterator_data[$this->_iterator_position];
+        $array = array();
+        foreach($this->_iterator_data[$this->_iterator_position] as $key => $value)
+            $array[$key] = $this->$key;
+		return $array;
 	}
 
 	public function to_set()
 	{
-		return $this->_iterator_data;
+        $c = count($this->_iterator_data);
+        $set = array();
+        for($i = 0; $i < $c; $i++)
+        {
+            $this->_iterator_position = $i;
+            $set[] = $this->to_array();
+        }
+        $this->_iterator_position = 0;
+		return $set;
 	}
 
 	public function is_null()
@@ -578,6 +781,11 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	{
 		return count($this->_iterator_data);
 	}
+    
+    public function size()
+    {
+        return count($this->_iterator_data[$this->_iterator_position]);
+    }
 
 	//############################################################
 	//# Iterator Methods

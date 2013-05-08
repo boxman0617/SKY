@@ -23,6 +23,12 @@
  * Handles errors created by code
  * @package Sky.Core.Error
  */
+ 
+if(!defined('E_USER_DEPRECATED'))
+    define('E_USER_DEPRECATED', 16384);
+if(!defined('E_DEPRECATED'))
+    define('E_DEPRECATED', 8192); 
+
 class Error
 {
     public static $instance = null;
