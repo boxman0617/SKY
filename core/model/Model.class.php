@@ -26,13 +26,9 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	protected $OutputFormat			= array();
 	protected $InputFormat			= array();
 	protected $EncryptField			= array();
-<<<<<<< HEAD
-	protected $OnActionCallbacks	= array();
-=======
     protected $SerializeField  		= array();
 	protected $OnActionCallbacks	= array();
     protected $Validate             = array();
->>>>>>> Version 0.0.4
 	//# Association Properties
 	protected $BelongsTo			= array();
 	protected $HasOne				= array();
@@ -509,11 +505,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 		$STATUS = true;
 		foreach($this->OnActionCallbacks[$action] as $callback)
 		{
-<<<<<<< HEAD
-			$RETURN = call_user_func($callback);
-=======
 			$RETURN = call_user_func(array($this, $callback));
->>>>>>> Version 0.0.4
 			if($STATUS === true && $RETURN === false)
 				$STATUS = $RETURN;
 		}
@@ -585,11 +577,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	public function create($hash = array())
 	{
 		$PRI = $this->getPrimaryKey();
-<<<<<<< HEAD
-		if(array_key_exists($PRI, $this->_iterator_data[$this->_iterator_position]))
-=======
 		if(isset($this->_iterator_data[$this->_iterator_position]) && array_key_exists($PRI, $this->_iterator_data[$this->_iterator_position]))
->>>>>>> Version 0.0.4
 		{
 			$this->_iterator_data[] = array();
 			$this->_iterator_position = count($this->_iterator_data)-1;
@@ -625,13 +613,9 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 		//# Update Record
 		if(isset($this->_iterator_data[$this->_iterator_position][$this->PrimaryKey]))
 		{
-<<<<<<< HEAD
-			$this->ExecuteActions('update');
-=======
             Log::corewrite('Updating Model object.', 2, __CLASS__, __FUNCTION__);
 			$this->ExecuteActions('update');
             $this->SerializeThis(true);
->>>>>>> Version 0.0.4
 			$UPDATED = self::$_static_info[$this->_child]['driver']->update(
 				$this->_unaltered_data, 
 				$this->_iterator_data[$this->_iterator_position],
@@ -643,13 +627,9 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 			return $UPDATED['status'];
 		//# Save New Record
 		} else {
-<<<<<<< HEAD
-			$this->ExecuteActions('save');
-=======
             Log::corewrite('Saving new Model object.', 2, __CLASS__, __FUNCTION__);
 			$this->ExecuteActions('save');
             $this->SerializeThis();
->>>>>>> Version 0.0.4
 			$DOCUMENT = self::$_static_info[$this->_child]['driver']->savenew(
 				$this->_iterator_data[$this->_iterator_position]
 			);
