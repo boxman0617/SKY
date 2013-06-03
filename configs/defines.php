@@ -19,6 +19,7 @@ define('SKYCORE_CORE_ROUTER', SKYCORE_CORE.'/router');
 define('SKYCORE_CORE_STORAGE', SKYCORE_CORE.'/storage');
 define('SKYCORE_CORE_UTILS', SKYCORE_CORE.'/utils');
 define('SKYCORE_CORE_IMAGES', SKYCORE_CORE.'/images');
+define('SKYCORE_CORE_OBJECTS', SKYCORE_CORE.'/objects');
 
 // #Class Definer Function
 function _ClassDefiner($path)

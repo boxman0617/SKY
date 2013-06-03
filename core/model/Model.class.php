@@ -604,12 +604,6 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 			trigger_error('This record is set to ReadOnly mode!', E_USER_WARNING);
 			return false;
 		}
-        if(!$this->is_valid())
-        {
-            Log::corewrite('Model object failed validation!', 1, __CLASS__, __FUNCTION__);
-            // Not sure if an error is the correct action here...
-            return false;
-        }
 		//# Update Record
 		if(isset($this->_iterator_data[$this->_iterator_position][$this->PrimaryKey]))
 		{
@@ -627,6 +621,12 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 			return $UPDATED['status'];
 		//# Save New Record
 		} else {
+            if(!$this->is_valid())
+            {
+                Log::corewrite('Model object failed validation!', 1, __CLASS__, __FUNCTION__);
+                // Not sure if an error is the correct action here...
+                return false;
+            }
             Log::corewrite('Saving new Model object.', 2, __CLASS__, __FUNCTION__);
 			$this->ExecuteActions('save');
             $this->SerializeThis();

@@ -62,10 +62,7 @@ abstract class Mailer
     protected function Mail(Email $email)
     {
         Event::PublishActionHook('/Mailer/before/Mail/', array($this, $email));
-        foreach($this->variables as $key => $value)
-        {
-            $$key = $value;
-        }
+        extract($this->variables);
 
         ob_start();
         include_once(DIR_APP_VIEWS.'/'.strtolower(get_class($this)).'/'.strtolower($this->method_name).'.view.php');
@@ -80,7 +77,6 @@ abstract class Mailer
         $email->from = $this->from;
         if(!$email->Send())
             $_r = true;
-            //$this->error->Toss('Email did not send!', E_USER_ERROR);
         Event::PublishActionHook('/Mailer/after/Mail/', array($this, $email));
     }
     

@@ -9,11 +9,10 @@ interface iEmail
 class Email implements iEmail
 {
     public $data = array();
-    private $error;
     
     public function __construct()
     {
-        $this->error = ErrorHandler::Singleton();
+        
     }
     
     public function __set($name, $value)
@@ -47,7 +46,7 @@ class Email implements iEmail
     {
         if(!isset($this->to))
         {
-            $this->error->Toss('No [to] field set', E_USER_ERROR);
+            trigger_error('No [to] field set', E_USER_ERROR);
             return false;
         }
         if(!isset($this->subject))
@@ -56,7 +55,7 @@ class Email implements iEmail
         }
         if(!isset($this->body))
         {
-            $this->error->Toss('No [body] field set', E_USER_ERROR);
+            trigger_error('No [body] field set', E_USER_ERROR);
             return false;
         }
         if(!isset($this->header))

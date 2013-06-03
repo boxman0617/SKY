@@ -36,10 +36,10 @@ class ObjectFactory
      */
     public static function Manufactor($type)
     {
-        $ls = scandir(DIR_LIB_OBJECTS);
+        $ls = scandir(SKYCORE_CORE_OBJECTS);
         if(in_array($type.'.object.php', $ls))
         {
-            import(DIR_LIB_OBJECTS.'/'.$type.'.object.php');
+            import(SKYCORE_CORE_OBJECTS.'/'.$type.'.object.php');
             return new $type();
         }
         return false;

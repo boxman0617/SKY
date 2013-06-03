@@ -62,7 +62,7 @@ class MySQLDriver implements iDriver
             return $RESULTS;
         $RETURN = array();
         while($ROW = $RESULTS->fetch_assoc())
-            $RETURN[] = $ROW;
+            $RETURN[] = $this->enum_to_bool($ROW);
         return $RETURN;
     }
     
@@ -93,6 +93,7 @@ class MySQLDriver implements iDriver
             if(isset($CHANGES['updated_at'])) unset($CHANGES['updated_at']);
 
             $COLUMNS = $this->ShowColumns();
+            $this->bool_to_string($CHANGES);
             foreach($CHANGES as $FIELD => $VALUE)
             {
                 if(in_array($FIELD, $COLUMNS))
@@ -126,6 +127,7 @@ class MySQLDriver implements iDriver
         $data['created_at'] = $NOW;
         $data['updated_at'] = $NOW;
         $COLUMNS = $this->ShowColumns();
+        $this->bool_to_string($data);
         foreach($data as $FIELD => $VALUE)
         {
             if(in_array($FIELD, $COLUMNS))
@@ -236,6 +238,21 @@ class MySQLDriver implements iDriver
                     $where[$field] = 'N';
             }
         }
+    }
+    
+    private function enum_to_bool($row)
+    {
+        foreach($row as $field => $value)
+        {
+            if($value == 'Y' || $value == 'N')
+            {
+                if($value === 'Y')
+                    $row[$field] = true;
+                else
+                    $row[$field] = false;
+            }
+        }
+        return $row;
     }
     
     public function search($where = array(), $select = array())

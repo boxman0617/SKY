@@ -22,6 +22,7 @@
 
 import(MODEL_CLASS);
 import(RENDER_CLASS);
+import(TASK_CLASS);
 
 define('RENDER_NONE', 'RenderNONE');
 define('RENDER_HTML', 'RenderHTML');
@@ -107,7 +108,7 @@ abstract class Controller
         }
 		elseif(isset($params['view']))
 		{
-			$this->Assign('MAIN_PAGE', $params['view']);
+			self::$_subview_info['view'] = $params['view'];
 		}
         elseif(isset($params['file']))
         {
