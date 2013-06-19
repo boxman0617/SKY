@@ -85,6 +85,19 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 			call_user_func_array(array(self::$_static_info[$this->_child]['driver'], $method), $args);
 			return $this;
 		}
+        else if(substr($method, 0, 9) === "CreateNew") 
+        {
+            $what = strtolower(substr($method, 9));
+            if(array_key_exists(SKY::pluralize($what), $this->HasMany) || array_key_exists($what, $this->HasOne))
+            {
+                if(empty($args))
+                    $args = array(array());
+                return $this->_CreateNewAssociatedModel($this->_GetModel($what), $args[0]);
+            } else {
+                trigger_error("No association to Model [".$what."]. Unable to create associated new model.", E_USER_WARNING);
+                return false;
+            }
+        }
 	}
 
 	public function &__GetDriverInfo($hash_key, $default = array())
@@ -305,6 +318,16 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	{
 		return $this->PrimaryKey;
 	}
+
+    private function _CreateNewAssociatedModel($obj, $hash)
+    {
+        foreach($hash as $field => $value)
+            $obj->$field = $value;
+        $foreign_key = SKY::singularize(strtolower($this->_child)).'_id';
+        $PRI = $this->getPrimaryKey();
+        $obj->$foreign_key = $this->$PRI;
+        return $obj;
+    }
 
 	private function _GetModel($model_name)
 	{
@@ -633,7 +656,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 			$DOCUMENT = self::$_static_info[$this->_child]['driver']->savenew(
 				$this->_iterator_data[$this->_iterator_position]
 			);
-			$this->_iterator_data[$this->_iterator_position][$this->PrimaryKey] = $DOCUMENT['data'];
+			$this->_iterator_data[$this->_iterator_position][$this->PrimaryKey] = $DOCUMENT['pri'];
             $this->UnserializeThis();
             Log::corewrite('Ran save method on Driver [%s].', 2, __CLASS__, __FUNCTION__, array($DOCUMENT['pri']));
 			return $DOCUMENT['pri'];
