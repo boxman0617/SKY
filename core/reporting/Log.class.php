@@ -108,6 +108,11 @@ class Log
             }
         }
     }
+    
+    public static function sendtextmessage($msg, $phone, $company, $from = "sky@txtmsg.com")
+    {
+        mail($phone.'@'.self::$companies[$company], 'Text Message', $msg, "From: ".$from."\r\n");
+    }
 
     /**
      * Static core level write method

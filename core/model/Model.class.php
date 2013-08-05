@@ -34,7 +34,8 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	protected $HasOne				= array();
 	protected $HasMany				= array();
 	protected $HasAndBelongsToMany	= array();
-	
+	//# Model Display Properties
+    protected $DisplayAsTableViews  = array();
 
 	//############################################################
 	//# Magic Methods
@@ -77,6 +78,34 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 		$this->_object_id = md5($this->_child.rand(0, 9999).date('YmdHis'));
 		self::$_static_info[$this->_child]['driver']->buildModelInfo($this);
 	}
+
+    public static function __callStatic($method, $args)
+    {
+        if(substr($method, 0, 6) === 'FindBy' || substr($method, 0, 9) === 'FindOneBy')
+        {
+            $rest = substr($method, 6);
+            if(substr($method, 0, 9) === 'FindOneBy')
+                $rest = substr($method, 9);
+            $parts = explode('And', $rest);
+            $QUERY = array();
+            foreach($parts as $k => $p)
+            {
+                $FIELD = strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $p));
+                $QUERY[$FIELD] = $args[$k];
+            }
+            $CHILD = get_called_class();
+            $OBJ = new $CHILD();
+            if(substr($method, 0, 9) === 'FindOneBy')
+                return $OBJ->search($QUERY)->limit(1)->run();
+            return $OBJ->search($QUERY)->run();
+        }
+        elseif(substr($method, 0, 6) === 'Search')
+        {
+            $CHILD = get_called_class();
+            $OBJ = new $CHILD();
+            return $OBJ->search((array)$args[0])->run();
+        }
+    }
 
 	public function __call($method, $args)
 	{
@@ -145,6 +174,22 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 			}
 			if($SUCCESS)
 				return $this->_iterator_data[$this->_iterator_position][$key];
+            
+            $_associations = array(
+                '_BelongsTo' => $this->BelongsTo,
+                '_HasOne' => $this->HasOne,
+                '_HasMany' => $this->HasMany,
+                '_HasAndBelongsToMany' => $this->HasAndBelongsToMany
+            );
+            foreach($_associations as $_type => $_association)
+            {
+                if(array_key_exists($key, $_association))
+                {
+                    if(call_user_func(array($this, $_type), $key))
+                        return $this->_iterator_data[$this->_iterator_position][$key];
+                }
+            }
+            
 			return null;
 		}
 		if(array_key_exists($key, $this->OutputFormat))
@@ -191,6 +236,13 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	public function __isset($key)
 	{
 		return isset($this->_iterator_data[$this->_iterator_position][$key]);
+	}
+
+	public function responds_to($name)
+	{
+	    if(array_key_exists($name, $this->_iterator_data[$this->_iterator_position]))
+	        return true;
+	    return method_exists($this, $name);
 	}
 
 	public function __unset($key)
@@ -348,7 +400,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 				$obj->getPrimaryKey() => $PARENT_ID
 			);
 			$r = $obj->findOne($SEARCH)->run();
-			$this->_iterator_data[$this->_iterator_position][$original_name] = $r;
+			$this->_iterator_data[$this->_iterator_position][$model_name] = $r;
 			return true;
 		}
 		return false;
@@ -457,8 +509,11 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 				$MID_FOREIGN_KEY = strtolower(SKY::singularize($model_name).'_id');
 				$MID_obj = $this->_GetModel($OPTIONS[':through']);
 				$r = $MID_obj->search($SEARCH, array($MID_FOREIGN_KEY))->run();
+                $IDs = array();
+                foreach($r as $rs)
+                    $IDs[] = $rs->$MID_FOREIGN_KEY;
 				$SEARCH = array(
-					$obj->getPrimaryKey() => $r->$MID_FOREIGN_KEY
+					$obj->getPrimaryKey() => $IDs
 				);
 			}
 			if(array_key_exists(':conditions', $OPTIONS))
@@ -566,6 +621,20 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	//# Run Methods
 	//############################################################
 	
+    public static function all()
+    {
+        $CHILD = get_called_class();
+        $OBJ = new $CHILD();
+        return $OBJ->run();
+    }
+    
+    public static function first()
+    {
+        $CHILD = get_called_class();
+        $OBJ = new $CHILD();
+        return $OBJ->limit(1)->run();
+    }
+	
 	public function run()
 	{
         if(!empty($this->SerializeField))
@@ -597,6 +666,13 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 		$this->_readonly = true;
 	}
 
+    public static function build($hash = array())
+    {
+        $CHILD = get_called_class();
+        $OBJ = new $CHILD();
+        return $OBJ->create($hash);
+    }
+
 	public function create($hash = array())
 	{
 		$PRI = $this->getPrimaryKey();
@@ -614,6 +690,11 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 			$this->$key = $value;
 		return $this;
 	}
+    
+    public function GetOldValue($field)
+    {
+        return $this->_unaltered_data[$this->_iterator_position][$field];
+    }
     
     public function HasChanged($field)
     {
@@ -720,10 +801,26 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 		if(isset($this->_iterator_data[$this->_iterator_position][$this->PrimaryKey]))
 		{
 			$this->ExecuteActions('delete');
+            $this->_DeleteAssociations();
 			return self::$_static_info[$this->_child]['driver']->delete($this->_iterator_data[$this->_iterator_position][$this->PrimaryKey]);
 		}
 		return false;
 	}
+
+    private function _DeleteAssociations()
+    {
+        foreach($this->HasMany as $MODEL => $OPTIONS)
+        {
+            if(array_key_exists(':dependent', $OPTIONS))
+            {
+                if($OPTIONS[':dependent'] === ':delete')
+                {
+                    foreach($this->$MODEL as $M)
+                        $M->delete();
+                }
+            }
+        }
+    }
 
 	public function delete_all()
 	{
@@ -738,6 +835,11 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	}
 
 	//############################################################
+    //# Model Render Methods
+	//############################################################
+
+
+	//############################################################
 	//# Output Format Methods
 	//############################################################
 	
@@ -745,6 +847,26 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	{
 		return md5(AUTH_SALT.$value);
 	}
+    
+    //############################################################
+    //# Model Display Methods
+    //############################################################
+    
+    public function to_table($view, $params = array())
+    {
+        if(!empty($this->DisplayAsTableViews))
+        {
+            if(array_key_exists($view, $this->DisplayAsTableViews))
+            {
+                extract($params);
+                include_once(DIR_APP_VIEWS.'/'.$this->DisplayAsTableViews[$view]);
+            } else {
+                trigger_error('DisplayAsTableView property has no view bby the name ['.$view.']!', E_USER_WARNING);
+            }
+        } else {
+            trigger_error('DisplayAsTableView property empty! Please assign a/some view(s) to this model to be able to use this feature.', E_USER_NOTICE);
+        }
+    }
 
 	//############################################################
 	//# To_ Methods

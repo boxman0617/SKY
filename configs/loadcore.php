@@ -6,6 +6,7 @@ import(DIR_CONFIGS.'/plugins.php');
 import(SKYCORE_CONFIGS.'/preloader.php');
 import(HTML_CLASS);
 import(ERROR_CLASS);
+import(CACHE_CLASS);
 import(SESSION_CLASS);
 import(COOKIE_CLASS);
 import(AUTH_CLASS);

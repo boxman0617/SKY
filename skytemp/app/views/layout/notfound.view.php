@@ -46,6 +46,6 @@
 	</head>
 
 	<body>
-		<? Controller::yield(); ?>
+		<? Controller::RenderSubView(); ?>
 	</body>
 </html>

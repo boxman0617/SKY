@@ -150,6 +150,7 @@ class Router
         $class = strtolower(ucfirst($tmp[0]));
         import(DIR_APP_CONTROLLERS.'/'.strtolower($tmp[0]).'.controller.php');
         $obj = new $class();
+        Log::write('Query: [%s]', rtrim($_REQUEST['_query'], '/'));
         Event::PublishActionHook('/Route/before/Follow/'.$hook.'/', array($obj));
         $obj->HandleRequest(strtolower(ucfirst($tmp[1])));
         Event::PublishActionHook('/Route/after/Follow/'.$hook.'/', array($obj));

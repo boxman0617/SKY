@@ -14,6 +14,9 @@ require_once(DIR_CONFIGS.'/configure.php');
 require_once(SKYCORE_CONFIGS.'/configure.php');
 require_once(SKYCORE_CONFIGS.'/loadcore.php');
 
+// #initialize Sessions
+Session::getInstance();
+
 // #Initialize Router
 require_once(SKYCORE_CONFIGS.'/router_init.php');
 ?>

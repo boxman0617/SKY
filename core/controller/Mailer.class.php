@@ -75,9 +75,10 @@ abstract class Mailer
         $email->header = $headers;
         $email->body = $message;
         $email->from = $this->from;
-        if(!$email->Send())
-            $_r = true;
+        $RETURN = $email->Send();
+        Log::corewrite('EMail Send Status [%s]', 1, __CLASS__, __FUNCTION__, array(var_export($RETURN, true)));
         Event::PublishActionHook('/Mailer/after/Mail/', array($this, $email));
+        return $RETURN;
     }
     
     /**
@@ -89,7 +90,7 @@ abstract class Mailer
     {
         Event::PublishActionHook('/Mailer/before/Deliver/', array($this, $method));
         $this->method_name = $method;
-        call_user_func(array($this, $method));
+        return call_user_func(array($this, $method));
         Event::PublishActionHook('/Mailer/after/Deliver/', array($this, $method));
     }
     

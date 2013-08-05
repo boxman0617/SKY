@@ -105,7 +105,15 @@ class SKY
 	  'man' => 'men',
 	  'child' => 'children',
 	  'sex' => 'sexes',
-	  'move' => 'moves');
+            'move' => 'moves'
+        );
+        
+        $ending_in_s = array(
+            'status',
+            'alias',
+            'class',
+            'rendezvous'
+        );
 
 	  $lowercased_word = strtolower($word);
 	  foreach ($uncountable as $_uncountable){
@@ -122,6 +130,7 @@ class SKY
 
 	  foreach ($singular as $rule => $replacement) {
 		  if (preg_match($rule, $word)) {
+                if(!in_array($word, $ending_in_s))
 			  return preg_replace($rule, $replacement, $word);
 		  }
 	  }

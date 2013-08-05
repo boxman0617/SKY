@@ -1,6 +1,63 @@
 <?php
 import(SKYCORE_CORE_MODEL."/Driver.interface.php");
 
+class Operator
+{
+    public $operator = null;
+    public $value = null;
+    
+    public function __construct($operator, $value)
+    {
+        $this->operator = '!=';
+        $this->value = $value;
+    }
+    
+    public static function Not($value)
+    {
+        return new Operator('!=', $value);
+    }
+    
+    public static function IsNot($bool)
+    {
+        return new Operator('IS NOT', $value);
+    }
+    
+    public static function IsNotNull()
+    {
+        return new Operator('IS NOT NULL', null);
+    }
+    
+    public static function IsNull()
+    {
+        return new Operator('IS NULL', null);
+    }
+    
+    public static function LessThan($value)
+    {
+        return new Operator('<', $value);
+    }
+    
+    public static function LessThanOrEqualTo($value)
+    {
+        return new Operator('<=', $value);
+    }
+    
+    public static function GreaterThan($value)
+    {
+        return new Operator('>', $value);
+    }
+    
+    public static function GreaterThanOrEqualTo($value)
+    {
+        return new Operator('>=', $value);
+    }
+    
+    public static function Like($value)
+    {
+        throw new Exception('This is not yet supported!');
+    }
+}
+
 class MySQLDriver implements iDriver
 {
 	private $TableName;
@@ -9,6 +66,7 @@ class MySQLDriver implements iDriver
 	private static $DB;
 	private $Model;
     public static $DefaultPrimaryKey = 'id';
+    private static $_log_count = 0;
 
 	public function __construct($db)
 	{
@@ -55,14 +113,28 @@ class MySQLDriver implements iDriver
     public function run()
     {
         $QUERY = $this->buildQuery();
+        if(CACHE_ENABLED)
+        {
+            if(Cache::IsCached($QUERY))
+            {
+                Log::corewrite('Getting cached value [%s]', 1, __CLASS__, __FUNCTION__, array($QUERY));
+                return Cache::GetCache($QUERY);
+            }
+        }
+        
             $_START = $this->LogBeforeAction('RUN', $QUERY);
+        
         $RESULTS = self::$DB[$this->Server]->query($QUERY);
+        
             $this->LogAfterAction($_START, $RESULTS, array('RESULTS' => $RESULTS->num_rows));
+        
         if($RESULTS === true)
             return $RESULTS;
         $RETURN = array();
         while($ROW = $RESULTS->fetch_assoc())
             $RETURN[] = $this->enum_to_bool($ROW);
+        if(CACHE_ENABLED)
+            Cache::Cache($QUERY, $RETURN);
         return $RETURN;
     }
     
@@ -71,6 +143,8 @@ class MySQLDriver implements iDriver
         $diff = array();
         foreach($array1 as $key => $value)
         {
+            if(is_object($value))
+                continue;
             if((string)$value !== (string)$array2[$key])
                 $diff[$key] = $value;
         }
@@ -162,8 +236,11 @@ class MySQLDriver implements iDriver
         if($GLOBALS['ENV'] != 'PRO')
         {
             $LOG = fopen(DIR_LOG."/development.log", 'a');
+            if(self::$_log_count == 0)
+                fwrite($LOG, ">========DEV=LOG===========> ".date('m-d-Y H:i:s')."\n");
             fwrite($LOG, "\033[36mSTART\033[0m: ".date('H:i:s')."\t".$action_name.": ".trim($action)."\n");
             fclose($LOG);
+            self::$_log_count++;
         }
         return microtime(true);
     }
@@ -416,7 +493,6 @@ class MySQLDriver implements iDriver
      */
     public function where()
     {
-        Log::corewrite('Adding where clause to query', 2, __CLASS__, __FUNCTION__);
         $driver_info = &$this->Model->__GetDriverInfo('query_material');
 
         // Regular string where clause. No extra work needed
@@ -436,6 +512,11 @@ class MySQLDriver implements iDriver
                 $operator = '=';
                 if(is_array($value))
                     $operator = 'IN';
+                elseif(is_object($value) && $value instanceof Operator)
+                {
+                    $operator = $value->operator;
+                    $value = $value->value;
+                }
                 $driver_info['where'][] = array(
                     'field' => $this->escape($key),
                     'operator' => $operator,
@@ -474,6 +555,8 @@ class MySQLDriver implements iDriver
                 if($broken[$i] != "")
                     $where .= trim($broken[$i])." '".$this->escape(func_get_arg($i+1))."' ";
             }
+            if(isset($broken[$i]))
+                $where .= trim($broken[$i]);
             $driver_info['where'][] = trim($where);
         }
         // Multiple Associative-Array based where clause.

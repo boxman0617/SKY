@@ -1,0 +1,5 @@
+# Config file for Notify
+name=Notify
+version=0.0.1
+file=Notify.plugin.php
+class=Notify

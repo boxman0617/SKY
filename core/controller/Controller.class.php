@@ -44,6 +44,7 @@ abstract class Controller
 {
     protected $before_filter = array();
     protected $after_filter = array();
+    protected static $flash_display = array();
 
     protected $render_info = array(
         'layout' => 'layout/layout.view.php',
@@ -62,6 +63,7 @@ abstract class Controller
         'before' => array(),
         'after' => array()
     );
+    public $_router_specs = array();
 
     /**
      * Constructor method. Gets called at object initialization.
@@ -75,6 +77,11 @@ abstract class Controller
         unset($this->params['_query']);
         Event::PublishActionHook('/Controller/after/__construct/', array($this));
         Log::corewrite('At the end of method', 2, __CLASS__, __FUNCTION__);
+    }
+
+    public function SetRouterSpecs($specs = array())
+    {
+        $this->_router_specs = $specs;
     }
 
     /**
@@ -284,6 +291,7 @@ abstract class Controller
         $this->render_info['method'] = $method;
         self::$_subview_info['dir'] = strtolower(get_class($this));
         self::$_subview_info['view'] = strtolower($this->render_info['method']);
+        $this->Assign('_METHOD_', strtolower($method));
         unset($method);
 
         // Run Action Determined by Router
@@ -295,7 +303,7 @@ abstract class Controller
         if($this->render_info['render'] != RENDER_NONE)
         {
             $class = $this->render_info['render'];
-            $obj = new $class();
+            $obj = new $class($this);
             $obj->Render($this->render_info);
         }
 
@@ -365,6 +373,8 @@ abstract class Controller
             if(!isset($session->flash_type))
                 $session->flash_type = 'info';
 
+            if(empty(static::$flash_display))
+            {
             switch($session->flash_type)
             {
                 case 'info':
@@ -381,6 +391,15 @@ abstract class Controller
                     break;
                 default:
                     $flash = '<div style="background-image: url(\'/public/images/flash/info.png\'); background-repeat: no-repeat; background-position: 10px center; font-weight: bold; background-color: #BDE5F8; border: 1px solid #00529B; padding:15px 10px 15px 50px; color: #00529B; margin: 10px 0px; font-family:Arial, Helvetica, sans-serif; font-size:13px;">';
+            }
+            } else {
+                if(isset(static::$flash_display[$session->flash_type]))
+                    $flash = static::$flash_display[$session->flash_type];
+                else
+                {
+                    trigger_error("No custom flash type set for [".$session->flash_type."]", E_USER_NOTICE);
+                    return false;
+                }
             }
             $flash .= $session->flash;
             $flash .= '</div>';
@@ -515,9 +534,14 @@ abstract class Controller
 
     public static function TruncateString($string, $chars = 100)
     {
-        preg_match('/^.{0,' . $chars. '}(?:.*?)\b/iu', $string, $matches);
+        preg_match('/^.{0,' . $chars. '}(?:.*?)\b./iu', $string, $matches);
         $new_string = $matches[0];
-        return ($new_string === $string) ? $string : $new_string . '&hellip;';
+        if($new_string === $string)
+        {
+            return $string;
+        } else {
+            return $new_string.'&hellip;';
+        }
     }
 }
 ?>

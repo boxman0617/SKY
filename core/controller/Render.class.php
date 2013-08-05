@@ -1,11 +1,18 @@
 <?php
 interface RenderInterface
 {
+    public function __construct(&$ref);
 	public function Render(&$render_info);
 }
 
 class RenderHTML implements RenderInterface
 {
+    protected $REF;
+    public function __construct(&$ref)
+    {
+        $this->REF = $ref;
+    }
+    
 	public function Render(&$render_info)
 	{
 		if($render_info['status'] == NOT_RENDERED)
@@ -19,6 +26,12 @@ class RenderHTML implements RenderInterface
 
 class RenderJSON implements RenderInterface
 {
+    protected $REF;
+    public function __construct(&$ref)
+    {
+        $this->REF = $ref;
+    }
+    
 	public function Render(&$render_info)
 	{
 		if(isset($render_info['info']))
@@ -33,6 +46,12 @@ class RenderJSON implements RenderInterface
 
 class RenderXML implements RenderInterface
 {
+    protected $REF;
+    public function __construct(&$ref)
+    {
+        $this->REF = $ref;
+    }
+    
 	public function Render(&$render_info)
 	{
 		@header("Content-type:application/xml");
@@ -75,6 +94,12 @@ class RenderXML implements RenderInterface
 
 class RenderSUBVIEWS implements RenderInterface
 {
+    protected $REF;
+    public function __construct(&$ref)
+    {
+        $this->REF = $ref;
+    }
+    
 	public function Render(&$render_info)
 	{
 

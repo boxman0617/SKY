@@ -138,14 +138,21 @@ class DBBuild
         $db->query($create);
 
         // Building Model
+        if(strpos('_', $this->table['name']) !== false)
+        {
+            $MODEL_NAME = ucwords(str_replace('_', ' ', $this->table['name']));
+            $this->table['name'] = str_replace(' ', '', $MODEL_NAME);
+        } else {
+            $this->table['name'] = ucfirst($this->table['name']);
+        }
         $class = "<?php
-class ".ucfirst($this->table['name'])." extends Model
+class ".$this->table['name']." extends Model
 {
 
 }
 ?>
 ";
-        $f = fopen(DIR_APP_MODELS."/".ucfirst($this->table['name']).".model.php", "w");
+        $f = fopen(DIR_APP_MODELS."/".$this->table['name'].".model.php", "w");
         fwrite($f, $class);
         fclose($f);
     }
