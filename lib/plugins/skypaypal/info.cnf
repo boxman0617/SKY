@@ -1,0 +1,5 @@
+# Config file for SkyPayPal
+name=SkyPayPal
+version=0.0.1
+file=SkyPayPal.plugin.php
+class=SkyPayPal
