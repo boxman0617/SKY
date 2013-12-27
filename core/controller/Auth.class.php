@@ -1,22 +1,20 @@
 <?php
-/**
- * Auth Core Class
- *
- * This class handles a high level Authentication
- * system based on Sessions.
- *
- * LICENSE:
- *
- * This file may not be redistributed in whole or significant part, or
- * used on a web site without licensing of the enclosed code, and
- * software features.
- *
- * @author      Alan Tirado <root@deeplogik.com>
- * @copyright   2013 DeepLogik, All Rights Reserved
- * @license     http://www.codethesky.com/license
- * @link        http://www.codethesky.com/docs/authclass
- * @package     Sky.Core
- */
+// ####
+// Auth Class
+// 
+// This class handles a high level Authentication
+// system based on Sessions.
+//
+// @license
+// - This file may not be redistributed in whole or significant part, or
+// - used on a web site without licensing of the enclosed code, and
+// - software features.
+//
+// @author      Alan Tirado <alan@deeplogik.com>
+// @copyright   2013 DeepLogik, All Rights Reserved
+//
+// @version     0.0.7 Starting from here
+// ##
 
 import(SESSION_CLASS);
 
@@ -29,7 +27,13 @@ interface iAuth
     public function WhoAmI();
 }
 
-class Auth implements iAuth
+// ####
+// Auth Class
+// @desc This class handles a high level Authentication
+// @abstract
+// @package SKY.Core.Auth
+// ##
+class Auth extends Base implements iAuth
 {
     private $session;
     private $user_model = 'user';
@@ -40,7 +44,7 @@ class Auth implements iAuth
 
     public function __construct()
     {
-        $this->session = Session::getInstance();
+        self::$_share['session'] = Session::getInstance();
         $this->user_model = ucfirst(AUTH_MODEL);
         $this->map['username'] = AUTH_MODEL_USERNAME;
         $this->map['password'] = AUTH_MODEL_PASSWORD;
@@ -52,31 +56,33 @@ class Auth implements iAuth
         $map_username = $this->map['username'];
         $map_password = $this->map['password'];
         $class = ucfirst($this->user_model);
-        $user = new $class();
-        $r = $user->where($map_username.' = ?', $username)->run();
+        $r = $class::Search(array(
+            $map_username => $username
+        ));
         if(isset($r->$map_username) && $r->$map_username != null)
         {
             $encrypt_pass = md5(AUTH_SALT.$password);
             if($encrypt_pass == $r->$map_password)
             {
                 Log::corewrite('Login was successful!', 1, __CLASS__, __FUNCTION__);
-                $this->session->user_id = $r->id;
+                self::$_share['session']->user_id = $r->id;
+                self::$_share['user'] = $r;
             } else {
                 Log::corewrite('Login was not successful!', 1, __CLASS__, __FUNCTION__);
-                $this->session->destroy();
+                self::$_share['session']->destroy();
                 return false;
             }
             return true;
         } else {
             Log::corewrite('Login was not successful!', 1, __CLASS__, __FUNCTION__);
-            $this->session->destroy();
+            self::$_share['session']->destroy();
             return false;
         }
     }
 
     public function LogOut()
     {
-        $this->session->destroy();
+        self::$_share['session']->destroy();
         return true;
     }
 
@@ -91,9 +97,9 @@ class Auth implements iAuth
         {
             $user = new $this->user_model();
             $map_username = $this->map['username'];
-            $r = $user->search(array($user->getPrimaryKey, $this->session->user_id))->run();
+            $r = $user->search(array($user->getPrimaryKey, self::$_share['session']->user_id))->run();
             return array(
-                'id' => $this->session->user_id,
+                'id' => self::$_share['session']->user_id,
                 $map_username => $r->$map_username
             );
         }

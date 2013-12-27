@@ -17,6 +17,12 @@ $GLOBALS['TXT_GROUPS'] = array(
 // @level 2 - Info at major parts of the core
 // @level 3 - Startup info for methods
 define('LOG_LEVEL', 1);
+// Internal Request Caching
+define('CACHE_ENABLED', true);
+define('PAGE_CACHE_ENABLED', true);
+
+// $_FILES Auto Clean up
+define('FILES_CLEANUP_ENABLED', true);
 
 // Development Enviroment [DEV]
 $DB['DEV'] = array(

@@ -5,6 +5,11 @@
 $GLOBALS['ENV'] = 'DEV';
 
 //#############################################
+// Base URL Definition @SafeToEdit
+//#############################################
+define('BASE_GLOBAL_URL', '/');
+
+//#############################################
 // APP Defines @DoNotEdit
 //#############################################
 // #App Files
@@ -19,7 +24,10 @@ define('DIR_CONFIGS', APPROOT.'/configs');
 
 // #APP Lib Files
 define('DIR_LIB', APPROOT.'/lib');
+define('DIR_LIB_PLUGINS', DIR_LIB.'/plugins');
+define('DIR_LIB_TASKS', DIR_LIB.'/tasks');
 define('DIR_LIB_OBJECTS', DIR_LIB.'/objects');
+define('DIR_LIB_CACHE', APPROOT.'/lib/tmp/cache');
 
 // #APP Log Files
 define('DIR_LOG', APPROOT.'/log');

@@ -1,5 +1,8 @@
 <?php
 define('SKYCORE', getenv('SKYCORE'));
+require_once(SKYCORE.'/core/main/Base.class.php');
+require_once(SKYCORE.'/core/reporting/Benchmark.class.php');
+Benchmark::Start();
 // #Defining ROOT dirs
 define('SKYCORE_CORE', SKYCORE.'/core' );
 define('SKYCORE_CONFIGS', SKYCORE.'/configs' );
@@ -11,6 +14,7 @@ define('SKYCORE_FIXTURES', SKYCORE.'/test/fixtures');
 
 // #Defining ROOT/CORE dirs
 define('SKYCORE_CORE_CONTROLLER', SKYCORE_CORE.'/controller');
+define('SKYCORE_CORE_DEPLOY', SKYCORE_CORE.'/deploy');
 define('SKYCORE_CORE_HTML', SKYCORE_CORE.'/html');
 define('SKYCORE_CORE_MODEL', SKYCORE_CORE.'/model');
 define('SKYCORE_CORE_PLUGIN', SKYCORE_CORE.'/plugin');
@@ -33,6 +37,7 @@ function _ClassDefiner($path)
 }
 // #Defining CLASSES
 _ClassDefiner(SKYCORE_CORE_CONTROLLER);
+_ClassDefiner(SKYCORE_CORE_DEPLOY);
 _ClassDefiner(SKYCORE_CORE_UTILS);
 _ClassDefiner(SKYCORE_CORE_STORAGE);
 _ClassDefiner(SKYCORE_CORE_MODEL);
@@ -71,5 +76,5 @@ if(!function_exists('date_diff'))
         return $count; 
     } 
 }
-
+Benchmark::Mark('END_SKYCORE_DEFINES');
 ?>

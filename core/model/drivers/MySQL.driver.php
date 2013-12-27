@@ -6,15 +6,20 @@ class Operator
     public $operator = null;
     public $value = null;
     
-    public function __construct($operator, $value)
+    public function __construct($operator = '!=', $value)
     {
-        $this->operator = '!=';
+        $this->operator = $operator;
         $this->value = $value;
     }
     
     public static function Not($value)
     {
         return new Operator('!=', $value);
+    }
+    
+    public static function NotIn($value)
+    {
+        return new Operator('NOT IN', $value);
     }
     
     public static function IsNot($bool)
@@ -71,7 +76,12 @@ class MySQLDriver implements iDriver
 	public function __construct($db)
 	{
 		$this->Server = $db['DB_SERVER'];
+		Log::corewrite('MySQLi ["%s"@"%s" on "%s"]', 1, __CLASS__, __FUNCTION__, array($db['DB_USERNAME'], $db['DB_SERVER'], $db['DB_DATABASE']));
 		self::$DB[$this->Server] = new mysqli($db['DB_SERVER'], $db['DB_USERNAME'], $db['DB_PASSWORD'], $db['DB_DATABASE']);
+		if(self::$DB[$this->Server]->connect_error)
+		{
+		    throw new Exception('Connection Error: ('.self::$DB[$this->Server]->connect_errno.') '.self::$DB[$this->Server]->connect_error);
+		}
 	}
 
 	public function buildModelInfo(&$model)
@@ -117,16 +127,16 @@ class MySQLDriver implements iDriver
         {
             if(Cache::IsCached($QUERY))
             {
-                Log::corewrite('Getting cached value [%s]', 1, __CLASS__, __FUNCTION__, array($QUERY));
+                //Log::corewrite('Getting cached value [%s]', 1, __CLASS__, __FUNCTION__, array($QUERY));
                 return Cache::GetCache($QUERY);
             }
         }
         
-            $_START = $this->LogBeforeAction('RUN', $QUERY);
+        $_START = $this->LogBeforeAction('RUN', $QUERY);
         
         $RESULTS = self::$DB[$this->Server]->query($QUERY);
         
-            $this->LogAfterAction($_START, $RESULTS, array('RESULTS' => $RESULTS->num_rows));
+        $this->LogAfterAction($_START, $RESULTS, array('RESULTS' => $RESULTS->num_rows));
         
         if($RESULTS === true)
             return $RESULTS;

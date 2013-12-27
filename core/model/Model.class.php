@@ -1,4 +1,11 @@
 <?php
+define('TEXT_FIELD', '_field_text');
+define('SELECT_FIELD', '_field_select');
+define('CHECKBOX_FIELD', '_field_checkbox');
+define('RADIO_FIELD', '_field_radio');
+define('PASSWORD_FIELD', '_field_password');
+define('FILE_FIELD', '_field_file');
+
 abstract class Model implements Iterator, ArrayAccess, Countable
 {
 	private $_unaltered_data		= array();
@@ -43,6 +50,8 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	
 	public function __construct()
 	{
+        if(method_exists($this, 'preinit'))
+            $this->preinit();
 		$this->_child = get_called_class();
 		if(!isset(self::$_static_info[$this->_child])) self::$_static_info[$this->_child] = array();
 
@@ -77,10 +86,13 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 		$this->PrimaryKey = self::$_static_info[$this->_child]['driver']->getPrimaryKey();
 		$this->_object_id = md5($this->_child.rand(0, 9999).date('YmdHis'));
 		self::$_static_info[$this->_child]['driver']->buildModelInfo($this);
+        if(method_exists($this, 'init'))
+            $this->init();
 	}
-
+    
     public static function __callStatic($method, $args)
     {
+        Log::corewrite('Static method call for [%s]', 2, __CLASS__, __FUNCTION__, array($method));
         if(substr($method, 0, 6) === 'FindBy' || substr($method, 0, 9) === 'FindOneBy')
         {
             $rest = substr($method, 6);
@@ -123,7 +135,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
                     $args = array(array());
                 return $this->_CreateNewAssociatedModel($this->_GetModel($what), $args[0]);
             } else {
-                trigger_error("No association to Model [".$what."]. Unable to create associated new model.", E_USER_WARNING);
+                throw new ModelAssociationException("No association to Model [".$what."]. Unable to create associated new model.");
                 return false;
             }
         }
@@ -139,18 +151,30 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	{
 		if(!array_key_exists($key, $this->_iterator_data[$this->_iterator_position]))
 		{
-			trigger_error(__CLASS__."::".__FUNCTION__." No field by the name [".$name."]", E_USER_NOTICE);
+		    throw new ModelIOException('No field by the name ['.$name.']');
 			return null;
 		}
 		return $this->_iterator_data[$this->_iterator_position][$key];
+	}
+	
+	public function get_preupdate_data($key)
+	{
+	    if(array_key_exists($key, $this->_unaltered_data[$this->_iterator_position]))
+	    {
+	        return $this->_unaltered_data[$this->_iterator_position][$key];
+	    }
 	}
 
 	public function __get($key)
 	{
 		if(!array_key_exists($this->_iterator_position, $this->_iterator_data))
-			return null;
+            throw new ModelIOException('No data is present in Model.');
 		if(!array_key_exists($key, $this->_iterator_data[$this->_iterator_position]))
 		{
+            if(method_exists($this, 'Get'.ucfirst($key)))
+            {
+                return call_user_func(array($this, 'Get'.ucfirst($key)));
+            }
 			$SUCCESS = false;
 			if(SKY::singularize($key) === false) // Key is Singular
 			{
@@ -189,7 +213,6 @@ abstract class Model implements Iterator, ArrayAccess, Countable
                         return $this->_iterator_data[$this->_iterator_position][$key];
                 }
             }
-            
 			return null;
 		}
 		if(array_key_exists($key, $this->OutputFormat))
@@ -237,7 +260,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	{
 		return isset($this->_iterator_data[$this->_iterator_position][$key]);
 	}
-
+	
 	public function responds_to($name)
 	{
 	    if(array_key_exists($name, $this->_iterator_data[$this->_iterator_position]))
@@ -254,87 +277,124 @@ abstract class Model implements Iterator, ArrayAccess, Countable
     //# Validation Methods
 	//############################################################
 
-    public function is_valid()
+    public function is_valid($skip_confirm = false)
     {
         $VALID = true;
         foreach($this->Validate as $field => $options)
         {
             $REQUIRED_PASS = true;
+            $IS_REQUIRED = false;
             foreach($options as $type => $value)
             {
                 if($type == ':required')
                 {
-                    $field_value = $this->_iterator_data[$this->_iterator_position][$field];
-                    if(in_array($field, $this->EncryptField))
-                        $field_value = $this->_unencrypted_data[$this->_iterator_position][$field];
-                    if(!array_key_exists($field, $this->_iterator_data[$this->_iterator_position]) || empty($field_value))
+                    $IS_REQUIRED = true;
+                    if(!array_key_exists($field, $this->_iterator_data[$this->_iterator_position]))
                     {
                         $this->_ValidationError($field, 'ABSENT');
                         $REQUIRED_PASS = false;
                         $VALID = false;
+                    } else {
+                        $field_value = $this->_iterator_data[$this->_iterator_position][$field];
+                        if(in_array($field, $this->EncryptField) && array_key_exists($this->_iterator_position, $this->_unencrypted_data))
+                            $field_value = $this->_unencrypted_data[$this->_iterator_position][$field];
+                        if(!array_key_exists($field, $this->_iterator_data[$this->_iterator_position]) || empty($field_value))
+                        {
+                            $this->_ValidationError($field, 'ABSENT');
+                            $REQUIRED_PASS = false;
+                            $VALID = false;
+                        }
                     }
                 }
                 if($REQUIRED_PASS && $type == ':regex')
                 {
-                    $field_value = $this->_iterator_data[$this->_iterator_position][$field];
-                    if(in_array($field, $this->EncryptField))
-                        $field_value = $this->_unencrypted_data[$this->_iterator_position][$field];
-                    if(!(bool)preg_match($value, $field_value))
+                    if(!$IS_REQUIRED && array_key_exists($field, $this->_iterator_data[$this->_iterator_position]))
                     {
-                        $this->_ValidationError($field, 'REGEX_FAILED');
-                        $VALID = false;
+                        $field_value = $this->_iterator_data[$this->_iterator_position][$field];
+                        if(in_array($field, $this->EncryptField))
+                            $field_value = $this->_unencrypted_data[$this->_iterator_position][$field];
+                        if(!(bool)preg_match($value, $field_value))
+                        {
+                            $this->_ValidationError($field, 'REGEX_FAILED');
+                            $VALID = false;
+                        }
                     }
                 }
                 if($REQUIRED_PASS && $type == ':min')
                 {
-                    $field_value = $this->_iterator_data[$this->_iterator_position][$field];
-                    if(in_array($field, $this->EncryptField))
-                        $field_value = $this->_unencrypted_data[$this->_iterator_position][$field];
-                    if(strlen($field_value) < $value)
+                    if(!$IS_REQUIRED && array_key_exists($field, $this->_iterator_data[$this->_iterator_position]))
                     {
-                        $this->_ValidationError($field, 'TOO_SHORT');
-                        $VALID = false;
+                        $field_value = $this->_iterator_data[$this->_iterator_position][$field];
+                        if(in_array($field, $this->EncryptField))
+                            $field_value = $this->_unencrypted_data[$this->_iterator_position][$field];
+                        if(strlen($field_value) < $value)
+                        {
+                            $this->_ValidationError($field, 'TOO_SHORT');
+                            $VALID = false;
+                        }
                     }
                 }
                 if($REQUIRED_PASS && $type == ':max')
                 {
-                    $field_value = $this->_iterator_data[$this->_iterator_position][$field];
-                    if(in_array($field, $this->EncryptField))
-                        $field_value = $this->_unencrypted_data[$this->_iterator_position][$field];
-                    if(strlen($field_value) > $value)
+                    if(!$IS_REQUIRED && array_key_exists($field, $this->_iterator_data[$this->_iterator_position]))
                     {
-                        $this->_ValidationError($field, 'TOO_LONG');
-                        $VALID = false;
+                        $field_value = $this->_iterator_data[$this->_iterator_position][$field];
+                        if(in_array($field, $this->EncryptField))
+                            $field_value = $this->_unencrypted_data[$this->_iterator_position][$field];
+                        if(strlen($field_value) > $value)
+                        {
+                            $this->_ValidationError($field, 'TOO_LONG');
+                            $VALID = false;
+                        }
                     }
                 }
                 if($REQUIRED_PASS && $type == ':unique')
                 {
-                    $CHILD = $this->_child;
-                    $obj = new $CHILD();
-                    $r = $obj->search(array($field => $this->_iterator_data[$this->_iterator_position][$field]))->run();
-                    $SEARCH_PRI = $r->getPrimaryKey();
-                    $MY_PRI = $this->getPrimaryKey();
-                    if(($r->$SEARCH_PRI != $this->$MY_PRI) && count($r) > 0)
+                    if(array_key_exists($field, $this->_iterator_data[$this->_iterator_position]))
                     {
-                        $this->_ValidationError($field, 'NOT_UNIQUE');
-                        $VALID = false;
+                        $CHILD = $this->_child;
+                        $obj = new $CHILD();
+                        $r = $obj->search(array(
+                            $field => $this->_iterator_data[$this->_iterator_position][$field]
+                        ))->run();
+                        $PRI = $r->getPrimaryKey();
+                        if(count($r) > 0)
+                        {
+                            // If TRUE, this is NOT a new Model
+                            if(array_key_exists($PRI, $this->_iterator_data[$this->_iterator_position]))
+                            {
+                                if($this->$PRI != $r->$PRI)
+                                {
+                                    $this->_ValidationError($field, 'NOT_UNIQUE');
+                                    $VALID = false;
+                                }
+                            } else {
+                                $this->_ValidationError($field, 'NOT_UNIQUE');
+                                $VALID = false;
+                            }
+                        }
                     }
                 }
                 if($REQUIRED_PASS && $type == ':confirm')
                 {
-                    if(array_key_exists($value, $this->_iterator_data[$this->_iterator_position]))
+                    if(!$IS_REQUIRED && array_key_exists($field, $this->_iterator_data[$this->_iterator_position]))
                     {
-                        $compare = $this->_iterator_data[$this->_iterator_position][$value];
-                        if(in_array($field, $this->EncryptField))
-                            $compare = $this->Encrypt($compare);
-                        if($this->_iterator_data[$this->_iterator_position][$field] != $compare)
+                        if($skip_confirm)
+                            continue;
+                        if(array_key_exists($value, $this->_iterator_data[$this->_iterator_position]))
                         {
+                            $compare = $this->_iterator_data[$this->_iterator_position][$value];
+                            if(in_array($field, $this->EncryptField))
+                                $compare = $this->Encrypt($compare);
+                            if($this->_iterator_data[$this->_iterator_position][$field] != $compare)
+                            {
+                                $this->_ValidationError($field, 'NOT_CONFIRMED');
+                                $VALID = false;
+                            }
+                        } else {
                             $this->_ValidationError($field, 'NOT_CONFIRMED');
                             $VALID = false;
                         }
-                    } else {
-                        $this->_ValidationError($field, 'NOT_CONFIRMED');
-                        $VALID = false;
                     }
                 }
             }
@@ -357,7 +417,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	//############################################################
 	//# Association Methods
 	//############################################################
-
+    
 	public function setAssociationKey($key_value)
 	{
 		$this->_association_key = array(
@@ -370,7 +430,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	{
 		return $this->PrimaryKey;
 	}
-
+    
     private function _CreateNewAssociatedModel($obj, $hash)
     {
         foreach($hash as $field => $value)
@@ -384,6 +444,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	private function _GetModel($model_name)
 	{
 		if(strpos($model_name, '_') !== false) $model_name = SKY::UnderscoreToUpper($model_name);
+		//Log::corewrite('Is $model_name singular? [%s][%s]', 2, __CLASS__, __FUNCTION__, array($model_name, (SKY::singularize($model_name)) ? 'true' : 'false'));
 		if(SKY::singularize($model_name) === false) $model_name = SKY::pluralize($model_name);
 		$model_name = ucfirst($model_name);
 		return new $model_name();
@@ -616,11 +677,16 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	{
 		$this->OnAction('update', $callback);
 	}
+    
+    public function OnRun($callback)
+    {
+		$this->OnAction('run', $callback);
+	}
 
 	//############################################################
 	//# Run Methods
 	//############################################################
-	
+    
     public static function all()
     {
         $CHILD = get_called_class();
@@ -654,6 +720,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 		    $this->_iterator_data = self::$_static_info[$this->_child]['driver']->run();
         }
         $this->_unaltered_data = $this->_iterator_data;
+        $this->ExecuteActions('run');
 		return $this;
 	}
 
@@ -665,12 +732,27 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	{
 		$this->_readonly = true;
 	}
-
+    
     public static function build($hash = array())
     {
         $CHILD = get_called_class();
         $OBJ = new $CHILD();
         return $OBJ->create($hash);
+    }
+    
+    public function fill($hash = array())
+    {
+        if(isset($this->_iterator_data[$this->_iterator_position]))
+        {
+            foreach($hash as $field => $value)
+            {
+                if(array_key_exists($field, $this->_iterator_data[$this->_iterator_position]) && $this->_iterator_data[$this->_iterator_position][$field] !== $value)
+                    $this->$field = $value;
+            }
+        } else {
+            throw new ModelIOException('Unable to fill empty Model. Use [static]::build() or [public]::create() instead.');
+        }
+        return $this;
     }
 
 	public function create($hash = array())
@@ -700,14 +782,16 @@ abstract class Model implements Iterator, ArrayAccess, Countable
     {
         return ($this->_unaltered_data[$this->_iterator_position][$field] != $this->_iterator_data[$this->_iterator_position][$field]);
     }
+    
+    public function is_altered()
+    {
+        return ($this->_unaltered_data[$this->_iterator_position] !== $this->_iterator_data[$this->_iterator_position]);
+    }
 	
 	public function save()
 	{
 		if($this->_readonly)
-		{
-			trigger_error('This record is set to ReadOnly mode!', E_USER_WARNING);
-			return false;
-		}
+		    throw new ModelReadOnlyException();
 		//# Update Record
 		if(isset($this->_iterator_data[$this->_iterator_position][$this->PrimaryKey]))
 		{
@@ -725,12 +809,12 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 			return $UPDATED['status'];
 		//# Save New Record
 		} else {
-            if(!$this->is_valid())
-            {
-                Log::corewrite('Model object failed validation!', 1, __CLASS__, __FUNCTION__);
-                // Not sure if an error is the correct action here...
-                return false;
-            }
+            // if(!$this->is_valid())
+            // {
+            //     Log::corewrite('Model object failed validation!', 1, __CLASS__, __FUNCTION__);
+            //     // Not sure if an error is the correct action here...
+            //     return false;
+            // }
             Log::corewrite('Saving new Model object.', 2, __CLASS__, __FUNCTION__);
 			$this->ExecuteActions('save');
             $this->SerializeThis();
@@ -739,6 +823,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 			);
 			$this->_iterator_data[$this->_iterator_position][$this->PrimaryKey] = $DOCUMENT['pri'];
             $this->UnserializeThis();
+            $this->ExecuteActions('after_save');
             Log::corewrite('Ran save method on Driver [%s].', 2, __CLASS__, __FUNCTION__, array($DOCUMENT['pri']));
 			return $DOCUMENT['pri'];
 		}
@@ -806,7 +891,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 		}
 		return false;
 	}
-
+    
     private function _DeleteAssociations()
     {
         foreach($this->HasMany as $MODEL => $OPTIONS)
@@ -833,11 +918,48 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 		}
 		return $RETURN;
 	}
-
-	//############################################################
+    
+    //############################################################
     //# Model Render Methods
 	//############################################################
 
+	protected $FormFieldDir   = 'form_model';
+	protected $FormFieldViews = array(
+	    'text'      => null,
+	    'select'    => null,
+	    'checkbox'  => null,
+	    'radio'     => null,
+	    'password'  => null,
+	    'file'      => null
+	);
+	
+	public function get_form_field($field, $type = TEXT_FIELD, $options = array())
+	{
+	    Log::corewrite('Getting form field', 3, __CLASS__, __FUNCTION__);
+        $FIELD_TYPE = substr($type, 7, strlen($type));
+        if(is_null($this->FormFieldViews[$FIELD_TYPE]))
+            $this->FormFieldViews[$FIELD_TYPE] = $FIELD_TYPE.'field';
+        if(method_exists($this, $type))
+            return call_user_func_array(array($this, $type), array($field, $options));
+        include(DIR_APP_VIEWS.'/'.$this->FormFieldDir.'/'.$this->FormFieldViews[$FIELD_TYPE].'.part.php');
+        
+	    //throw new UninitializedChildPropertyException('Property ::FormFieldViews['.$FIELD_TYPE.'] is null. Assign value to continue.');
+	}
+    
+    private function _field_checkbox($field, $options)
+    {
+        
+    }
+    
+    private function _field_radio($field, $options)
+    {
+        
+    }
+    
+    private function _field_password($field, $options)
+    {
+        
+    }
 
 	//############################################################
 	//# Output Format Methods
@@ -861,10 +983,10 @@ abstract class Model implements Iterator, ArrayAccess, Countable
                 extract($params);
                 include_once(DIR_APP_VIEWS.'/'.$this->DisplayAsTableViews[$view]);
             } else {
-                trigger_error('DisplayAsTableView property has no view bby the name ['.$view.']!', E_USER_WARNING);
+                throw new ModelIOException('DisplayAsTableView property has no view by the name ['.$view.']!');
             }
         } else {
-            trigger_error('DisplayAsTableView property empty! Please assign a/some view(s) to this model to be able to use this feature.', E_USER_NOTICE);
+            throw new UninitializedChildPropertyException('DisplayAsTableView property is empty! Please assign a/some view(s) to this model to be able to use this feature.');
         }
     }
 

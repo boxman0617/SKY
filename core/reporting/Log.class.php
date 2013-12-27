@@ -1,4 +1,5 @@
 <?php
+date_default_timezone_set('America/Los_Angeles');
 /**
  * Log Core Class
  *
@@ -27,6 +28,7 @@ class Log
     public static $app_format = "%s > %s\n";
     public static $core_format = "\033[1;33m%s \033[0m[\033[1;36m%s\033[0m][\033[1;31m%s::%s\033[0m] \033[1;32m>\033[0m ";
     public static $app_count = 0;
+    public static $debug_count = 0;
     public static $core_count = 0;
     public static $companies = array(
         'att' => 'txt.att.net',
@@ -45,6 +47,46 @@ class Log
             foreach($vars as $v)
                 $echo .= var_export($v, true)."\n";
             echo $echo."</pre>";
+        }
+    }
+    
+    public static function debugnow()
+    {
+        $TMP_ENV = $GLOBALS['ENV'];
+        $GLOBALS['ENV'] = 'DEBUG';
+        $args = func_get_args();
+        call_user_func_array('self::debug', $args);
+        $GLOBALS['ENV'] = $TMP_ENV;
+    }
+    
+    public static function debug()
+    {
+        if($GLOBALS['ENV'] != 'PRO')
+        {
+            $DEBUG_LOG = DIR_LOG.'/debug.log';
+            $f = fopen($DEBUG_LOG, 'a');
+            self::$debug_count++;
+            if(self::$debug_count == 1)
+                fwrite($f, ">========DEBUG=LOG===========> ".date('m-d-Y H:i:s')."\n");
+            if(func_num_args() == 1)
+            {
+                fwrite($f, sprintf(self::$app_format, date('H:i:s'), func_get_arg(0)));
+            }
+            elseif(func_num_args() > 1)
+            {
+                $args = func_get_args();
+                $msg = $args[0];
+                unset($args[0]);
+                $args = array_values($args);
+                $args = array_reverse($args);
+                $args[] = date('H:i:s');
+                $args[] = "%s > ".$msg."\n";
+                $args = array_reverse($args);
+                $r = call_user_func_array('sprintf', $args);
+                fwrite($f, $r);
+            }
+            fclose($f);
+            chmod($DEBUG_LOG, 0777);
         }
     }
 

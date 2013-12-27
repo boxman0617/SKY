@@ -24,10 +24,56 @@ abstract class Route
 	private $matches = array();
 
 	abstract public function AppRoutes();
+	
+	private function _DefineRoutes()
+	{
+	    foreach($this->matches as $REQUEST_TYPE => $DATA)
+	    {
+	        foreach($DATA as $SIZE => $URL_ARRAY)
+	        {
+	            foreach($URL_ARRAY as $URL => $ControllerAction)
+	            {
+	                $TERM = $REQUEST_TYPE.'_';
+	                $DEFINITION = BASE_GLOBAL_URL.$URL;
+	                if($URL == '_') // Match => Home
+	                {
+	                    $TERM .= 'HOME';
+	                    $DEFINITION = BASE_GLOBAL_URL;
+	                }
+	                elseif($URL == '_notfound') // Match => NotFound (404) #@ToDo: Make this so other "error" pages will show EX: 500 error
+	                {
+	                    $TERM .= 'PAGE_NOT_FOUND';
+	                    $DEFINITION = BASE_GLOBAL_URL.'404';
+	                } else {
+	                    if(strpos($URL, ':') === false)
+	                    {
+	                        $TERM .= strtoupper(str_replace('-', '_', str_replace('/', '_', $URL)));
+	                    } else {
+	                        RouteTo::_setDynamicRoute(strtoupper(str_replace('-', '_', str_replace('/', ' ', $URL))), $DEFINITION);
+	                        continue;
+	                    }
+	                }
+	                if($GLOBALS['ENV'] == 'DEV')
+	                    Log::write('Route Def: %s => %s [%s#%s]', $TERM, $DEFINITION, $ControllerAction['controller'], $ControllerAction['action']);
+	                define($TERM, $DEFINITION);
+	            }
+	        }
+	    }
+	}
 
 	public function _GetMatches()
 	{
+	    $this->_DefineRoutes();
 		return $this->matches;
+	}
+	
+	protected function RemoveMatch($url, $request_method = 'GET')
+	{
+	    if($url[0] === '/')
+            if(!$url = substr($url, 1))
+                $url = "/";
+        if(array_key_exists($url, $this->matches[strtoupper($request_method)][count(explode('/', $url))]))
+            unset($this->matches[strtoupper($request_method)][count(explode('/', $url))][$url]);
 	}
 
 	protected function Match($url, $controller_action, $request_method = 'GET')

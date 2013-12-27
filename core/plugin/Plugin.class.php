@@ -52,7 +52,6 @@ class Plugin
                     self::$plugin[$name][$matches[1][$i]] = $matches[2][$i];
                 if(!isset(self::$plugin[$name]['dir']))
                     self::$plugin[$name]['dir'] = SKYCORE_LIB.'/plugins/'.$name;
-
                 require_once(self::$plugin[$name]['dir'].'/init.php');
             } else
                 unset(self::$plugin[$name]);

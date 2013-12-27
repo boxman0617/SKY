@@ -5,7 +5,7 @@ interface RenderInterface
 	public function Render(&$render_info);
 }
 
-class RenderHTML implements RenderInterface
+class RenderHTML extends Base implements RenderInterface
 {
     protected $REF;
     public function __construct(&$ref)
@@ -17,8 +17,19 @@ class RenderHTML implements RenderInterface
 	{
 		if($render_info['status'] == NOT_RENDERED)
 		{
-			extract(Controller::$_variables);
-			include_once(DIR_APP_VIEWS.'/'.$render_info['layout']);
+		    extract(Controller::$_variables);
+            ob_start();
+            Log::corewrite('OB Level [%s]', 3, __CLASS__, __FUNCTION__, array(ob_get_level()));
+    		include_once(DIR_APP_VIEWS.'/'.$render_info['layout']);
+    		Log::corewrite('Number of errors [%s]', 3, __CLASS__, __FUNCTION__, array(Error::ErrorCount()));
+    		if(Error::IsThereErrors())
+    		{
+    		    Log::corewrite('Errors found while rendering!', 3, __CLASS__, __FUNCTION__);
+    		    ob_end_clean();
+    		    Error::Flush();
+    		    return false;
+    		}
+            ob_flush();
 			$render_info['status'] = RENDERED;
 		}
 	}

@@ -32,6 +32,15 @@ if(!defined('E_DEPRECATED'))
 class Error
 {
     public static $instance = null;
+    protected static $_errors = array();
+    protected static $_colors = array(
+        'notice' => 'dbf0fc',
+        'depricated' => 'eaa5ef',
+        'warning' => 'ffe900',
+        'error' => 'f48989',
+        'exception' => '949ce8'
+    );
+    private static $_supress = array();
 
     public static function GetInstance()
     {
@@ -52,31 +61,42 @@ class Error
         set_exception_handler( array( 'Error', 'HandleExceptionErrors' ) );
         register_shutdown_function( array( 'Error', 'HandleShutdown' ) );
     }
+    
+    public static function Supress($type)
+    {
+        self::$_supress[] = $type;
+    }
 
     public static function HandleNormalErrors($no, $str, $file, $line)
     {
         self::LogError($no, $str, $file, $line);
-        switch($no)
+        if(!in_array($no, self::$_supress))
         {
-            case E_NOTICE:
-            case E_USER_NOTICE:
-                self::_HandleNotice($no, $str, $file, $line);
-                break;
-            case E_DEPRECATED:
-            case E_USER_DEPRECATED:
-            case E_STRICT:
-                self::_HandleDeprecated($no, $str, $file, $line);
-                break;
-            case E_WARNING:
-            case E_USER_WARNING:
-                self::_HandleWarning($no, $str, $file, $line);
-                break;
-            case E_ERROR:
-            case E_USER_ERROR:
-                self::_HandleError($no, $str, $file, $line);
-                break;
-            default:
-
+            switch($no)
+            {
+                case E_NOTICE:
+                case E_USER_NOTICE:
+                    self::_HandleNotice($no, $str, $file, $line);
+                    break;
+                case E_DEPRECATED:
+                case E_USER_DEPRECATED:
+                case E_STRICT:
+                    self::_HandleDeprecated($no, $str, $file, $line);
+                    self::$_errors[] = array('no' => $no, 'str' => $str, 'file' => $file, 'line' => $line, 'color' => self::$_colors['depricated']);
+                    break;
+                case E_WARNING:
+                case E_USER_WARNING:
+                    self::_HandleWarning($no, $str, $file, $line);
+                    self::$_errors[] = array('no' => $no, 'str' => $str, 'file' => $file, 'line' => $line, 'color' => self::$_colors['warning']);
+                    break;
+                case E_ERROR:
+                case E_USER_ERROR:
+                    self::_HandleError($no, $str, $file, $line);
+                    self::$_errors[] = array('no' => $no, 'str' => $str, 'file' => $file, 'line' => $line, 'color' => self::$_colors['error']);
+                    break;
+                default:
+                    
+            }
         }
     }
 
@@ -113,32 +133,57 @@ class Error
 
     public static function LogError($no, $str, $file, $line)
     {
-        Log::corewrite('%s', 4, self::Stringify($no), $file.':'.$line, array(
+        $_no = self::Stringify($no);
+        if(!is_int($no))
+            $_no = $no;
+        Log::corewrite('%s', 4, $_no, $file.':'.$line, array(
             $str
         ));
     }
 
+    public static function BuildMessage($no, $str, $file, $line, $color)
+    {
+        $_no = self::Stringify($no);
+        if(!is_int($no))
+            $_no = $no;
+        if(php_sapi_name() == 'cli')
+        {
+            echo '['.$_no.'] '.$file.':'.$line.' => '.$str."\n";
+        } else {
+            $h = new HTML();
+            echo $h->div(
+                $h->div(
+                    $h->div('['.$_no.']', array('style' => 'float: left;padding-right:5px;font-weight:bold;')).
+                    $h->div($file.':'.$line, array('style' => 'padding-left:5px;')), 
+                    array('style' => 'padding: 5px;border-bottom:1px solid #000;background:#'.$color.';')).
+                $h->div($str, array('style' => 'padding:5px;background:#FFFFFF;')), 
+                array('style' => 'width:95%; border:1px solid #000;margin:5px auto;color:#000000;font-family:"Courier New";font-size:14px;')
+            );
+        }
+    }
+    
     public static function _HandleNotice($no, $str, $file, $line)
     {
         if($GLOBALS['ENV'] !== 'PRO') // Display Error
-            self::BuildMessage($no, $str, $file, $line, 'dbf0fc');
-    }
-
-    public static function BuildMessage($no, $str, $file, $line, $color)
-    {
-        if(php_sapi_name() == 'cli')
         {
-            echo '['.self::Stringify($no).'] '.$file.':'.$line.' => '.$str."\n";
-        } else {
-        $h = new HTML();
-        echo $h->div(
-            $h->div(
-                $h->div('['.self::Stringify($no).']', array('style' => 'float: left;padding-right:5px;font-weight:bold;')).
-                $h->div($file.':'.$line, array('style' => 'padding-left:5px;')), 
-                array('style' => 'padding: 5px;border-bottom:1px solid #000;background:#'.$color.';')).
-            $h->div($str, array('style' => 'padding:5px;')), 
-            array('style' => 'width:95%; border:1px solid #000;margin:5px auto;')
-        );
+            if(php_sapi_name() == 'cli')
+            {
+                self::$_errors[] = array('no' => $no, 'str' => $str, 'file' => $file, 'line' => $line, 'color' => self::$_colors['notice']);
+                self::BuildMessage($no, $str, $file, $line, 'dbf0fc');
+            }
+            else
+            {
+                $message =  '<b>Date:</b> '.date('m-d-Y h:i:s A').'<br><br>';
+                $message .= '<b>Message:</b> '.$str.'<br><br>';
+                ob_start();
+                debug_print_backtrace();
+                $trace = ob_get_contents();
+                ob_end_clean();
+                $trace = str_replace(preg_replace('/(\/[a-z]+\/configs\/\.\.)$/', '', APPROOT), '', $trace);
+                $message .= '<b>Stack trace:</b><br><pre>'.$trace.'</pre><br><br>';
+                self::$_errors[] = array('no' => $no, 'str' => $message, 'file' => $file, 'line' => $line, 'color' => self::$_colors['notice']);
+                self::BuildMessage($no, $message, $file, $line, 'dbf0fc');
+            }
         }
     }
 
@@ -174,12 +219,56 @@ class Error
             self::BuildMessage($no, $message, $file, $line, 'f48989');
         exit();
     }
+    
+    public static function IsThereErrors()
+    {
+        return (count(self::$_errors) > 0);
+    }
+    
+    public static function ErrorCount()
+    {
+        return count(self::$_errors);
+    }
+    
+    public static function Flush()
+    {
+        if(count(self::$_errors) > 0)
+        {
+            foreach(self::$_errors as $error)
+                self::BuildMessage($error['no'], $error['str'], $error['file'], $error['line'], $error['color']);
+            return true;
+        } else {
+            return false;
+        }
+    }
 
     public static function HandleExceptionErrors($e)
     {
-        self::LogError($e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine());
+        $_file = $e->getFile();
+        $_line = $e->getLine();
+        $trace = $e->getTrace();
+        foreach($trace as $t)
+        {
+            if(isset($t['file']))
+            {
+                $_file = $t['file'];
+                $_line = $t['line'];
+                break;
+            }
+        }
+        $NO = strtoupper(get_class($e));
+        self::$_errors[] = array('no' => $NO, 'str' => $e->getMessage(), 'file' => $_file, 'line' => $_line, 'color' => self::$_colors['exception']);
+        if(ob_get_level() > 1)
+            ob_end_clean();
+        self::LogError($NO, $e->getMessage(), $_file, $_line);
         if($GLOBALS['ENV'] !== 'PRO')
-            self::BuildMessage($e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine(), '949ce8');
+        {
+            $message =  '<b>Date:</b> '.date('m-d-Y h:i:s A').'<br><br>';
+            $message .= '<b>Message:</b> '.$e->getMessage().'<br><br>';
+            $message .= '<b>Code:</b> '.$e->getCode().'<br><br>';
+            $message .= '<b>Stack trace:</b><br><pre>'.$e->getTraceAsString().'</pre><br><br>';
+            self::BuildMessage($NO, $message, $_file, $_line, '949ce8');
+        }
     }
 
     public static function HandleShutdown()

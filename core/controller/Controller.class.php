@@ -1,28 +1,27 @@
 <?php
-/**
- * Controller Core Class
- *
- * This class is the C in the MVC model. It allows for the user
- * to construct a logic tie between the Views and the Models. 
- * Separating the design logic from the HTML renderings
- * and the business data logic from the Data models.
- *
- * LICENSE:
- *
- * This file may not be redistributed in whole or significant part, or
- * used on a web site without licensing of the enclosed code, and
- * software features.
- *
- * @author      Alan Tirado <root@deeplogik.com>
- * @copyright   2013 DeepLogik, All Rights Reserved
- * @license     http://www.codethesky.com/license
- * @link        http://www.codethesky.com/docs/controllerclass
- * @package     Sky.Core
- */
+// ####
+// Controller Class
+// 
+// This class is the C in the MVC model. It allows for the user
+// to construct a logic tie between the Views and the Models. 
+// Separating the design logic from the HTML renderings
+// and the business data logic from the Data models.
+//
+// @license
+// - This file may not be redistributed in whole or significant part, or
+// - used on a web site without licensing of the enclosed code, and
+// - software features.
+//
+// @author      Alan Tirado <alan@deeplogik.com>
+// @copyright   2013 DeepLogik, All Rights Reserved
+//
+// @version     0.0.7 Starting from here
+// ##
 
 import(MODEL_CLASS);
 import(RENDER_CLASS);
 import(TASK_CLASS);
+import(FILE_CLASS);
 
 define('RENDER_NONE', 'RenderNONE');
 define('RENDER_HTML', 'RenderHTML');
@@ -35,16 +34,53 @@ define('NOT_RENDERED', false);
 define('SUBVIEW_BEFORE', 'before');
 define('SUBVIEW_AFTER', 'after');
 
-/**
- * Controller class
- * Handles what to do with models and data then displays it to view or JSON
- * @package Sky.Core.Controller
- */
-abstract class Controller
+interface iController
+{
+    public function __toString();
+    public function __construct($params = array());
+    public function SetRouterSpecs($specs = array());
+    
+    public static function CSS($file_path);
+    public static function JS($file_path);
+    public static function IMG_LOC($file_path);
+    
+    public static function SecurePost();
+    public static function DisplayFlash();
+    public static function MethodPut();
+    public static function MethodDelete();
+    
+    public function Render($params);
+    public function JSON($info);
+    public function HandleRequest($method);
+    public function Assign($name, $value);
+    public function GetFile($filename);
+    public function SetLayout($layout_name);
+    public function SetFlash($msg, $type);
+    public function RedirectTo($url);
+    
+    public static function GetPageURL();
+    public static function GetSubDomain();
+    public static function GetClientIP();
+    public static function TruncateString($string, $chars = 100);
+}
+
+// ####
+// Controller Class
+// @desc Handles how a request from the Router Class should be ran.
+// @abstract
+// @package SKY.Core.Controller
+// ##
+abstract class Controller extends Base implements iController
 {
     protected $before_filter = array();
     protected $after_filter = array();
     protected static $flash_display = array();
+    protected $public_location = '/public';
+    protected $locations = array(
+        'css' => 'stylesheet',
+        'js' => 'javascript',
+        'img' => 'images'
+    );
 
     protected $render_info = array(
         'layout' => 'layout/layout.view.php',
@@ -58,48 +94,213 @@ abstract class Controller
     );
 
     public $params = array();
+    public $files = array();
     public static $_variables = array();
     public static $_subview_queue = array(
         'before' => array(),
         'after' => array()
     );
     public $_router_specs = array();
+    
+    // ####
+    // __toString
+    // @desc Magic method to convert class to string
+    // @return String
+    // - Returns the name of the called class
+    // @reference [http://php.net/manual/en/function.get-called-class.php]
+    // @public
+    // @app
+    // ##
+    public function __toString()
+    {
+        return get_called_class();
+    }
 
-    /**
-     * Constructor method. Gets called at object initialization.
-     */
+    // ####
+    // __construct
+    // @desc Constructor method. Gets called at object initialization.
+    // @args Array $params @default array()
+    // - An array of parameters to be merged with $_POST, $this->params and $_GET
+    // @public
+    // @app
+    // ##
     public function __construct($params = array())
     {
         Log::corewrite('Opening controller [%s]', 3, __CLASS__, __FUNCTION__, array(get_class($this)));
         Event::PublishActionHook('/Controller/before/__construct/', array($this));
         Log::corewrite('Merging $_POST and ::$params', 1, __CLASS__, __FUNCTION__);
         $this->params = array_merge($_POST, $this->params, $_GET, $params);
+        $PAYLOAD = file_get_contents('php://input');
+        if(!empty($PAYLOAD))
+        {
+            $JSON = json_decode($PAYLOAD, true);
+            if(!is_null($JSON))
+                $this->params = array_merge($this->params, $JSON);
+        }
+        if(FILES_CLEANUP_ENABLED && !empty($_FILES))
+        {
+            $this->files = File::FilesCleanUp();
+            foreach($this->files as $name => $file)
+            {
+                if(is_array($file))
+                {
+                    foreach($file as $loc => $data)
+                        File::RegisterFile($name.'['.$loc.']', new SingleFile($name.'['.$loc.']', $data));
+                } else {
+                    File::RegisterFile($name, new SingleFile($name.'['.$loc.']', $file));
+                }
+            }
+        }
         unset($this->params['_query']);
         Event::PublishActionHook('/Controller/after/__construct/', array($this));
         Log::corewrite('At the end of method', 2, __CLASS__, __FUNCTION__);
     }
-
+    
+    // ####
+    // SetRouterSpecs
+    // @desc Assigned the $specs array from the Router instance to the Controller
+    // @args Array $specs @default array()
+    // - An array of parameters from the Router
+    // @public
+    // @core
+    // ##
     public function SetRouterSpecs($specs = array())
     {
         $this->_router_specs = $specs;
     }
+    
+    // ####
+    // CSS
+    // @desc Create a CSS link to a file according to the path locations set in the Controller child
+    // @args String $file_path
+    // - The path after the base path set by the app in the Controller to a CSS file
+    // - Example: 'myscript.css'
+    // @return String
+    // - Example: <link href="/blah/public/css/styles.css" rel="stylesheet">
+    // @static
+    // @public
+    // @app
+    // ##
+    public static function CSS($file_path)
+    {
+        return '<link href="'.self::CSS_LOC($file_path).'" rel="stylesheet">';
+    }
+    
+    // ####
+    // CSS_LOC
+    // @desc Create a CSS link to a file according to the path locations set in the Controller child
+    // @args String $file_path
+    // - The path after the base path set by the app in the Controller to a CSS file
+    // - Example: 'myscript.css'
+    // @return String
+    // - Example: /blah/public/css/styles.css
+    // @static
+    // @public
+    // @app
+    // ##
+    public static function CSS_LOC($file_path)
+    {
+        $class = get_called_class();
+        $loc = self::CachedLocation($class);
+        return $loc['public_location'].'/'.$loc['locations']['css'].'/'.$file_path;
+    }
+    
+    // ####
+    // CachedLocation
+    // @desc This will create a cache in the Base::$_share property if not found and return the
+    // - correct array of locations
+    // @args String $class_name
+    // @return Array
+    // @static
+    // @private
+    // @app
+    // ##
+    private static function CachedLocation($class_name)
+    {
+        if(!array_key_exists('LOC_CLASSES', self::$_share))
+            self::$_share['LOC_CLASSES'] = array();
+        if(!array_key_exists($class_name, self::$_share['LOC_CLASSES']))
+        {
+            $obj = new $class_name();
+            self::$_share['LOC_CLASSES'][$class_name] = array(
+                'locations' => $obj->locations,
+                'public_location' => $obj->public_location
+            );
+        }
+        return self::$_share['LOC_CLASSES'][$class_name];
+    }
+    
+    // ####
+    // JS
+    // @desc Create a JS script to a file according to the path locations set in the Controller child
+    // @args String $file_path
+    // - The path after the base path set by the app in the Controller to a JS file
+    // - Example: 'myscript.js'
+    // @return String
+    // - Example: <script src="/blah/public/js/myscript.js" type="text/javascript" charset="utf-8"></script>
+    // @static
+    // @public
+    // @app
+    // ##
+    public static function JS($file_path)
+    {
+        return '<script src="'.self::JS_LOC($file_path).'" type="text/javascript" charset="utf-8"></script>';
+    }
+    
+    // ####
+    // JS_LOC
+    // @desc Get JS location according to the path locations set in the COntroller child
+    // @args String $file_path
+    // - The path after the base path set by the app in the Controller to a JS file
+    // - Example: 'myscript.js'
+    // @return String
+    // - Example: /blah/public/js/myscript.js
+    // @static
+    // @public
+    // @app
+    // ##
+    public static function JS_LOC($file_path)
+    {
+        $class = get_called_class();
+        $loc = self::CachedLocation($class);
+        return $loc['public_location'].'/'.$loc['locations']['js'].'/'.$file_path;
+    }
+    
+    // ####
+    // IMG_LOC
+    // @desc Gets an image path according to the location of where images are, set in the Controller child
+    // @args String $file_path
+    // - The path after the base path set by the app in the Controller to an image file
+    // - Example: 'myimage.png'
+    // @return String
+    // - Example: /blah/public/images/myimage.png
+    // @static
+    // @public
+    // @app
+    // ##
+    public static function IMG_LOC($file_path)
+    {
+        $class = get_called_class();
+        $loc = self::CachedLocation($class);
+        return $loc['public_location'].'/'.$loc['locations']['img'].'/'.$file_path;
+    }
 
-    /**
-     * Adds user level control of how data is rendered.
-     *
-     * By passing an array of options, the way data
-     * is rendered can be controlled.
-     * Options:
-     *   'action' => 'NewPage'
-     *   'action' => 'NewPage', 'params' => array('param1' => 'foo', ...)
-     *   'flag' => RENDER_NONE
-     *   'flag' => RENDER_JSON, 'info' => array('param1' => 'foo', ...)
-     *   'view' => 'NewView'
-     *   'file' => 'FileName.pdf'
-     *
-     * @param array $params Array of options.
-     */
-    protected function Render($params)
+    // ####
+    // Render
+    // @desc Adds app level control of how data is rendered.
+    // @args Array $params
+    // - By passing an array of options, the way data is rendered can be controlled.
+    // - Examples:
+    // - 'action' => 'NewPage'
+    // - 'action' => 'NewPage', 'params' => array('param1' => 'foo', ...)
+    // - 'flag' => RENDER_NONE
+    // - 'flag' => RENDER_JSON, 'info' => array('param1' => 'foo', ...)
+    // - 'view' => 'NewView'
+    // - 'file' => 'FileName.pdf'
+    // @public
+    // @app
+    // ##
+    public function Render($params)
     {
         if(isset($params['action']))
         {
@@ -113,10 +314,12 @@ abstract class Controller
             $this->render_info['render'] = $params['flag'];
             if(isset($params['info'])) $this->render_info['info'] = $params['info'];
         }
-		elseif(isset($params['view']))
-		{
-			self::$_subview_info['view'] = $params['view'];
-		}
+        elseif(isset($params['view']))
+        {
+            self::$_subview_info['view'] = $params['view'];
+            if(isset($params['dir']))
+                self::$_subview_info['dir'] = $params['dir'];
+        }
         elseif(isset($params['file']))
         {
             $this->GetFile($params['file']);
@@ -130,8 +333,18 @@ abstract class Controller
             $this->render_info['render'] = RENDER_NONE;
         }
     }
-
-    protected function JSON($info)
+    
+    // ####
+    // JSON
+    // @desc Shorthand method for Render(RENDER_JSON). Echos $info in a JSON format.
+    // @args Mixed $info
+    // - $info argument gets turned to JSON using json_encode function
+    // @reference [http://php.net/manual/en/function.json-encode.php]
+    // @public
+    // @app
+    // @dependent ::Render
+    // ##
+    public function JSON($info)
     {
         $this->Render(array(
             'flag' => RENDER_JSON,
@@ -139,15 +352,15 @@ abstract class Controller
         ));
     }
 
-    /**
-     * Forces file download.
-     *
-     * Allows a file to be downloaded.
-     * After file is downloaded, nothing else is rendered.
-     *
-     * @param string $filename Path to file.
-     */
-    protected function GetFile($filename)
+    // ####
+    // GetFile
+    // @desc Forces a file download to be downloaded.
+    // @args String $filename
+    // - $filename Name of (with path) of file that must be downloaded.
+    // @public
+    // @app
+    // ##
+    public function GetFile($filename)
     {
         // required for IE, otherwise Content-disposition is ignored
         if(ini_get('zlib.output_compression'))
@@ -181,44 +394,50 @@ abstract class Controller
         $this->render_info['render'] = RENDER_NONE;
     }
 
-    /**
-     * Sets up Layout view.
-     *
-     * Allows for user to use a different Layout view then
-     * the default one.
-     *
-     * @param string $layout_name Name of Layout view.
-     */
-    protected function SetLayout($layout_name)
+    // ####
+    // SetLayout
+    // @desc Allows for user to use a different Layout view then the default one.
+    // @args String $layout_name
+    // - Name of the layout file that should be used.
+    // @public
+    // @lookat ::$render_info['layout']
+    // @app
+    // ##
+    public function SetLayout($layout_name)
     {
         $this->render_info['layout'] = $layout_name;
     }
 
-    /**
-     * Will handle any before filters applied to action.
-     *
-     * Will run any filter methods before the main action
-     * is ran.
-     */
+    // ####
+    // HandleBeforeFilters
+    // @desc Will run any filter methods before the main action is ran.
+    // @lookat ::$before_filter
+    // @dependent ::DRYRunFilter
+    // @protected
+    // @core
+    // ##
     protected function HandleBeforeFilters()
     {
         $this->DRYRunFilter($this->before_filter);
     }
 
-    /**
-     * DRY filter method
-     *
-     * Calls filter method by calling call_user_func.
-     * Options:
-     *  array(
-     *      'FilterMethod' => true, //Will always run
-     *      'FilterMethod2' => array(
-     *          'only' => 'IndexMethod' //Will ONLY run when IndexMethod method is called
-     *      )
-     *  )
-     * @access private
-     * @param array $filter Array of methods to be called.
-     */
+    // ####
+    // DRYRunFilter
+    // @desc Calls filter method by calling call_user_func.
+    // @args Array $filters
+    // - array(
+    // -     'FilterMethod' => true, // Will run on all actions
+    // -     'FilterMethod2' => array(
+    // -         'only' => 'IndexMethod' // Will ONLY run when action IndexMethod is called
+    // -     )
+    // - )
+    // - Options:
+    // - - only => Will run filter ONLY when action specified is called
+    // - - exclude => Will run on all actions, EXCEPT the ones defined undet this array
+    // - - => Can run in ALL actions if left blank
+    // @private
+    // @core
+    // ##
     private function DRYRunFilter($filters)
     {
         foreach($filters as $filter => $options)
@@ -261,36 +480,39 @@ abstract class Controller
         }
     }
 
-    /**
-     * Will handle any after filters applied to action.
-     *
-     * Will run any filter methods after the main action
-     * is ran.
-     */
+    // ####
+    // HandleAfterFilters
+    // @desc Will run any filter methods after the main action is ran.
+    // @lookat ::$after_filter
+    // @dependent ::DRYRunFilter
+    // @protected
+    // @core
+    // ##
     protected function HandleAfterFilters()
     {
         $this->DRYRunFilter($this->after_filter);
     }
 
-    /**
-     * Decides how to render controller and runs child method
-     *
-     * When a request comes in, it is first handled by the Router class.
-     * Then it passes what method should be ran to this method. It attempts
-     * to find the method in the child class and run it. After, it finds
-     * if it needs to render anything outside of this class and delegates
-     * that task to it's correct method.
-     *
-     * @param string $method Name of child method to run.
-     * @param mixed $pass default null Array of parameters to pass to child method.
-     */
+    // ####
+    // HandleRequest
+    // @desc When a request comes in, it is first handled by the Router class.
+    // - Then it passes what method should be ran to this method. It attempts
+    // - to find the method in the child class and run it. After, it finds
+    // - if it needs to render anything outside of this class and delegates
+    // - that task to it's correct method.
+    // @args String $method
+    // - Name of what method to run in child object
+    // @calledby Router::RunFollow
+    // @public
+    // @core
+    // ##
     public function HandleRequest($method)
     {
         Log::corewrite('Handling request by [%s]', 3, __CLASS__, __FUNCTION__, array($method));
         Event::PublishActionHook('/Controller/before/HandleRequest/', array($this));
-        $this->render_info['method'] = $method;
-        self::$_subview_info['dir'] = strtolower(get_class($this));
-        self::$_subview_info['view'] = strtolower($this->render_info['method']);
+        $this->render_info['method']    = $method;
+        self::$_subview_info['dir']     = strtolower(get_class($this));
+        self::$_subview_info['view']    = strtolower($this->render_info['method']);
         $this->Assign('_METHOD_', strtolower($method));
         unset($method);
 
@@ -306,29 +528,43 @@ abstract class Controller
             $obj = new $class($this);
             $obj->Render($this->render_info);
         }
-
+        
         Event::PublishActionHook('/Controller/after/HandleRequest/', array($this));
+        Benchmark::Mark('rendered');
+        Log::corewrite('Rendering elapsed time: [%s seconds]', 3, __CLASS__, __FUNCTION__, array(Benchmark::ElapsedTime(null, 'rendered')));
         Log::corewrite('At the end of method', 2, __CLASS__, __FUNCTION__);
     }
 
-    /**
-     * Sets flash message in Session instance
-     *
-     * @param string $msg Text that will be shown in Flash message.
-     */
-    protected function SetFlash($msg, $type)
+    // ####
+    // SetFlash
+    // @desc Sets flash message in Session instance
+    // @args String $msg
+    // - String message that will show up in the flash message
+    // @args String $type
+    // - 4 types of Flash messages:
+    // - info -> To display helpful information
+    // - warning -> To display warnings
+    // - success -> To display when user accomplishes something
+    // - error -> To display errors
+    // @public
+    // @dependent Session
+    // @app
+    // ##
+    public function SetFlash($msg, $type)
     {
         $session = Session::getInstance();
         $session->flash = $msg;
         $session->flash_type = $type;
     }
 
-    /**
-     * Includes action view inside Layout view.
-     *
-     * This static method allows the view of the action to be included
-     * inside the current Layout view.
-     */
+    // ####
+    // RenderSubView
+    // @desc This static method allows the view of the action to be included
+    // - inside the current Layout view.
+    // @public
+    // @static
+    // @app
+    // ##
     public static function RenderSubView()
     {
         extract(self::$_variables);
@@ -338,7 +574,17 @@ abstract class Controller
             include_once(DIR_APP_VIEWS.'/'.$subview['view_dir'].'/'.$subview['view_page'].'.view.php');
         }
         Log::corewrite('Opening page: [%s/%s]', 1, __CLASS__, __FUNCTION__, array(self::$_subview_info['dir'], self::$_subview_info['view']));
-        include_once(DIR_APP_VIEWS.'/'.self::$_subview_info['dir'].'/'.self::$_subview_info['view'].'.view.php');
+        $view = DIR_APP_VIEWS.'/'.self::$_subview_info['dir'].'/'.self::$_subview_info['view'].'.view.php';
+        if(file_exists($view))
+            include_once($view);
+        else
+        {
+            $msg = 'Looks like there is no view set up for this Route yet.<br>Create view ['.self::$_subview_info['view'].'.view.php] in the following directory: ['.self::$_subview_info['dir'].']';
+            Error::LogError('VIEW NOT FOUND',$msg, $view, 0);
+            if($GLOBALS['ENV'] !== 'PRO')
+                Error::BuildMessage('VIEW NOT FOUND', $msg, $view, 0, 'f293ff');
+            exit();
+        }
         foreach(self::$_subview_queue['after'] as $subview)
         {
             Log::corewrite('Opening subviewed page: [%s/%s]', 1, __CLASS__, __FUNCTION__, array($subview['view_dir'], $subview['view_page']));
@@ -346,14 +592,16 @@ abstract class Controller
         }
     }
 
-    /**
-     * Returns a secret hash to enable secure posting.
-     *
-     * If index '_secure_post' is found in the $_variables property, it will be returned.
-     * Else it will return a new hash created by the Router class.
-     *
-     * @return String
-     */
+    // ####
+    // SecurePost
+    // @desc If index '_secure_post' is found in the $_variables property, it will be returned.
+    // - inside the current Layout view.
+    // @dependent Router::GetSalt
+    // @return String
+    // @public
+    // @static
+    // @app
+    // ##
     public static function SecurePost()
     {
         if(isset(self::$_variables['_secure_post']))
@@ -362,9 +610,13 @@ abstract class Controller
             return Router::CreateHash(Router::GetSalt());
     }
 
-    /**
-     * Outputs to the current view an HTML flash notice.
-     */
+    // ####
+    // DisplayFlash
+    // @desc Outputs to the current view an HTML flash notice.
+    // @public
+    // @static
+    // @app
+    // ##
     public static function DisplayFlash()
     {
         $session = Session::getInstance();
@@ -372,26 +624,26 @@ abstract class Controller
         {
             if(!isset($session->flash_type))
                 $session->flash_type = 'info';
-
+            
             if(empty(static::$flash_display))
             {
-            switch($session->flash_type)
-            {
-                case 'info':
-                    $flash = '<div style="background-image: url(\'/public/images/flash/info.png\'); background-repeat: no-repeat; background-position: 10px center; font-weight: bold; background-color: #BDE5F8; border: 1px solid #00529B; padding:15px 10px 15px 50px; color: #00529B; margin: 10px 0px; font-family:Arial, Helvetica, sans-serif; font-size:13px;">';
-                    break;
-                case 'warning':
-                    $flash = '<div style="background-image: url(\'/public/images/flash/warning.png\'); background-repeat: no-repeat; background-position: 10px center; font-weight: bold; background-color: #FEEFB3; border: 1px solid #9F6000; padding:15px 10px 15px 50px; color: #9F6000; margin: 10px 0px; font-family:Arial, Helvetica, sans-serif; font-size:13px;">';
-                    break;
-                case 'success':
-                    $flash = '<div style="background-image: url(\'/public/images/flash/success.png\'); background-repeat: no-repeat; background-position: 10px center; font-weight: bold; background-color: #DFF2BF; border: 1px solid #4F8A10; padding:15px 10px 15px 50px; color: #4F8A10; margin: 10px 0px; font-family:Arial, Helvetica, sans-serif; font-size:13px;">';
-                    break;
-                case 'error':
-                    $flash = '<div style="background-image: url(\'/public/images/flash/error.png\'); background-repeat: no-repeat; background-position: 10px center; font-weight: bold; background-color: #FFBABA; border: 1px solid #D8000C; padding:15px 10px 15px 50px; color: #D8000C; margin: 10px 0px; font-family:Arial, Helvetica, sans-serif; font-size:13px;">';
-                    break;
-                default:
-                    $flash = '<div style="background-image: url(\'/public/images/flash/info.png\'); background-repeat: no-repeat; background-position: 10px center; font-weight: bold; background-color: #BDE5F8; border: 1px solid #00529B; padding:15px 10px 15px 50px; color: #00529B; margin: 10px 0px; font-family:Arial, Helvetica, sans-serif; font-size:13px;">';
-            }
+                switch($session->flash_type)
+                {
+                    case 'info':
+                        $flash = '<div style="background-image: url(\''.self::IMG_LOC('flash/info.png').'\'); background-repeat: no-repeat; background-position: 10px center; font-weight: bold; background-color: #BDE5F8; border: 1px solid #00529B; padding:15px 10px 15px 50px; color: #00529B; margin: 10px 0px; font-family:Arial, Helvetica, sans-serif; font-size:13px;">';
+                        break;
+                    case 'warning':
+                        $flash = '<div style="background-image: url(\''.self::IMG_LOC('flash/warning.png').'\'); background-repeat: no-repeat; background-position: 10px center; font-weight: bold; background-color: #FEEFB3; border: 1px solid #9F6000; padding:15px 10px 15px 50px; color: #9F6000; margin: 10px 0px; font-family:Arial, Helvetica, sans-serif; font-size:13px;">';
+                        break;
+                    case 'success':
+                        $flash = '<div style="background-image: url(\''.self::IMG_LOC('flash/success.png').'\'); background-repeat: no-repeat; background-position: 10px center; font-weight: bold; background-color: #DFF2BF; border: 1px solid #4F8A10; padding:15px 10px 15px 50px; color: #4F8A10; margin: 10px 0px; font-family:Arial, Helvetica, sans-serif; font-size:13px;">';
+                        break;
+                    case 'error':
+                        $flash = '<div style="background-image: url(\''.self::IMG_LOC('flash/error.png').'\'); background-repeat: no-repeat; background-position: 10px center; font-weight: bold; background-color: #FFBABA; border: 1px solid #D8000C; padding:15px 10px 15px 50px; color: #D8000C; margin: 10px 0px; font-family:Arial, Helvetica, sans-serif; font-size:13px;">';
+                        break;
+                    default:
+                        $flash = '<div style="background-image: url(\''.self::IMG_LOC('flash/info.png').'\'); background-repeat: no-repeat; background-position: 10px center; font-weight: bold; background-color: #BDE5F8; border: 1px solid #00529B; padding:15px 10px 15px 50px; color: #00529B; margin: 10px 0px; font-family:Arial, Helvetica, sans-serif; font-size:13px;">';
+                }
             } else {
                 if(isset(static::$flash_display[$session->flash_type]))
                     $flash = static::$flash_display[$session->flash_type];
@@ -409,21 +661,66 @@ abstract class Controller
         }
     }
 
-    /**
-     * Outputs to current view what is needed for a secure post.
-     */
+    // ####
+    // MethodPut
+    // @desc Outputs to current view the HTML that is needed to submit a form using the PUT method
+    // @return String
+    // @public
+    // @static
+    // @app
+    // @dependent ::Method
+    // ##
     public static function MethodPut()
     {
+        return self::Method('PUT');
+    }
+    
+    // ####
+    // MethodDelete
+    // @desc Outputs to current view the HTML that is needed to submit a form using the DELETE method
+    // @return String
+    // @public
+    // @static
+    // @app
+    // @dependent ::Method
+    // ##
+    public static function MethodDelete()
+    {
+        return self::Method('DELETE');
+    }
+    
+    // ####
+    // MethodDelete
+    // @desc DRY method for outputting the required HTML for a form to be submitted
+    // - as something other then GET or POST
+    // @args String $type
+    // - Method type
+    // @return String
+    // @private
+    // @static
+    // @app
+    // @calledby ::MethodPut
+    // @calledby ::MethodDelete
+    // ##
+    private static function Method($type)
+    {
         $div = '<div style="display: none">';
-        $div .= '<input type="hidden" value="PUT" name="REQUEST_METHOD"/>';
+        $div .= '<input type="hidden" value="'.strtoupper($type).'" name="REQUEST_METHOD"/>';
         $div .= '<input type="hidden" value="'.Router::CreateHash(Router::GetSalt()).'" name="token"/>';
         $div .= '</div>';
         return $div;
     }
 
-    /**
-     * Appends a variable to the $_variables property.
-     */
+    // ####
+    // Assign
+    // @desc Appends a variable to the $_variables property.
+    // @args String $name
+    // - Name of the variable
+    // @args String $value
+    // - Value of the variable
+    // @public
+    // @app
+    // ##
     public function Assign($name, $value)
     {
         Event::PublishActionHook('/Controller/before/Assign/', array($this));
@@ -431,16 +728,17 @@ abstract class Controller
         Event::PublishActionHook('/Controller/after/Assign/', array($this));
     }
 
-    /**
-     * Redirects controller to other page or controller action.
-     *
-     * Redirects controller to other page or controller action.
-     * if $url is string => Redirect to page
-     * if #url is array => $url['action'] $url['params']
-     *
-     * @param mixed $url String to redirect to page or array for controller action
-     */
-    protected function RedirectTo($url)
+    // ####
+    // RedirectTo
+    // @desc Redirects controller to other page or controller action.
+    // @args Mixed $url
+    // - If is String -> Redirect to URL
+    // - If is Array -> Redirect to $url['action'] (optional $url['params'])
+    // @dependent ::HandleRequest
+    // @public
+    // @app
+    // ##
+    public function RedirectTo($url)
     {
         Log::corewrite('Redirecting page', 3, __CLASS__, __FUNCTION__);
         if(is_array($url))
@@ -455,36 +753,42 @@ abstract class Controller
             }
         } else {
             Log::corewrite('URL passed: [%s]', 1, __CLASS__, __FUNCTION__, array($url));
-            header('Location: '.$this->GetPageURL().$url);
+            header('Location: '.self::GetPageURL().$url);
             exit();
         }
         Log::corewrite('At end of method...', 2, __CLASS__, __FUNCTION__);
     }
 
-    /**
-     * Returns page URL
-     *
-     * @return string
-     */
-    private function GetPageURL()
+    // ####
+    // GetPageURL
+    // @desc Get full page URL
+    // @return String
+    // @public
+    // @static
+    // @app
+    // ##
+    public static function GetPageURL()
     {
         $pageURL = 'http';
         if(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on')
             $pageURL .= 's';
         $pageURL .= '://';
-        if($_SERVER['SERVER_PORT'] != '80')
-            $pageURL .= $_SERVER['SERVER_NAME'].':'.$_SERVER['SERVER_PORT'];
-        else
+        // if($_SERVER['SERVER_PORT'] != '80')
+        //     $pageURL .= $_SERVER['SERVER_NAME'].':'.$_SERVER['SERVER_PORT'];
+        // else
             $pageURL .= $_SERVER['SERVER_NAME'];
         return $pageURL;
     }
 
-    /**
-     * Gets subdomain from URL
-     *
-     * @return string
-     */
-    protected function GetSubDomain()
+    // ####
+    // GetSubDomain
+    // @desc Gets subdomain from URL
+    // @return String
+    // @public
+    // @static
+    // @app
+    // ##
+    public static function GetSubDomain()
     {
         $domain = explode('.', $_SERVER['SERVER_NAME']);
         if(count($domain) <= 2)
@@ -494,6 +798,14 @@ abstract class Controller
         return $domain[0];
     }
     
+    // ####
+    // GetClientIP
+    // @desc Get the client's IP address
+    // @return String
+    // @public
+    // @static
+    // @app
+    // ##
     public static function GetClientIP()
     {
         if (!empty($_SERVER['HTTP_CLIENT_IP']))
@@ -513,15 +825,18 @@ abstract class Controller
         return $ip;
     }
 
-    /**
-     * Hack-ish way of running Tasks.
-     *
-     * @see Task::__construct()
-     *
-     * @param string $task   Name of task to run.
-     * @param array  $params Array of parameters to use for task.
-     */
-    protected function RunTask($task, $params = array())
+    // ####
+    // RunTask
+    // @desc Hack-ish way of running Tasks.
+    // @args String $task
+    // - Task command
+    // @args Array $params @default array()
+    // - List of parameters for Task
+    // @dependent Task
+    // @public
+    // @app
+    // ##
+    public function RunTask($task, $params = array())
     {
         //Hack-ish way of running Command line Task
         $params = array_reverse($params);
@@ -532,6 +847,18 @@ abstract class Controller
         $t->HandleInput($task);
     }
 
+    // ####
+    // TruncateString
+    // @desc Truncate a string to a certain amount of characters then add the hellip [...]
+    // @args String $string
+    // - String to be truncated
+    // @args Integer $chars @default 100
+    // - Number of characters allowed before the string is truncated
+    // @return String
+    // @public
+    // @static
+    // @app
+    // ##
     public static function TruncateString($string, $chars = 100)
     {
         preg_match('/^.{0,' . $chars. '}(?:.*?)\b./iu', $string, $matches);

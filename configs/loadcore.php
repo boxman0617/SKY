@@ -1,4 +1,5 @@
 <?php
+import(EXCEPTIONS_CLASS);
 import(LOG_CLASS);
 import(PLUGIN_CLASS);
 import(EVENT_CLASS);
@@ -12,9 +13,11 @@ import(COOKIE_CLASS);
 import(AUTH_CLASS);
 import(CONTROLLER_CLASS);
 import(MAILER_CLASS);
+import(ROUTETO_CLASS);
 import(ROUTER_CLASS);
 import(ROUTE_CLASS);
 import(SKY_CLASS);
+import(HELPER_CLASS);
 
 Event::PublishActionHook('/preimports/after/');
 
