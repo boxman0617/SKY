@@ -181,6 +181,8 @@ class Error
                 ob_end_clean();
                 $trace = str_replace(preg_replace('/(\/[a-z]+\/configs\/\.\.)$/', '', APPROOT), '', $trace);
                 $message .= '<b>Stack trace:</b><br><pre>'.$trace.'</pre><br><br>';
+                $controller_params = array_merge($_POST, $_GET);
+                $message .= '<b>Controller Params</b></br><pre>'.var_export($controller_params, true).'</pre><br><br>';
                 self::$_errors[] = array('no' => $no, 'str' => $message, 'file' => $file, 'line' => $line, 'color' => self::$_colors['notice']);
                 self::BuildMessage($no, $message, $file, $line, 'dbf0fc');
             }

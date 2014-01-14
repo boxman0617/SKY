@@ -82,6 +82,10 @@ abstract class Controller extends Base implements iController
         'img' => 'images'
     );
 
+    private static $_parts = array();
+    private static $_parts_pos = 0;
+    private static $_parts_tree = array();
+
     protected $render_info = array(
         'layout' => 'layout/layout.view.php',
         'method' => null,
@@ -155,6 +159,102 @@ abstract class Controller extends Base implements iController
         Event::PublishActionHook('/Controller/after/__construct/', array($this));
         Log::corewrite('At the end of method', 2, __CLASS__, __FUNCTION__);
     }
+
+    // ####
+    // __set
+    // @desc Getter for assign properties
+    // @args Mixed $name
+    // - Name of the variable
+    // @args Mixed $value
+    // - Value of the variable
+    // @public
+    // @app
+    // ##
+    public function __set($name, $value)
+    {
+        $this->Assign($name, $value);
+    }
+
+    // ####
+    // RenderViewPart
+    // @desc Renders ViewParts found under views
+    // @args String $view_part
+    // - The name of the ViewPart to render
+    // - Example: 'header' => '_header.part.php'
+    // - Example: 'shared/header' => 'shared/_header.part.php'
+    // @return String
+    // @static
+    // @public
+    // @app
+    // ##
+    public static function RenderViewPart($view_part)
+    {
+        extract(self::$_variables);
+        $file = '';
+        if(strpos('/', $view_part) !== false)
+        {
+            $file = self::$_subview_info['dir'].'/_'.$view_part.'.part.php';
+        } else {
+            $name = explode('/', $view_part);
+            $name[count($name)-1] = '_'.$name[count($name)-1].'.part.php';
+            $file = implode('/', $name);
+        }
+        if(file_exists(DIR_APP_VIEWS.'/'.$file))
+            require_once(DIR_APP_VIEWS.'/'.$file);
+    }
+
+    // ####
+    // RenderPart
+    // @desc Renders request specific snippets that can be found in their respective
+    // - view
+    // @args String $part
+    // - The index of the part to be rendered
+    // - Example: ':javascript'
+    // @return String
+    // @static
+    // @public
+    // @app
+    // ##
+    public static function RenderPart($part)
+    {
+        if(array_key_exists($part, self::$_parts))
+        {
+            foreach(self::$_parts[$part] as $chunk)
+                echo $chunk;
+        }
+    }
+
+    // ####
+    // Part
+    // @desc Starts the capture of a "Part".
+    // @args String $name
+    // - Name of the index of the part to be rendered
+    // - Example: ':javascript'
+    // @static
+    // @public
+    // @app
+    // ##
+    public static function Part($name)
+    {
+        if(!array_key_exists($name, self::$_parts))
+            self::$_parts[$name] = array();
+        self::$_parts_tree[self::$_parts_pos] = $name;
+        self::$_parts_pos++;
+        ob_start();
+    }
+
+    // ####
+    // EndPart
+    // @desc Ends the capture of a "Part".
+    // @static
+    // @public
+    // @app
+    // ##
+    public static function EndPart()
+    {
+        self::$_parts[self::$_parts_tree[self::$_parts_pos-1]][] = ob_get_clean();
+        self::$_parts_pos--;
+    }
     
     // ####
     // SetRouterSpecs
@@ -202,7 +302,7 @@ abstract class Controller extends Base implements iController
     {
         $class = get_called_class();
         $loc = self::CachedLocation($class);
-        return $loc['public_location'].'/'.$loc['locations']['css'].'/'.$file_path;
+        return str_replace('//', '/', BASE_GLOBAL_URL.$loc['public_location'].'/'.$loc['locations']['css'].'/'.$file_path);
     }
     
     // ####
@@ -263,7 +363,7 @@ abstract class Controller extends Base implements iController
     {
         $class = get_called_class();
         $loc = self::CachedLocation($class);
-        return $loc['public_location'].'/'.$loc['locations']['js'].'/'.$file_path;
+        return str_replace('//', '/', BASE_GLOBAL_URL.$loc['public_location'].'/'.$loc['locations']['js'].'/'.$file_path);
     }
     
     // ####
@@ -282,7 +382,7 @@ abstract class Controller extends Base implements iController
     {
         $class = get_called_class();
         $loc = self::CachedLocation($class);
-        return $loc['public_location'].'/'.$loc['locations']['img'].'/'.$file_path;
+        return str_replace('//', '/', BASE_GLOBAL_URL.$loc['public_location'].'/'.$loc['locations']['img'].'/'.$file_path);
     }
 
     // ####
@@ -558,6 +658,22 @@ abstract class Controller extends Base implements iController
     }
 
     // ####
+    // GetStaticProperty
+    // @desc Attempts to get a static property from itself
+    // @public
+    // @static
+    // @core
+    // ##
+    public static function GetStaticProperty($property)
+    {
+        if(property_exists(get_called_class(), $property))
+        {
+            $vars = get_class_vars(get_called_class());
+            return $vars[$property];
+        }
+    }
+
+    // ####
     // RenderSubView
     // @desc This static method allows the view of the action to be included
     // - inside the current Layout view.
@@ -567,6 +683,11 @@ abstract class Controller extends Base implements iController
     // ##
     public static function RenderSubView()
     {
+        if(!is_null(RenderHTML::$_subview_render_cache))
+        {
+            echo RenderHTML::$_subview_render_cache;
+            return true;
+        }
         extract(self::$_variables);
         foreach(self::$_subview_queue['before'] as $subview)
         {
@@ -861,7 +982,7 @@ abstract class Controller extends Base implements iController
     // ##
     public static function TruncateString($string, $chars = 100)
     {
-        preg_match('/^.{0,' . $chars. '}(?:.*?)\b./iu', $string, $matches);
+        preg_match('/^.{0,' . $chars. '}/', $string, $matches);
         $new_string = $matches[0];
         if($new_string === $string)
         {

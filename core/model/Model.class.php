@@ -1,10 +1,13 @@
 <?php
 define('TEXT_FIELD', '_field_text');
+define('TEXTAREA_FIELD', '_field_textarea');
 define('SELECT_FIELD', '_field_select');
 define('CHECKBOX_FIELD', '_field_checkbox');
 define('RADIO_FIELD', '_field_radio');
 define('PASSWORD_FIELD', '_field_password');
 define('FILE_FIELD', '_field_file');
+
+//import(VALIDATION_CLASS);
 
 abstract class Model implements Iterator, ArrayAccess, Countable
 {
@@ -28,6 +31,15 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 		'DB_DATABASE' 	=> null,
 		'MODEL_DRIVER' 	=> null
 	);
+    protected $ValidationErrorMessages = array(
+        'ABSENT'        => 'This field is required!',
+        'REGEX_FAILED'  => 'The input you have given seems to be invalid.',
+        'TOO_SHORT'     => 'The input you have given seems to be too short.',
+        'TOO_LONG'      => 'The input you have given seems to be too long.',
+        'NOT_UNIQUE'    => 'Input must be unique!',
+        'NOT_CONFIRMED' => 'Input does not match!'
+    );
+    protected $ValidationCustomMessages = array();
 	protected $TableName 			= null;
 	protected $PrimaryKey 			= null;
 	protected $OutputFormat			= array();
@@ -89,6 +101,16 @@ abstract class Model implements Iterator, ArrayAccess, Countable
         if(method_exists($this, 'init'))
             $this->init();
 	}
+
+    public function __toString()
+    {
+        if($this->count() > 0)
+        {
+            $PRI = $this->getPrimaryKey();
+            return call_user_func('RouteTo::'.strtoupper(SKY::singularize($this->_child)), $this->$PRI);
+        }
+        return $this->_child;
+    }
     
     public static function __callStatic($method, $args)
     {
@@ -128,7 +150,9 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 		}
         else if(substr($method, 0, 9) === "CreateNew") 
         {
-            $what = strtolower(substr($method, 9));
+            $what = substr($method, 9);
+            $what = strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $what));
+            Log::debug($what);
             if(array_key_exists(SKY::pluralize($what), $this->HasMany) || array_key_exists($what, $this->HasOne))
             {
                 if(empty($args))
@@ -168,7 +192,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	public function __get($key)
 	{
 		if(!array_key_exists($this->_iterator_position, $this->_iterator_data))
-            throw new ModelIOException('No data is present in Model.');
+            throw new ModelIOException('No data is present in Model. ['.$this->_child.'::'.$key.']');
 		if(!array_key_exists($key, $this->_iterator_data[$this->_iterator_position]))
 		{
             if(method_exists($this, 'Get'.ucfirst($key)))
@@ -273,9 +297,30 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 		unset($this->_iterator_data[$this->_iterator_position][$key]);
 	}
 
+    public function get_child()
+    {
+        return $this->_child;
+    }
+
     //############################################################
     //# Validation Methods
 	//############################################################
+
+    // public function is_valid($skip_confirm = false)
+    // {
+    //     $validation = Validation::Validate($this->_iterator_data[$this->_iterator_position], $this->Validate, $this->_child);
+    //     return $validation->Status;
+    // }
+
+    public function does_exists($field)
+    {
+        return (array_key_exists($field, $this->_iterator_data[$this->_iterator_position]) && !empty($this->_iterator_data[$this->_iterator_position][$field]));
+    }
+
+    public function is_required($field)
+    {
+        return (array_key_exists($field, $this->Validate) && array_key_exists(':required', $this->Validate[$field]));
+    }
 
     public function is_valid($skip_confirm = false)
     {
@@ -286,12 +331,17 @@ abstract class Model implements Iterator, ArrayAccess, Countable
             $IS_REQUIRED = false;
             foreach($options as $type => $value)
             {
+                if($type == ':messages') continue;
                 if($type == ':required')
                 {
                     $IS_REQUIRED = true;
                     if(!array_key_exists($field, $this->_iterator_data[$this->_iterator_position]))
                     {
-                        $this->_ValidationError($field, 'ABSENT');
+                        if(array_key_exists(':messages', $options) && array_key_exists('ABSENT', $options[':messages']))
+                            $this->_ValidationError($field, 'ABSENT', $options[':messages']['ABSENT']);
+                        else
+                            $this->_ValidationError($field, 'ABSENT');
+                        
                         $REQUIRED_PASS = false;
                         $VALID = false;
                     } else {
@@ -300,58 +350,83 @@ abstract class Model implements Iterator, ArrayAccess, Countable
                             $field_value = $this->_unencrypted_data[$this->_iterator_position][$field];
                         if(!array_key_exists($field, $this->_iterator_data[$this->_iterator_position]) || empty($field_value))
                         {
-                            $this->_ValidationError($field, 'ABSENT');
+                            if(array_key_exists(':messages', $options) && array_key_exists('ABSENT', $options[':messages']))
+                                $this->_ValidationError($field, 'ABSENT', $options[':messages']['ABSENT']);
+                            else
+                                $this->_ValidationError($field, 'ABSENT');
                             $REQUIRED_PASS = false;
                             $VALID = false;
                         }
                     }
                 }
-                if($REQUIRED_PASS && $type == ':regex')
+                if($type == ':regex')
                 {
-                    if(!$IS_REQUIRED && array_key_exists($field, $this->_iterator_data[$this->_iterator_position]))
-                    {
+                    if(!$IS_REQUIRED && !$this->does_exists($field))
+                        continue;
+                    elseif($IS_REQUIRED && !$REQUIRED_PASS)
+                        continue;
+                    else {
                         $field_value = $this->_iterator_data[$this->_iterator_position][$field];
                         if(in_array($field, $this->EncryptField))
                             $field_value = $this->_unencrypted_data[$this->_iterator_position][$field];
                         if(!(bool)preg_match($value, $field_value))
                         {
-                            $this->_ValidationError($field, 'REGEX_FAILED');
+                            if(array_key_exists(':messages', $options) && array_key_exists('REGEX_FAILED', $options[':messages']))
+                                $this->_ValidationError($field, 'REGEX_FAILED', $options[':messages']['REGEX_FAILED']);
+                            else
+                                $this->_ValidationError($field, 'REGEX_FAILED');
                             $VALID = false;
                         }
                     }
                 }
-                if($REQUIRED_PASS && $type == ':min')
+                if($type == ':min')
                 {
-                    if(!$IS_REQUIRED && array_key_exists($field, $this->_iterator_data[$this->_iterator_position]))
-                    {
+
+                    if(!$IS_REQUIRED && !$this->does_exists($field))
+                        continue;
+                    elseif($IS_REQUIRED && !$REQUIRED_PASS)
+                        continue;
+                    else {
                         $field_value = $this->_iterator_data[$this->_iterator_position][$field];
                         if(in_array($field, $this->EncryptField))
                             $field_value = $this->_unencrypted_data[$this->_iterator_position][$field];
                         if(strlen($field_value) < $value)
                         {
-                            $this->_ValidationError($field, 'TOO_SHORT');
+                            if(array_key_exists(':messages', $options) && array_key_exists('TOO_SHORT', $options[':messages']))
+                                $this->_ValidationError($field, 'TOO_SHORT', $options[':messages']['TOO_SHORT']);
+                            else
+                                $this->_ValidationError($field, 'TOO_SHORT');
                             $VALID = false;
                         }
                     }
                 }
                 if($REQUIRED_PASS && $type == ':max')
                 {
-                    if(!$IS_REQUIRED && array_key_exists($field, $this->_iterator_data[$this->_iterator_position]))
-                    {
+                    if(!$IS_REQUIRED && !$this->does_exists($field))
+                        continue;
+                    elseif($IS_REQUIRED && !$REQUIRED_PASS)
+                        continue;
+                    else {
                         $field_value = $this->_iterator_data[$this->_iterator_position][$field];
                         if(in_array($field, $this->EncryptField))
                             $field_value = $this->_unencrypted_data[$this->_iterator_position][$field];
                         if(strlen($field_value) > $value)
                         {
-                            $this->_ValidationError($field, 'TOO_LONG');
+                            if(array_key_exists(':messages', $options) && array_key_exists('TOO_LONG', $options[':messages']))
+                                $this->_ValidationError($field, 'TOO_LONG', $options[':messages']['TOO_LONG']);
+                            else
+                                $this->_ValidationError($field, 'TOO_LONG');
                             $VALID = false;
                         }
                     }
                 }
                 if($REQUIRED_PASS && $type == ':unique')
                 {
-                    if(array_key_exists($field, $this->_iterator_data[$this->_iterator_position]))
-                    {
+                    if(!$IS_REQUIRED && !$this->does_exists($field))
+                        continue;
+                    elseif($IS_REQUIRED && !$REQUIRED_PASS)
+                        continue;
+                    else {
                         $CHILD = $this->_child;
                         $obj = new $CHILD();
                         $r = $obj->search(array(
@@ -365,11 +440,17 @@ abstract class Model implements Iterator, ArrayAccess, Countable
                             {
                                 if($this->$PRI != $r->$PRI)
                                 {
-                                    $this->_ValidationError($field, 'NOT_UNIQUE');
+                                    if(array_key_exists(':messages', $options) && array_key_exists('NOT_UNIQUE', $options[':messages']))
+                                        $this->_ValidationError($field, 'NOT_UNIQUE', $options[':messages']['NOT_UNIQUE']);
+                                    else
+                                        $this->_ValidationError($field, 'NOT_UNIQUE');
                                     $VALID = false;
                                 }
                             } else {
-                                $this->_ValidationError($field, 'NOT_UNIQUE');
+                                if(array_key_exists(':messages', $options) && array_key_exists('NOT_UNIQUE', $options[':messages']))
+                                    $this->_ValidationError($field, 'NOT_UNIQUE', $options[':messages']['NOT_UNIQUE']);
+                                else
+                                    $this->_ValidationError($field, 'NOT_UNIQUE');
                                 $VALID = false;
                             }
                         }
@@ -377,8 +458,11 @@ abstract class Model implements Iterator, ArrayAccess, Countable
                 }
                 if($REQUIRED_PASS && $type == ':confirm')
                 {
-                    if(!$IS_REQUIRED && array_key_exists($field, $this->_iterator_data[$this->_iterator_position]))
-                    {
+                    if(!$IS_REQUIRED && !$this->does_exists($field))
+                        continue;
+                    elseif($IS_REQUIRED && !$REQUIRED_PASS)
+                        continue;
+                    else {
                         if($skip_confirm)
                             continue;
                         if(array_key_exists($value, $this->_iterator_data[$this->_iterator_position]))
@@ -388,11 +472,17 @@ abstract class Model implements Iterator, ArrayAccess, Countable
                                 $compare = $this->Encrypt($compare);
                             if($this->_iterator_data[$this->_iterator_position][$field] != $compare)
                             {
-                                $this->_ValidationError($field, 'NOT_CONFIRMED');
+                                if(array_key_exists(':messages', $options) && array_key_exists('NOT_CONFIRMED', $options[':messages']))
+                                    $this->_ValidationError($field, 'NOT_CONFIRMED', $options[':messages']['NOT_CONFIRMED']);
+                                else
+                                    $this->_ValidationError($field, 'NOT_CONFIRMED');
                                 $VALID = false;
                             }
                         } else {
-                            $this->_ValidationError($field, 'NOT_CONFIRMED');
+                            if(array_key_exists(':messages', $options) && array_key_exists('NOT_CONFIRMED', $options[':messages']))
+                                $this->_ValidationError($field, 'NOT_CONFIRMED', $options[':messages']['NOT_CONFIRMED']);
+                            else
+                                $this->_ValidationError($field, 'NOT_CONFIRMED');
                             $VALID = false;
                         }
                     }
@@ -402,11 +492,13 @@ abstract class Model implements Iterator, ArrayAccess, Countable
         return $VALID;
     }
     
-    private function _ValidationError($on, $type)
+    private function _ValidationError($on, $type, $message = null)
     {
         if(!isset($this->_validation_errors[$on]))
             $this->_validation_errors[$on] = array();
         $this->_validation_errors[$on][] = $type;
+        if(!is_null($message))
+            $this->ValidationCustomMessages[$on] = array($type => $message);
     }
     
     public function GetValidationErrors()
@@ -926,6 +1018,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	protected $FormFieldDir   = 'form_model';
 	protected $FormFieldViews = array(
 	    'text'      => null,
+        'textarea'  => null,
 	    'select'    => null,
 	    'checkbox'  => null,
 	    'radio'     => null,

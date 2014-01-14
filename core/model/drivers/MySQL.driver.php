@@ -68,6 +68,7 @@ class MySQLDriver implements iDriver
 	private $TableName;
 	private $PrimaryKey;
 	private $Server;
+    private static $_server;
 	private static $DB;
 	private $Model;
     public static $DefaultPrimaryKey = 'id';
@@ -76,6 +77,7 @@ class MySQLDriver implements iDriver
 	public function __construct($db)
 	{
 		$this->Server = $db['DB_SERVER'];
+        self::$_server = $this->Server;
 		Log::corewrite('MySQLi ["%s"@"%s" on "%s"]', 1, __CLASS__, __FUNCTION__, array($db['DB_USERNAME'], $db['DB_SERVER'], $db['DB_DATABASE']));
 		self::$DB[$this->Server] = new mysqli($db['DB_SERVER'], $db['DB_USERNAME'], $db['DB_PASSWORD'], $db['DB_DATABASE']);
 		if(self::$DB[$this->Server]->connect_error)
@@ -83,6 +85,11 @@ class MySQLDriver implements iDriver
 		    throw new Exception('Connection Error: ('.self::$DB[$this->Server]->connect_errno.') '.self::$DB[$this->Server]->connect_error);
 		}
 	}
+
+    public static function GetDBInstance()
+    {
+        return self::$DB[self::$_server];
+    }
 
 	public function buildModelInfo(&$model)
 	{

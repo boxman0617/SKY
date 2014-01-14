@@ -7,6 +7,7 @@ interface RenderInterface
 
 class RenderHTML extends Base implements RenderInterface
 {
+	public static $_subview_render_cache = null;
     protected $REF;
     public function __construct(&$ref)
     {
@@ -17,7 +18,18 @@ class RenderHTML extends Base implements RenderInterface
 	{
 		if($render_info['status'] == NOT_RENDERED)
 		{
-		    extract(Controller::$_variables);
+			extract(Controller::$_variables);
+			if(is_null(self::$_subview_render_cache))
+			{
+				$prop = call_user_func(get_class($this->REF).'::GetStaticProperty', '_subview_info');
+				$view = DIR_APP_VIEWS.'/'.$prop['dir'].'/'.$prop['view'].'.view.php';
+        		if(file_exists($view))
+        		{
+        			ob_start();
+        			call_user_func(get_class($this->REF).'::RenderSubView');
+					self::$_subview_render_cache = ob_get_clean();
+        		}
+			}
             ob_start();
             Log::corewrite('OB Level [%s]', 3, __CLASS__, __FUNCTION__, array(ob_get_level()));
     		include_once(DIR_APP_VIEWS.'/'.$render_info['layout']);

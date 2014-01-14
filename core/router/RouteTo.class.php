@@ -23,6 +23,7 @@ class RouteTo
         $routes = array_keys(self::$_routes);
         foreach($routes as $route)
         {
+            Log::write('RouteTo:: [%s]', $route);
             $broken_route = explode(' ', $route);
             if($total_c == count($broken_route))
             {

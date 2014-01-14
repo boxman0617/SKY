@@ -22,6 +22,10 @@ function autoload_classes($class_name)
         Event::PublishActionHook('/autoload_classes/before/Object/', array($class_name));
         return $class;
     }
+    if(function_exists('LastChanceLoading'))
+    {
+        LastChanceLoading($class_name);
+    }
     return false;
 }
 ?>

@@ -125,8 +125,10 @@ class DBBuild
     private function CreateTable()
     {
         $create = "CREATE TABLE `".$this->table['name']."`\n (`id` INT(11) NOT NULL AUTO_INCREMENT, \n";
+        $columns = "";
         foreach($this->table["columns"] as $clm)
         {
+            $columns .= sprintf("// %-20s %s\n", $clm['name'], $clm['type']);
             $create .= "`".$clm['name']."` ".$clm['type']." ";
             if(!$clm["null"])
                 $create .= "NOT NULL";
@@ -137,8 +139,9 @@ class DBBuild
         $db = new mysqli(DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_DATABASE);
         $db->query($create);
 
+        $org_name = $this->table['name'];
         // Building Model
-        if(strpos('_', $this->table['name']) !== false)
+        if(strpos($this->table['name'], '_') !== false)
         {
             $MODEL_NAME = ucwords(str_replace('_', ' ', $this->table['name']));
             $this->table['name'] = str_replace(' ', '', $MODEL_NAME);
@@ -146,6 +149,10 @@ class DBBuild
             $this->table['name'] = ucfirst($this->table['name']);
         }
         $class = "<?php
+// ####
+// [".$org_name."]
+".$columns."// ##
+
 class ".$this->table['name']." extends Model
 {
 

@@ -45,6 +45,7 @@ class Router extends Base implements iRouter
     private $query_string;
     private $status = STATUS_NOTFOUND;
     private $REQUEST_METHOD;
+    public static $_current_location;
     
     // ####
     // __construct
@@ -55,6 +56,7 @@ class Router extends Base implements iRouter
     // ##
     public function __construct()
     {
+        self::$_current_location = rtrim($_REQUEST['_query'], '/');
         Log::corewrite('Opening routes', 3, __CLASS__, __FUNCTION__);
         Event::PublishActionHook('/Route/before/__construct/');
         if(isset($_REQUEST['REQUEST_METHOD']))

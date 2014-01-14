@@ -86,7 +86,7 @@ class Log
                 fwrite($f, $r);
             }
             fclose($f);
-            chmod($DEBUG_LOG, 0777);
+            //chmod($DEBUG_LOG, 0777);
         }
     }
 
