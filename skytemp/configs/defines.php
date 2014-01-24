@@ -42,10 +42,23 @@ define('DIR_TEST', APPROOT.'/test');
 define('DIR_FIXTURES', APPROOT.'/test/fixtures');
 
 //#############################################
+// import() import paths @DoNotEdit
+//#############################################
+define('IMPORT_PATHS', 
+    DIR_APP_CONTROLLERS.';'.
+    DIR_APP_MAILERS.';'.
+    DIR_APP_MODELS.';'.
+    DIR_APP_VIEWS
+);
+
+//#############################################
 // USER Defines @SafeToEdit/Add
 //#############################################
 // If you have any local defines, 
 // add them below.
 //#############################################
+
+// ## If you have any other IMPORT PATHS you want to add, uncomment the line below
+// define('USER_IMPORT_PATHS', '/import_path1;/import_pahth2');
 
 ?>

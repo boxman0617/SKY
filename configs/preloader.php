@@ -8,12 +8,14 @@ function autoload_classes($class_name)
     {
         Event::PublishActionHook('/autoload_classes/before/model/', array($class_name));
         import(DIR_APP_MODELS.'/'.$class_name.'.model.php');
+        Event::PublishActionHook('/autoload_classes/after/model/', array($class_name));
         return true;
     }
     if(is_file(DIR_APP_MAILERS.'/'.strtolower($class_name).'.mailer.php')) // Check for mailer
     {
         Event::PublishActionHook('/autoload_classes/before/mailer/', array($class_name));
         import(DIR_APP_MAILERS.'/'.strtolower($class_name).'.mailer.php');
+        Event::PublishActionHook('/autoload_classes/after/mailer/', array($class_name));
         return true;
     }
     $class = ObjectFactory::Manufactor($class_name);
