@@ -105,6 +105,12 @@ class DBBuild
                                 foreach($value as $opts)
                                     $tmp_column['type'] .= "'".$opts."',";
                                 $tmp_column['type'] = substr($tmp_column['type'], 0, -1).')';
+                            } elseif($value[0] == 'decimal') {
+                                $tmp_column['type'] = $value[0].'(';
+                                unset($value[0]);
+                                foreach($value as $opts)
+                                    $tmp_column['type'] .= $opts.",";
+                                $tmp_column['type'] = substr($tmp_column['type'], 0, -1).')';
                             } else {
                             $tmp_column['type'] = $value[0]."(".$value[1].")";
                             }

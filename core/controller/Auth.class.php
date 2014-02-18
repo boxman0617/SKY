@@ -23,7 +23,7 @@ interface iAuth
     public function __construct();
     public function LogIn($username, $password);
     public function LogOut();
-    public static function IsLoggedIn();
+    public static function IsLoggedIn($ident);
     public function WhoAmI();
 }
 
@@ -50,7 +50,7 @@ class Auth extends Base implements iAuth
         $this->map['password'] = AUTH_MODEL_PASSWORD;
     }
 
-    public function LogIn($username, $password)
+    public function LogIn($username, $password, $ident = 'user_id')
     {
         Log::corewrite('Logging in [%s] [%s]', 3, __CLASS__, __FUNCTION__, array($username, md5(AUTH_SALT.$password)));
         $map_username = $this->map['username'];
@@ -65,7 +65,7 @@ class Auth extends Base implements iAuth
             if($encrypt_pass == $r->$map_password)
             {
                 Log::corewrite('Login was successful!', 1, __CLASS__, __FUNCTION__);
-                self::$_share['session']->user_id = $r->id;
+                self::$_share['session']->$ident = $r->id;
                 self::$_share['user'] = $r;
             } else {
                 Log::corewrite('Login was not successful!', 1, __CLASS__, __FUNCTION__);
@@ -86,9 +86,9 @@ class Auth extends Base implements iAuth
         return true;
     }
 
-    public static function IsLoggedIn()
+    public static function IsLoggedIn($ident = 'user_id')
     {
-        return isset(Session::getInstance()->user_id);
+        return isset(Session::getInstance()->$ident);
     }
 
     public function WhoAmI()

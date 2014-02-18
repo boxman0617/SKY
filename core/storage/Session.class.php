@@ -40,10 +40,8 @@ class Session
     */
     public static function getInstance()
     {
-        if ( !isset(self::$instance))
-        {
+        if(!isset(self::$instance))
             self::$instance = new self;
-        }
         
         self::$instance->startSession();
         
@@ -56,10 +54,8 @@ class Session
     */
     public function startSession()
     {
-        if ( $this->sessionState == self::SESSION_NOT_STARTED )
-        {
+        if($this->sessionState == self::SESSION_NOT_STARTED)
             $this->sessionState = session_start();
-        }
         
         return $this->sessionState;
     }
@@ -102,7 +98,7 @@ class Session
     
     public function __unset( $name )
     {
-        unset( $_SESSION[$name] );
+        unset($_SESSION[$name]);
     }
     
     /**
@@ -111,24 +107,15 @@ class Session
     */
     public function destroy()
     {
-        if ( $this->sessionState == self::SESSION_STARTED )
+        if($this->sessionState == self::SESSION_STARTED)
         {
             $this->sessionState = !session_destroy();
-            unset( $_SESSION );
+            unset($_SESSION);
             
             return !$this->sessionState;
         }
         
         return FALSE;
-    }
-    
-    public function __destruct()
-    {
-        # if(isset($_SESSION['flash']))
-        # {
-        #     unset($_SESSION['flash']);
-        #     unset($_SESSION['flash_type']);
-        # }
     }
 }
 ?>

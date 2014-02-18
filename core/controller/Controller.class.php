@@ -128,7 +128,7 @@ abstract class Controller extends Base implements iController
     // @public
     // @app
     // ##
-    public function __construct($params = array())
+    public final function __construct($params = array())
     {
         Log::corewrite('Opening controller [%s]', 3, __CLASS__, __FUNCTION__, array(get_class($this)));
         Event::PublishActionHook('/Controller/before/__construct/', array($this));
@@ -182,25 +182,33 @@ abstract class Controller extends Base implements iController
     // - The name of the ViewPart to render
     // - Example: 'header' => '_header.part.php'
     // - Example: 'shared/header' => 'shared/_header.part.php'
+    // @args Array $pass
+    // - Extra arguments
+    // - Exmaple: array('item' => $item_object)
     // @return String
     // @static
     // @public
     // @app
     // ##
-    public static function RenderViewPart($view_part)
+    public static function RenderViewPart($view_part, $pass = array(), $if = true)
     {
-        extract(self::$_variables);
-        $file = '';
-        if(strpos('/', $view_part) !== false)
+        if($if)
         {
-            $file = self::$_subview_info['dir'].'/_'.$view_part.'.part.php';
-        } else {
-            $name = explode('/', $view_part);
-            $name[count($name)-1] = '_'.$name[count($name)-1].'.part.php';
-            $file = implode('/', $name);
+            extract(self::$_variables);
+            extract($pass);
+            $file = '';
+            if(strpos($view_part, '/') === false)
+            {
+                $file = self::$_subview_info['dir'].'/_'.$view_part.'.part.php';
+            } else {
+                $name = explode('/', $view_part);
+                $name[count($name)-1] = '_'.$name[count($name)-1].'.part.php';
+                $file = implode('/', $name);
+            }
+            Log::corewrite('Rendering ViewPart [%s]', 2, __CLASS__, __FUNCTION__, array(DIR_APP_VIEWS.'/'.$file));
+            if(file_exists(DIR_APP_VIEWS.'/'.$file))
+                include(DIR_APP_VIEWS.'/'.$file);
         }
-        if(file_exists(DIR_APP_VIEWS.'/'.$file))
-            require_once(DIR_APP_VIEWS.'/'.$file);
     }
 
     // ####
@@ -449,6 +457,20 @@ abstract class Controller extends Base implements iController
         $this->Render(array(
             'flag' => RENDER_JSON,
             'info' => $info
+        ));
+    }
+
+    // ####
+    // NONE
+    // @desc Shorthand method for Render(RENDER_NONE).
+    // @public
+    // @app
+    // @dependent ::Render
+    // ##
+    public function NONE()
+    {
+        $this->Render(array(
+            'flag' => RENDER_NONE
         ));
     }
 
@@ -888,7 +910,7 @@ abstract class Controller extends Base implements iController
     // @static
     // @app
     // ##
-    public static function GetPageURL()
+    public static function GetPageURL($full = false)
     {
         $pageURL = 'http';
         if(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on')
@@ -897,7 +919,9 @@ abstract class Controller extends Base implements iController
         // if($_SERVER['SERVER_PORT'] != '80')
         //     $pageURL .= $_SERVER['SERVER_NAME'].':'.$_SERVER['SERVER_PORT'];
         // else
-            $pageURL .= $_SERVER['SERVER_NAME'];
+        $pageURL .= $_SERVER['SERVER_NAME'];
+        if($full && array_key_exists('REQUEST_URI', $_SERVER))
+            $pageURL .= $_SERVER['REQUEST_URI'];
         return $pageURL;
     }
 
