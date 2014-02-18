@@ -320,10 +320,10 @@ abstract class Controller extends Base implements iController
     // @args String $class_name
     // @return Array
     // @static
-    // @private
+    // @protected
     // @app
     // ##
-    private static function CachedLocation($class_name)
+    protected static function CachedLocation($class_name)
     {
         if(!array_key_exists('LOC_CLASSES', self::$_share))
             self::$_share['LOC_CLASSES'] = array();
@@ -646,6 +646,7 @@ abstract class Controller extends Base implements iController
         // Render
         if($this->render_info['render'] != RENDER_NONE)
         {
+            Event::PublishActionHook('/Controller/atrender/HandleRequest/', array($this));
             $class = $this->render_info['render'];
             $obj = new $class($this);
             $obj->Render($this->render_info);

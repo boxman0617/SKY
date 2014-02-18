@@ -97,12 +97,11 @@ class Event implements iEvent
                         return call_user_func_array(array($obj, self::$hooks['action'][$hook][1]), $args);
                     }
                 }
-            } else { //Function
-                //foreach(Plugin::$plugin as $name => $info)
-                //{
-                //    import(Plugin::$plugin[$name]['dir'].'/'.Plugin::$plugin[$name]['file']);
-                //    return call_user_func_array(array($obj, self::$hooks['action'][$hook][1]), $args);
-                //}
+            } else {
+                if(strpos('::', self::$hooks['action'][$hook]) !== false) // Static Method
+                    import(Plugin::$plugin[$name]['dir'].'/'.Plugin::$plugin[$name]['file']);
+                
+                return call_user_func_array(self::$hooks['action'][$hook], $args);
             }
         }
         return true;

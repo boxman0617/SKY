@@ -48,18 +48,55 @@ _ClassDefiner(SKYCORE_CORE_HTML);
 
 
 // #Define Helper Functions
+function _import_by_array($myfile, $paths)
+{
+    foreach($paths as $dir)
+    {
+        if(is_dir($dir)) 
+        {
+            if($dh = opendir($dir)) 
+            {
+                while(($file = readdir($dh)) !== false) 
+                {
+                    $INFO = pathinfo($file);
+                    if($INFO['filename'] == $myfile)
+                    {
+                        require_once($dir.'/'.$myfile.'.'.$INFO['extension']);
+                        return true;
+                    }
+                }
+                closedir($dh);
+            }
+        }
+    }
+    return false;
+}
+
 $GLOBALS['IMPORTS'] = array();
 function import($path)
 {
     preg_match('/\/([a-zA-Z\.]+(?:\.php|\.task))/', $path, $match);
-    if(!isset($GLOBALS['IMPORTS'][$match[1]]))
+    if(array_key_exists(1, $match) && !isset($GLOBALS['IMPORTS'][$match[1]]))
     {
         if(is_file($path))
         {
             $GLOBALS['IMPORTS'][$match[1]] = true;
             require_once($path);
+            return true;
         }
+    } else {
+        $paths = explode(';', IMPORT_PATHS);
+        if(_import_by_array($path, $paths) === false)
+        {
+            if(defined('USER_IMPORT_PATHS'))
+            {
+                $paths = explode(';', USER_IMPORT_PATHS);
+                return _import_by_array($path, $paths);
+            }
+        }
+        return true;
     }
+    return false;
 }
 
 if(!function_exists('date_diff'))
