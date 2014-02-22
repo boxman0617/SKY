@@ -26,6 +26,45 @@ class SingleFile
         }
         throw new Exception('No file data under ['.$name.']');
     }
+    
+    public function __isset($name)
+    {
+        return (isset($this->_file_data[$name]) && empty($this->_file_data[$name]));
+    }
+    
+    public function HasProperty($name)
+    {
+        return array_key_exists($name, $this->_file_data);
+    }
+    
+    public function IsEmpty()
+    {
+        return ($this->_file_data['error'] == UPLOAD_ERR_NO_FILE);
+    }
+    
+    public function CheckIfValid()
+    {
+        if (
+            !isset($this->_file_data['error']) ||
+            is_array($this->_file_data['error'])
+        ) {
+            Log::corewrite('File uploaded is not valid. Data: [%s]', 4, __CLASS__, __FUNCTION__, array(var_export($this->_file_data, true)));
+            throw new RuntimeException('Invalid parameters.');
+        }
+        
+        switch($this->_file_data['error']) 
+        {
+            case UPLOAD_ERR_OK:
+                break;
+            case UPLOAD_ERR_INI_SIZE:
+            case UPLOAD_ERR_FORM_SIZE:
+                Log::corewrite('Exceeded filesize limit. Data: [%s]', 4, __CLASS__, __FUNCTION__, array(var_export($this->_file_data, true)));
+                throw new RuntimeException('Exceeded filesize limit.');
+            default:
+                Log::corewrite('Unknown errors. Data: [%s]', 4, __CLASS__, __FUNCTION__, array(var_export($this->_file_data, true)));
+                throw new RuntimeException('Unknown errors.');
+        }
+    }
 }
 
 class File
@@ -100,6 +139,11 @@ class File
         $this->_file_selected = $file_locator;
     }
     
+    public function IsEmpty()
+    {
+        return self::$FILES[$this->_file_selected]->IsEmpty();
+    }
+    
     /**
      * ::AcceptOnly()
      * @params Array $types
@@ -115,6 +159,12 @@ class File
     {
         if(!is_null($this->_file_selected))
         {
+            self::$FILES[$this->_file_selected]->CheckIfValid();
+            if(self::$FILES[$this->_file_selected]->tmp_name == '')
+            {
+                Log::corewrite('File upload failed. Data: [%s]', 4, __CLASS__, __FUNCTION__, array(var_export(self::$FILES[$this->_file_selected], true)));
+                throw new Exception('File upload failed.');
+            }
             $FILE_TYPE = mime_content_type(self::$FILES[$this->_file_selected]->tmp_name);
             $FILE = array(
                 'category' => null,
