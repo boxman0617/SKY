@@ -152,7 +152,6 @@ abstract class Model implements Iterator, ArrayAccess, Countable
         {
             $what = substr($method, 9);
             $what = strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $what));
-            Log::debug($what);
             if(array_key_exists(SKY::pluralize($what), $this->HasMany) || array_key_exists($what, $this->HasOne))
             {
                 if(empty($args))
@@ -191,8 +190,10 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 
 	public function __get($key)
 	{
+        if($this->_iterator_position != 0 && $this->_iterator_position >= count($this->_iterator_data))
+            throw new ModelIOException('The Iterator Position is out of range in the Model. /* Tip: try ::rewind() */ ['.$this->_child.'::'.$key.']['.$this->_iterator_position.']['.count($this->_iterator_data).']');
 		if(!array_key_exists($this->_iterator_position, $this->_iterator_data))
-            throw new ModelIOException('No data is present in Model. ['.$this->_child.'::'.$key.']');
+            throw new ModelIOException('No data is present in Model. ['.$this->_child.'::'.$key.']['.$this->_iterator_position.']');
 		if(!array_key_exists($key, $this->_iterator_data[$this->_iterator_position]))
 		{
             if(method_exists($this, 'Get'.ucfirst($key)))
@@ -489,6 +490,11 @@ abstract class Model implements Iterator, ArrayAccess, Countable
                 }
             }
         }
+        if($VALID === false)
+        {
+            foreach($this->EncryptField as $field)
+                unset($this->$field);
+        }
         return $VALID;
     }
     
@@ -642,7 +648,10 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 		$obj = $this->_GetModel($model_name);
 		if($obj instanceof Model)
 		{
-			$FOREIGN_KEY = strtolower(SKY::singularize($this->_child).'_id');
+            $explode = explode('_', preg_replace('/\B([A-Z])/', '_$1', get_class($this)));
+            $explode[count($explode)-1] = SKY::singularize($explode[count($explode)-1]);
+            $f = implode('_', $explode);
+			$FOREIGN_KEY = strtolower($f.'_id');
 			if(array_key_exists(':as', $OPTIONS))
 			{
 				$FOREIGN_KEY = $OPTIONS[':as'].'_id';
@@ -659,8 +668,18 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 				$SEARCH[$OPTIONS[':as'].'_type'] = strtolower(SKY::singularize($this->_child));
 			if(array_key_exists(':through', $OPTIONS))
 			{
-				$MID_FOREIGN_KEY = strtolower(SKY::singularize($model_name).'_id');
+                $explode = explode('_', $model_name);
+                $explode[count($explode)-1] = SKY::singularize($explode[count($explode)-1]);
+                $mid = implode('_', $explode);
+				$MID_FOREIGN_KEY = strtolower($mid.'_id');
 				$MID_obj = $this->_GetModel($OPTIONS[':through']);
+                if(array_key_exists(':through_conditions', $OPTIONS))
+                {
+                    $TCONDITIONS = &$OPTIONS[':through_conditions'];
+                    $COUNT = count($TCONDITIONS);
+                    for($i=0; $i<$COUNT; $i++)
+                        $SEARCH = array_merge($SEARCH, $TCONDITIONS[$i]);
+                }
 				$r = $MID_obj->search($SEARCH, array($MID_FOREIGN_KEY))->run();
                 $IDs = array();
                 foreach($r as $rs)
@@ -1033,7 +1052,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
         if(is_null($this->FormFieldViews[$FIELD_TYPE]))
             $this->FormFieldViews[$FIELD_TYPE] = $FIELD_TYPE.'field';
         if(method_exists($this, $type))
-            return call_user_func_array(array($this, $type), array($field, $options));
+            call_user_func_array(array($this, $type), array($field, &$options));
         include(DIR_APP_VIEWS.'/'.$this->FormFieldDir.'/'.$this->FormFieldViews[$FIELD_TYPE].'.part.php');
         
 	    //throw new UninitializedChildPropertyException('Property ::FormFieldViews['.$FIELD_TYPE.'] is null. Assign value to continue.');
@@ -1113,6 +1132,11 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 		return empty($this->_iterator_data[$this->_iterator_position]);
 	}
 
+    public function is_empty()
+    {
+        return empty($this->_iterator_data);
+    }
+
 	//############################################################
 	//# Countable Methods
 	//############################################################
@@ -1153,7 +1177,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 
 	public function valid()
 	{
-		return isset($this->_iterator_data[$this->_iterator_position]);
+		return array_key_exists($this->_iterator_position, $this->_iterator_data);
 	}
 
 	//############################################################

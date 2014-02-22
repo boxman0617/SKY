@@ -22,7 +22,7 @@ class Operator
         return new Operator('NOT IN', $value);
     }
     
-    public static function IsNot($bool)
+    public static function IsNot($value)
     {
         return new Operator('IS NOT', $value);
     }
