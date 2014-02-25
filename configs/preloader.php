@@ -28,6 +28,7 @@ function autoload_classes($class_name)
     {
         LastChanceLoading($class_name);
     }
+    Event::PublishActionHook('/autoload_classes/apend/special/', array($class_name));
     return false;
 }
 ?>

@@ -22,6 +22,7 @@ import(MODEL_CLASS);
 import(RENDER_CLASS);
 import(TASK_CLASS);
 import(FILE_CLASS);
+import(COMPRESSOR_CLASS);
 
 define('RENDER_NONE', 'RenderNONE');
 define('RENDER_HTML', 'RenderHTML');

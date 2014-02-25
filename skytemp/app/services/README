@@ -1,0 +1,70 @@
+################################################################
+Services require the following structure:
+
+app/services/
+ .. service.nameofservice/
+ ..... info/
+ ........ NameofserviceInfo.php
+ ..... src/
+ ........ implementations/
+ ........... Nameofimpl.implementation.php
+ ........... {more implementation files}
+ ........ interfaces/
+ ........... INameofint.interface.php
+ ........... {more interface files}
+ 
+ ################################################################
+ Example Info file:
+ 
+<?php
+import(SERVICEINFO_CLASS);
+
+class FooInfo extends ServiceInfo
+{
+    public static function Announce()
+    {
+        self::Set(array(
+            'IFoo' => array(
+                'Foo' => array(
+                    'name' => 'Foo',
+                    'rank' => 100
+                ),
+                'FooDos' => array(
+                    'name' => 'FooDos',
+                    'rank' => 500
+                )
+            )
+        ));
+        
+        self::PublicInterfaces(array(
+            'IFoo'
+        ));
+    }
+}
+?>
+
+################################################################
+Example Implementation file:
+
+<?php
+import('service.foo.interface.IFoo');
+
+class Foo implements IFoo
+{
+    public function SeyHello()
+    {
+        return 'Hello World!';
+    }
+}
+?>
+
+
+################################################################
+Example Interface file:
+
+<?php
+interface IFoo
+{
+    public function SeyHello();
+}
+?>

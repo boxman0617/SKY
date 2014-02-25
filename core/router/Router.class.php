@@ -139,6 +139,34 @@ class Router extends Base implements iRouter
         Event::PublishActionHook('/Route/after/SecurePOST/');
         return true;
     }
+    
+    private function ControllerInit($class, $query, $action, $params = array())
+    {
+        $controller = new $class($params);
+        if(!($controller instanceof Controller))
+            throw new Exception('['.$class.'] is not a Controller');
+        Event::PublishActionHook('/Router/before/ControllerInit/', array(array(
+            'class' => $class, 
+            'query' => $query,
+            'action' => $action,
+            'params' => $params,
+            'controller' => $controller
+        )));
+        $controller->SetRouterSpecs(array(
+            'query' => $query,
+            'method' => $this->REQUEST_METHOD
+        ));
+        Log::corewrite('Running Controller::Action [%s::%s]', 1, __CLASS__, __FUNCTION__, array($class, $action));
+        $controller->HandleRequest($action);
+        $this->status = STATUS_FOUND;
+        Event::PublishActionHook('/Router/after/ControllerInit/', array(array(
+            'class' => $class, 
+            'query' => $query,
+            'action' => $action,
+            'params' => $params,
+            'controller' => $controller
+        )));
+    }
 
     /**
      * Follow URL match
@@ -171,13 +199,7 @@ class Router extends Base implements iRouter
             import(DIR_APP_CONTROLLERS.'/'.strtolower($class).'.controller.php');
             if(class_exists($class))
             {
-                $obj = new $class();
-                $obj->SetRouterSpecs(array(
-                    'query' => $query,
-                    'method' => $this->REQUEST_METHOD
-                ));
-                $obj->HandleRequest($tmp[$query]['action']);
-                $this->status = STATUS_FOUND;
+                $this->ControllerInit($class, $query, $tmp[$query]['action']);
                 return true;
             }
             throw new Exception('Seems as though the following Controller has not yet been defined: ['.$class.'] Define it in the following directory to fix this issue: ['.DIR_APP_CONTROLLERS.']');
@@ -232,18 +254,12 @@ class Router extends Base implements iRouter
                 import(DIR_APP_CONTROLLERS.'/'.strtolower($class).'.controller.php');
                 if(class_exists($class))
                 {
-                    $obj = new $class($indirect_matches[$winner]['params']);
-                    if(!($obj instanceof Controller))
-                        throw new Exception('['.$class.'] is not a Controller');
-                    Log::corewrite('Opening Controller [%s]', 1, __CLASS__, __FUNCTION__, array($obj));
-                    $obj->SetRouterSpecs(array(
-                        'query' => $query,
-                        'method' => $this->REQUEST_METHOD
-                    ));
-                    Log::corewrite('Setting RouterSpecs', 1, __CLASS__, __FUNCTION__);
-                    $obj->HandleRequest(ucfirst(strtolower($winner)));
-                    Log::corewrite('Running action... [%s]', 1, __CLASS__, __FUNCTION__, array(ucfirst(strtolower($winner))));
-                    $this->status = STATUS_FOUND;
+                    $this->ControllerInit(
+                        $class, 
+                        $query, 
+                        ucfirst(strtolower($winner)), 
+                        $indirect_matches[$winner]['params']
+                    );
                     return true;
                 }
                 throw new Exception('Seems as though the following Controller has not yet been defined: ['.$class.'] Define it in the following directory to fix this issue: ['.DIR_APP_CONTROLLERS.']');

@@ -40,7 +40,7 @@ class Log
 
     public static function predebug()
     {
-        if($GLOBALS['ENV'] !== 'PROD')
+        if($GLOBALS['ENV'] !== 'PRO')
         {
             $echo = "<pre>";
             $vars = func_get_args();
@@ -70,7 +70,10 @@ class Log
                 fwrite($f, ">========DEBUG=LOG===========> ".date('m-d-Y H:i:s')."\n");
             if(func_num_args() == 1)
             {
-                fwrite($f, sprintf(self::$app_format, date('H:i:s'), func_get_arg(0)));
+                $arg = func_get_arg(0);
+                if(is_array($arg) || is_object($arg))
+                    $arg = var_export($arg, true);
+                fwrite($f, sprintf(self::$app_format, date('H:i:s'), $arg));
             }
             elseif(func_num_args() > 1)
             {
