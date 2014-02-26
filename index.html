@@ -20,7 +20,7 @@
     <header>
       <div class="inner">
         <h1>Sky</h1>
-        <h2>DeepLogiK&#39;s PHP Rapid Development MVC Framework</h2>
+        <h2>DeeplogiK&#39;s PHP Rapid Development MVC Framework</h2>
         <a href="https://github.com/boxman0617/SKY" class="button"><small>View project on</small>GitHub</a>
       </div>
     </header>
@@ -28,37 +28,76 @@
     <div id="content-wrapper">
       <div class="inner clearfix">
         <section id="main-content">
-          <h3>
-<a name="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages"><span class="octicon octicon-link"></span></a>Welcome to GitHub Pages.</h3>
+            <h3>
+                <a name="what-is-sky" class="anchor" href="#what-is-sky"><span class="octicon octicon-link"></span></a>
+                What is SKY?
+            </h3>
 
-<p>This automatic page generator is the easiest way to create beautiful pages for all of your projects. Author your page content here using GitHub Flavored Markdown, select a template crafted by a designer, and publish. After your page is generated, you can check out the new branch:</p>
+            <p>
+                SKY was written with the developer in mind. 
+                It adheres to the MVC architectural pattern used in many other software engineering projects. 
+                One of the key features of SKY is that it is extremely easy to learn and use. 
+                Don't get overwhelmed by "big" and "fancy" frameworks that try to do EVERYTHING. 
+                SKY does web apps, and it does it very well. I use SKY for all of my projects because I can
+                get up and running in minutes and can start working on what I need to work on, right away.
+            </p>
 
-<pre><code>$ cd your_repo_root/repo_name
-$ git fetch origin
-$ git checkout gh-pages
+            <h3>
+                <a name="getting-started" class="anchor" href="#getting-started"><span class="octicon octicon-link"></span></a>
+                Getting Started.
+            </h3>
+
+            <p>
+                Now that you have decided to use SKY, lets make sure you have the minimum requirements to install SKY.
+            </p>
+            
+            <strong>You will need:</strong>
+            <ul>
+                <li>PHP version 5.2.4 or greater</li>
+                <li>Apache (Currently only tested on Apache)</li>
+                <li>
+                    Recommended:
+                    <ul>
+                        <li>MySQL version 5.0 or greater</li>
+                    </ul>
+                </li>
+            </ul>
+            
+            <p>
+                SKY has only been tested under Ubuntu 12.04 and above and GoDaddy's Linux Hosted Shared servers.
+                I will describe how to install SKY in both the Ubuntu version and GoDaddy servers.
+            </p>
+
+            <h3>
+                <a name="ubuntu-install" class="anchor" href="#ubuntu-install"><span class="octicon octicon-link"></span></a>
+                Ubuntu Install
+            </h3>
+
+            <p>
+                Let's clone SKY into a base directory. <small>I usually use <code>/var/www/</code></small><br/>
+                Make sure you can write to the <code>/var/www</code> directory before executing the following code!
+            </p>
+            
+<pre><code>user@ubuntumachine: $ cd /var/www
+user@ubuntumachine: $ git clone https://github.com/boxman0617/SKY.git skycore
 </code></pre>
 
-<p>If you're using the GitHub for Mac, simply sync your repository and you'll see the new branch.</p>
+            <p>
+                Now let's make sure you can access SKY from the command line now. Run the following in your terminal:
+            </p>
+            
+            <pre><code>user@ubuntumachine: $ echo -e "export SKYCORE=/var/www/skycore\nexport PATH=$PATH:$SKYCORE/bin" >> ~/.bashrc</code></pre>
+            
+            <p>
+                That will "register" <code>SKYCORE</code> as and the <code>/bin</code> directory in the path of your terminal 
+                and allow you to call <code>sky</code>. To test this out do the following:
+            </p>
 
-<h3>
-<a name="designer-templates" class="anchor" href="#designer-templates"><span class="octicon octicon-link"></span></a>Designer Templates</h3>
-
-<p>We've crafted some handsome templates for you to use. Go ahead and continue to layouts to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved if it remained markdown format.</p>
-
-<h3>
-<a name="rather-drive-stick" class="anchor" href="#rather-drive-stick"><span class="octicon octicon-link"></span></a>Rather Drive Stick?</h3>
-
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator written by our own Tom Preston-Werner. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
-
-<h3>
-<a name="authors-and-contributors" class="anchor" href="#authors-and-contributors"><span class="octicon octicon-link"></span></a>Authors and Contributors</h3>
-
-<p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor's GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
-
-<h3>
-<a name="support-or-contact" class="anchor" href="#support-or-contact"><span class="octicon octicon-link"></span></a>Support or Contact</h3>
-
-<p>Having trouble with Pages? Check out the documentation at <a href="http://help.github.com/pages">http://help.github.com/pages</a> or contact <a href="mailto:support@github.com">support@github.com</a> and we’ll help you sort it out.</p>
+<pre><code>user@ubuntumachine: $ cd /var/www
+user@ubuntumachine: $ sky help
+</code></pre>
+            
+            <p>Test: {{ site.time | date_to_xmlschema }}</p>
         </section>
 
         <aside id="sidebar">

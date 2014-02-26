@@ -172,20 +172,36 @@ code {
 
 pre {
   padding: 20px;
-  background: #fff;
+  background: #2b2b2b;
   text-shadow: none;
   overflow: auto;
-  border: solid 1px #f2f2f2;
+  border-left: solid 1px #f2f2f2;
+  border-right: solid 1px #f2f2f2;
+  
+  border-top: solid 3px #c4c4c4;
+  border-bottom: solid 3px #c4c4c4;
 }
 pre code {
   color: #2879d0;
-  background-color: #fff;
+  background-color: #2b2b2b;
   border: none;
   padding: 0;
 }
 
 ul, ol, dl {
   margin-bottom: 20px;
+}
+
+small {
+    font-size: 12px;
+}
+
+small:before {
+    content: '(';
+}
+
+small:after {
+    content: ')';
 }
 
 
