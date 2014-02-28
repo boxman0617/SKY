@@ -46,6 +46,21 @@ table {
 	border-spacing: 0;
 }
 
+table td, table th {
+    text-align: left;
+    padding: 2px 10px 2px 4px;
+}
+
+table th {
+    font-weight: bold;
+    color: #FFF;
+    background: #2e7bcf url(../images/header-bg.jpg) 0 0 repeat-x;
+}
+
+.dirs tbody tr td:first-child {
+    vertical-align: middle;
+}
+
 /* LAYOUT STYLES */
 body {
   font-size: 15px;

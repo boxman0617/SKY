@@ -97,7 +97,97 @@ user@ubuntumachine: $ git clone https://github.com/boxman0617/SKY.git skycore
 user@ubuntumachine: $ sky help
 </code></pre>
             
-            <p>Test: {{ site.time | date_to_xmlschema }}</p>
+            <p>That should show you the current version of SKY that you have installed followed by some useful sky commands.</p>
+            
+            <h3>
+                <a name="installed-what-next" class="anchor" href="#installed-what-next"><span class="octicon octicon-link"></span></a>
+                Installed! What's next?
+            </h3>
+            
+            <p>
+                Now that you have installed SKY and you have checked that you can use the <code>sky</code> command, let's 
+                create a new app!
+            </p>
+            
+            <p>
+                We start by running the following command where we want to create the new SKY app 
+                <small>For this example we will continue to to work under <code>/var/www</code></small>:
+            </p>
+
+<pre><code>user@ubuntumachine: $ cd /var/www
+user@ubuntumachine: $ sky new myappname
+user@ubuntumachine: $ cd myappname
+</code></pre>
+    
+        <p>
+            The <code>sky new myappname</code> will create the initial SKY app structure. 
+            You can now point your Apache server to that directory and you will see SKY's initial
+            app page.
+        </p>
+            
+        <h3>
+            <a name="app-structure" class="anchor" href="#app-structure"><span class="octicon octicon-link"></span></a>
+            SKY's App Structure
+        </h3>
+        
+        <p>
+            Inside your shiny new SKY app you will find the following directories:
+        </p>
+        
+        <table class="dirs">
+            <thead>
+                <tr>
+                    <th>File/Folder</th>
+                    <th>Purpose</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>app/</td>
+                    <td>
+                        Contains the controllers, models, views, helpers, mailers and assets for your application.
+                    </td>
+                </tr>
+                <tr>
+                    <td>configs/</td>
+                    <td>
+                        Configure your application's runtime rules, routes, database, and more.
+                    </td>
+                </tr>
+                <tr>
+                    <td>lib/</td>
+                    <td>
+                        Contains plugins to extends your Application, tasks, and temporary files like cache and such.
+                    </td>
+                </tr>
+                <tr>
+                    <td>log/</td>
+                    <td>
+                        Application log files.
+                    </td>
+                </tr>
+                <tr>
+                    <td>public/</td>
+                    <td>
+                        In this directory you can place files that will be accessed from outside the Application.
+                        IE: images, javascript, and CSS.
+                    </td>
+                </tr>
+                <tr>
+                    <td>test/</td>
+                    <td>
+                        This directory holds the tests you can run for your Application. It includes the fixtures as well!
+                    </td>
+                </tr>
+                <tr>
+                    <td>.htaccess</td>
+                    <td>
+                        The HTACCESS file will allow the Application to route requests to SKY and your Application.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+            
         </section>
 
         <aside id="sidebar">
