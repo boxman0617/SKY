@@ -1,0 +1,184 @@
+#!/usr/bin/php
+<?php
+date_default_timezone_set('UTC');
+require_once(getenv('SKYCORE').'/core/utils/SKY.class.php');
+SKY::LoadCore();
+
+interface SkyMCommand
+{
+	public function __construct($cli);
+	public function GetShortHelp();
+	public function GetLongHelp();
+	public function Execute($args = array());
+}
+
+class SkyMCLI
+{
+	private $_commands = array();
+
+	private $_command = null;
+	private $_command_args = array();
+
+	public function __construct($arguments)
+	{
+		$this->BootstrapCommands();
+
+		unset($arguments[0]);
+		$arguments = array_values($arguments);
+		$this->_command = $arguments[0];
+		
+		if(array_key_exists($this->_command, $this->_commands))
+		{
+			array_shift($arguments);
+			if(count($arguments) > 0)
+				$this->_command_args = $arguments;
+			$this->ExecuteCommand();
+		} else {
+			$this->ShowError('Command ['.$this->_command.'] not found! (Run "skym help" for list of commands)');
+		}
+	}
+
+	private function ExecuteCommand()
+	{
+		$this->_commands[$this->_command]->Execute($this->_command_args);
+	}
+
+	private function BootstrapCommands()
+	{
+		$real = realpath(dirname(__FILE__).'/.skym');
+		if($handle = opendir($real))
+		{
+		    while(false !== ($entry = readdir($handle))) 
+		    {
+		        if($entry != '.' && $entry != '..')
+		        {
+		        	$class = str_replace('.class.php', '', $entry);
+		        	$name = strtolower(str_replace('SkyM', '', $class));
+
+		        	require_once($real.'/'.$entry);
+		        	$this->_commands[$name] = new $class($this);
+		        }
+		    }
+
+		    closedir($handle);
+		}
+	}
+
+	private function MigrationLog()
+	{
+		return DIR_LIB_MIGRATIONS.'/.migrations.log';
+	}
+
+	private function InitialMigrationLog()
+	{
+		return array(
+			'ran' => array(),
+			'failed' => array()
+		);
+	}
+
+	private function CreateMigrationLog()
+	{
+		$log = $this->MigrationLog();
+		if(is_file($log))
+			return true;
+		$f = fopen($log, 'w');
+		fwrite($f, serialize($this->InitialMigrationLog()));
+		return fclose($f);
+	}
+
+	public function ReadFromMigrationLog()
+	{
+		$log = $this->MigrationLog();
+		$this->CreateMigrationLog();
+		return unserialize(file_get_contents($log));
+	}
+
+	public function WriteToMigrationLog($log = array())
+	{
+		if(empty($log))
+			$log = $this->InitialMigrationLog();
+		$logfile = $this->MigrationLog();
+		$this->CreateMigrationLog();
+		return file_put_contents($logfile, serialize($log));
+	}
+
+	public function GetMySQLConnection($env)
+	{
+		$db = DatabaseConfig::GetENVDB($env);
+		$c = new mysqli($db['DB_SERVER'], $db['DB_USERNAME'], $db['DB_PASSWORD'], $db['DB_DATABASE']);
+		if($c->connect_error)
+		    throw new Exception('Connection Error: ('.$c->connect_errno.') '.$c->connect_error);
+		return $c;
+	}
+
+	public static function SortMigrations($a, $b)
+	{
+		$a_tmp = str_replace('.migration.php', '', $a);
+		$a_tmp = explode('_', $a_tmp);
+		$a_date = strtotime($a_tmp[1]);
+
+		$b_tmp = str_replace('.migration.php', '', $b);
+		$b_tmp = explode('_', $b_tmp);
+		$b_date = strtotime($b_tmp[1]);
+
+		if($a_date == $b_date)
+			return 0;
+		return ($a_date > $b_date) ? +1 : -1;
+	}
+
+	public function GetListOfMigrations()
+	{
+		$migrations = array();
+		if($handle = opendir(DIR_LIB_MIGRATIONS))
+		{
+		    while(false !== ($entry = readdir($handle))) 
+		    {
+		        if($entry != '.' && $entry != '..' && $entry != '.migrations.log')
+		        	$migrations[] = $entry;
+		    }
+
+		    closedir($handle);
+		}
+		usort($migrations, array(get_class(), 'SortMigrations'));
+		return $migrations;
+	}
+
+	// ## Helper Methods
+	public function GetCommands()
+	{
+		return $this->_commands;
+	}
+
+	public function ShowError($error)
+	{
+		$this->PrintLn('[ERROR]:: '.$error);
+		exit();
+	}
+
+	public function ShowBar($char = '#', $multi = 50)
+	{
+		$this->PrintLn(str_repeat($char, $multi));
+	}
+
+	public function PrintLn($str)
+	{
+		echo $str."\n";
+	}
+}
+
+$skym = new SkyMCLI($argv);
+
+// skym new MyMigrationName
+
+// skym migrate DEV
+// skym migrate PRO 20140310150303
+
+// skym rollback DEV
+// skym rollback PRO 20140301000000
+// skym rollback PRO ALL
+
+// skym show ran
+// skym show list
+// skym show failed
+?>
