@@ -141,16 +141,15 @@ class Log
         return '???';
     }
 
+    // @ToDo: Fix this
     public static function textmessage($msg, $level, $group = "default")
     {
-        if(TXT_MSG_ENABLED)
+        trigger_error('This method is deprecated as of version 0.2.0', E_USER_DEPRECATED);
+        global $txt_groups;
+        $group = $txt_groups[$group];
+        foreach($group as $number => $company)
         {
-            global $txt_groups;
-            $group = $txt_groups[$group];
-            foreach($group as $number => $company)
-            {
-                mail($number.'@'.self::$companies[$company], self::stringify($level), $msg, "From: sky@txtmsg.com\r\n");
-            }
+            mail($number.'@'.self::$companies[$company], self::stringify($level), $msg, "From: sky@txtmsg.com\r\n");
         }
     }
     

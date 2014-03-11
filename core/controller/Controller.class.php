@@ -142,7 +142,7 @@ abstract class Controller extends Base implements iController
             if(!is_null($JSON))
                 $this->params = array_merge($this->params, $JSON);
         }
-        if(FILES_CLEANUP_ENABLED && !empty($_FILES))
+        if(AppConfig::IsFileArrayCleanupEnabled() && !empty($_FILES))
         {
             $this->files = File::FilesCleanUp();
             foreach($this->files as $name => $file)

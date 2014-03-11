@@ -130,7 +130,7 @@ class MySQLDriver implements iDriver
     public function run()
     {
         $QUERY = $this->buildQuery();
-        if(CACHE_ENABLED)
+        if(AppConfig::IsMySQLCacheEnabled())
         {
             if(Cache::IsCached($QUERY))
             {
@@ -150,7 +150,7 @@ class MySQLDriver implements iDriver
         $RETURN = array();
         while($ROW = $RESULTS->fetch_assoc())
             $RETURN[] = $this->enum_to_bool($ROW);
-        if(CACHE_ENABLED)
+        if(AppConfig::IsMySQLCacheEnabled())
             Cache::Cache($QUERY, $RETURN);
         return $RETURN;
     }
