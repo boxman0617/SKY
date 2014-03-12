@@ -37,9 +37,9 @@ class SkyMNew implements SkyMCommand
 		$this->_cli->PrintLn('Generating new migration...');
 		flush();
 		$name = $args[0];
-		if(is_dir(DIR_LIB_MIGRATIONS))
+		if(is_dir(SkyDefines::Call('DIR_LIB_MIGRATIONS')))
 		{
-			$f = fopen(DIR_LIB_MIGRATIONS.'/'.$this->CreateFileName($name), 'w');
+			$f = fopen(SkyDefines::Call('DIR_LIB_MIGRATIONS').'/'.$this->CreateFileName($name), 'w');
 			fwrite($f, "<?php
 class ".$name." extends Migration
 {

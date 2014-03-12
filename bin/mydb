@@ -2,7 +2,7 @@
 <?php
 require_once(getenv('SKYCORE').'/core/utils/SKY.class.php');
 SKY::LoadCore();
-import(DBBUILD_CLASS);
+SkyL::Import(SkyDefines::Call('DBBUILD_CLASS'));
 
 $build = new DBBuild($argv);
 $build->HandleInput();

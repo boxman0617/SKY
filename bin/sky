@@ -1,8 +1,8 @@
 #!/usr/bin/php
 <?php
 require_once(dirname(__FILE__).'/../configs/defines.php');
-import(SKY_CLASS);
-import(COMMANDLINE_CLASS);
+SkyL::Import(SkyDefines::Call('SKY_CLASS'));
+SkyL::Import(SkyDefines::Call('COMMANDLINE_CLASS'));
 $cli = new CommandLine($argv);
 
 $cli->Delegate(array(
@@ -31,19 +31,19 @@ function DisplayHelp()
 
 function BuildNewProject($path)
 {
-	SKY::RCP(SKYCORE.'/skytemp', $path);
+	SKY::RCP(SkyDefines::Call('SKYCORE').'/skytemp', $path);
 	CommandLine::HeaderBar();
-	$dirs = scandir(SKYCORE.'/skytemp');
+	$dirs = scandir(SkyDefines::Call('SKYCORE').'/skytemp');
 	CommandLine::Puts('Creating new SKY project:');
 	foreach($dirs as $d)
 	{
-		if(is_dir(SKYCORE.'/skytemp/'.$d) && $d != '.' && $d != '..')
+		if(is_dir(SkyDefines::Call('SKYCORE').'/skytemp/'.$d) && $d != '.' && $d != '..')
 		{
 			CommandLine::Puts(" => ".$d);
-			$inner = scandir(SKYCORE.'/skytemp/'.$d);
+			$inner = scandir(SkyDefines::Call('SKYCORE').'/skytemp/'.$d);
 			foreach ($inner as $inner_d) 
 			{
-				if(is_dir(SKYCORE.'/skytemp/'.$d.'/'.$inner_d) && $inner_d != '.' && $inner_d != '..')
+				if(is_dir(SkyDefines::Call('SKYCORE').'/skytemp/'.$d.'/'.$inner_d) && $inner_d != '.' && $inner_d != '..')
 					CommandLine::Puts("\t => ".$d.'/'.$inner_d);
 			}
 		}
@@ -101,7 +101,7 @@ function UpgradeSky()
 				echo "=="; flush();
 				exec('rm -f /tmp/SKYupgrade_'.implode('', $live_v).'/tmp.zip');
 				echo "=="; flush();
-				SKY::RCP('/tmp/SKYupgrade_'.implode('', $live_v).'/', SKYCORE.'/');
+				SKY::RCP('/tmp/SKYupgrade_'.implode('', $live_v).'/', SkyDefines::Call('SKYCORE').'/');
 				CommandLine::Puts("==] Done!");
 				flush();
 			} else

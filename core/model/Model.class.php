@@ -1054,7 +1054,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
             $this->FormFieldViews[$FIELD_TYPE] = $FIELD_TYPE.'field';
         if(method_exists($this, $type))
             call_user_func_array(array($this, $type), array($field, &$options));
-        include(DIR_APP_VIEWS.'/'.$this->FormFieldDir.'/'.$this->FormFieldViews[$FIELD_TYPE].'.part.php');
+        include(SkyDefines::Call('DIR_APP_VIEWS').'/'.$this->FormFieldDir.'/'.$this->FormFieldViews[$FIELD_TYPE].'.part.php');
         
 	    //throw new UninitializedChildPropertyException('Property ::FormFieldViews['.$FIELD_TYPE.'] is null. Assign value to continue.');
 	}
@@ -1080,7 +1080,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 	
 	public function Encrypt($value)
 	{
-		return md5(AUTH_SALT.$value);
+		return md5(AppConfig::GetAuthSalt().$value);
 	}
     
     //############################################################
@@ -1094,7 +1094,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
             if(array_key_exists($view, $this->DisplayAsTableViews))
             {
                 extract($params);
-                include_once(DIR_APP_VIEWS.'/'.$this->DisplayAsTableViews[$view]);
+                include_once(SkyDefines::Call('DIR_APP_VIEWS').'/'.$this->DisplayAsTableViews[$view]);
             } else {
                 throw new ModelIOException('DisplayAsTableView property has no view by the name ['.$view.']!');
             }

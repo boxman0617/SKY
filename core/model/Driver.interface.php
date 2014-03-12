@@ -17,7 +17,8 @@
  * @package     Sky.Core
  */
 
-interface iDriver {
+interface iDriver 
+{
     public function __construct($db);
 
     /**

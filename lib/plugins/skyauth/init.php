@@ -5,7 +5,7 @@ Event::SubscribeActionHook('/Router/before/ControllerInit/', 'SkyAuth::AssertAut
 
 function DefineAsSkyAuthUser()
 {
-    require_once(SKYCORE_LIB.'/plugins/skyauth/'.Plugin::$plugin['skyauth']['interface']);
+    SkyL::Import(SkyDefines::Call('SKYCORE_LIB').'/plugins/skyauth/'.Plugin::$plugin['skyauth']['interface']);
 }
 
 function LoadSkyAuth($class_name = false)
@@ -15,11 +15,11 @@ function LoadSkyAuth($class_name = false)
         if($class_name != Plugin::$plugin['skyauth']['class'])
             return false;
     }
-    require_once(SKYCORE_LIB.'/plugins/skyauth/'.Plugin::$plugin['skyauth']['file']);
-    $ConfigFile = DIR_LIB_PLUGINS.'/skyauth/'.Plugin::$plugin['skyauth']['configfile'];
+    SkyL::Import(SkyDefines::Call('SKYCORE_LIB').'/plugins/skyauth/'.Plugin::$plugin['skyauth']['file']);
+    $ConfigFile = SkyDefines::Call('DIR_LIB_PLUGINS').'/skyauth/'.Plugin::$plugin['skyauth']['configfile'];
     if(file_exists($ConfigFile))
     {
-        require_once($ConfigFile);
+        SkyL::Import($ConfigFile);
         SkyAuth::$Settings[':ENV'] = array_merge(SkyAuth::$Settings[':ENV'], $_AUTH[SkyDefines::GetEnv()]);
         SkyAuth::$AccessControl = $_ACCESS_CONTROL;
     }

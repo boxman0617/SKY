@@ -1,7 +1,7 @@
 <?php
-if(!file_exists(DIR_APP_MODELS.'/Skyqueues.model.php'))
+if(!file_exists(SkyDefines::Call('DIR_APP_MODELS').'/Skyqueues.model.php'))
 {
-	SkyL::Import(DBBUILD_CLASS);
+	SkyL::Import(SkyDefines::Call('DBBUILD_CLASS'));
     $a = array(
         'SKYQueue.php',
         'skyqueues',

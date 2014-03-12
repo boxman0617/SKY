@@ -2,7 +2,7 @@
 <?php
 require_once(getenv('SKYCORE').'/core/utils/SKY.class.php');
 SKY::LoadCore();
-import(TASK_CLASS);
+SkyL::Import(SkyDefines::Call('TASK_CLASS'));
 
 $task = new Task($argv);
 if(isset($argv[1]))

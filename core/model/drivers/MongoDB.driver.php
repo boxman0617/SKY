@@ -143,7 +143,7 @@ class MongoDBDriver implements iDriver
     {
         if(SkyDefines::GetEnv() != 'PRO')
         {
-            $LOG = fopen(DIR_LOG."/development.log", 'a');
+            $LOG = fopen(SkyDefines::Call('DIR_LOG')."/development.log", 'a');
             fwrite($LOG, "\033[36mSTART\033[0m: ".date('H:i:s')."\t".$action_name.": ".trim(var_export($action, true))."\n");
             fclose($LOG);
         }
@@ -155,7 +155,7 @@ class MongoDBDriver implements iDriver
         if(SkyDefines::GetEnv() != 'PRO')
         {
             $_END = microtime(true);
-            $LOG = fopen(DIR_LOG."/development.log", 'a');
+            $LOG = fopen(SkyDefines::Call('DIR_LOG')."/development.log", 'a');
             if(isset($STATUS['err']) && !is_null($STATUS['err']))
             {
                 fwrite($LOG, "\033[35mERROR\033[0m: ".date('H:i:s')."\tMSG:\033[0m [".$STATUS['err']."]\n");
@@ -172,15 +172,16 @@ class MongoDBDriver implements iDriver
 
     public static function DropTable($name)
     {
-        $Server = DB_SERVER;
+        $settings = AppConfig::GetDatabaseSettings();
+        $Server = $settings[':server'];
         $CONNECTION_STRING = 'mongodb://';
-        if(DB_USERNAME != '') $CONNECTION_STRING .= DB_USERNAME;
-        if(DB_PASSWORD != '') $CONNECTION_STRING .= ':'.DB_PASSWORD;
-        if(DB_USERNAME != '') $CONNECTION_STRING .= '@';
+        if($settings[':username'] != '') $CONNECTION_STRING .= $settings[':username'];
+        if($settings[':password'] != '') $CONNECTION_STRING .= ':'.$settings[':password'];
+        if($settings[':username'] != '') $CONNECTION_STRING .= '@';
         $CONNECTION_STRING .= $Server;
         $m = new MongoClient($CONNECTION_STRING);
 
-        $DB = DB_DATABASE;
+        $DB = $settings[':database'];
         $db = $m->$DB;
         $c = $db->$name;
         $c->drop();

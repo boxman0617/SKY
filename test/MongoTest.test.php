@@ -3,7 +3,7 @@ class MongoTest
 {
 	public function __construct()
 	{
-        unlink(DIR_APP_MODELS.'/Testpersons.model.php');
+        unlink(SkyDefines::Call('DIR_APP_MODELS').'/Testpersons.model.php');
         $m = new MongoClient('mongodb://localhost');
         $db = $m->skytest;
         $db->drop();
@@ -26,7 +26,7 @@ class Testpersons extends Model
 }
 ?>
 ';
-        $f = fopen(DIR_APP_MODELS."/Testpersons.model.php", "w");
+        $f = fopen(SkyDefines::Call('DIR_APP_MODELS')."/Testpersons.model.php", "w");
         fwrite($f, $class);
         fclose($f);
         $m = new MongoClient('mongodb://localhost');

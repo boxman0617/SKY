@@ -142,7 +142,8 @@ class DBBuild
         }
         $create .= "`created_at` DATETIME NOT NULL,\n `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n PRIMARY KEY (`id`)\n)";
         $create .= "ENGINE=INNODB DEFAULT CHARSET=latin1";
-        $db = new mysqli(DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_DATABASE);
+        $settings = AppConfig::GetDatabaseSettings();
+        $db = new mysqli($settings[':server'], $settings[':username'], $settings[':password'], $settings[':database']);
         $db->query($create);
 
         $org_name = $this->table['name'];
@@ -165,7 +166,7 @@ class ".$this->table['name']." extends Model
 }
 ?>
 ";
-        $f = fopen(DIR_APP_MODELS."/".$this->table['name'].".model.php", "w");
+        $f = fopen(SkyDefines::Call('DIR_APP_MODELS')."/".$this->table['name'].".model.php", "w");
         fwrite($f, $class);
         fclose($f);
     }

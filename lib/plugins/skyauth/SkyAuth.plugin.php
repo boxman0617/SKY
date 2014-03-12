@@ -1,4 +1,7 @@
 <?php
+define('AUTH_ALLOW_ALL', true);
+define('AUTH_DENY_ALL', false);
+
 class SkyAuth
 {
     public static $Settings = array(
@@ -97,7 +100,7 @@ class SkyAuth
     
     private static function AccessDenied()
     {
-        require_once(DIR_LIB_PLUGINS.'/skyauth/'.Plugin::$plugin['skyauth']['denypage']);
+        SkyL::Import(SkyDefines::Call('DIR_LIB_PLUGINS').'/skyauth/'.Plugin::$plugin['skyauth']['denypage']);
         exit();
     }
     

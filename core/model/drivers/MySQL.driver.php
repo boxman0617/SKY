@@ -287,7 +287,8 @@ class MySQLDriver implements iDriver
 
     public static function DropTable($name)
     {
-        $db = new mysqli(DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_DATABASE);
+        $settings = AppConfig::GetDatabaseSettings();
+        $db = new mysqli($settings[':server'], $settings[':username'], $settings[':password'], $settings[':database']);
         return $db->query("DROP TABLE `".$name."`");
     }
 
@@ -302,7 +303,8 @@ class MySQLDriver implements iDriver
         }
         $CREATE_STATEMENT .= "`created_at` DATETIME NOT NULL,\n `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n PRIMARY KEY (`".self::$DefaultPrimaryKey."`)\n)";
         $CREATE_STATEMENT .= "ENGINE=INNODB DEFAULT CHARSET=latin1";
-        $db = new mysqli(DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_DATABASE);
+        $settings = AppConfig::GetDatabaseSettings();
+        $db = new mysqli($settings[':server'], $settings[':username'], $settings[':password'], $settings[':database']);
         return $db->query($CREATE_STATEMENT);
     }
     
