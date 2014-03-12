@@ -128,7 +128,7 @@ class File
     );
     
     public static $FILES = array();
-    public $FileDestination = DIR_PUBLIC;
+    public $FileDestination = SkyDefines::Call('DIR_PUBLIC');
     public $FileType = null;
     public $FileMimeType = null;
     

@@ -16,7 +16,7 @@
 // @version     0.0.7 Starting from here
 // ##
 
-import(SESSION_CLASS);
+SkyL::Import(SkyDefines::Call('SESSION_CLASS'));
 
 interface iAuth
 {
@@ -45,14 +45,14 @@ class Auth extends Base implements iAuth
     public function __construct()
     {
         self::$_share['session'] = Session::getInstance();
-        $this->user_model = ucfirst(AUTH_MODEL);
-        $this->map['username'] = AUTH_MODEL_USERNAME;
-        $this->map['password'] = AUTH_MODEL_PASSWORD;
+        $this->user_model = ucfirst(AppConfig::GetAuthModel());
+        $this->map['username'] = AppConfig::GetAuthModelUsername();
+        $this->map['password'] = AppConfig::GetAuthModelPassword();
     }
 
     public function LogIn($username, $password, $ident = 'user_id')
     {
-        Log::corewrite('Logging in [%s] [%s]', 3, __CLASS__, __FUNCTION__, array($username, md5(AUTH_SALT.$password)));
+        Log::corewrite('Logging in [%s] [%s]', 3, __CLASS__, __FUNCTION__, array($username, md5(AppConfig::GetAuthSalt().$password)));
         $map_username = $this->map['username'];
         $map_password = $this->map['password'];
         $class = ucfirst($this->user_model);
@@ -61,7 +61,7 @@ class Auth extends Base implements iAuth
         ));
         if(isset($r->$map_username) && $r->$map_username != null)
         {
-            $encrypt_pass = md5(AUTH_SALT.$password);
+            $encrypt_pass = md5(AppConfig::GetAuthSalt().$password);
             if($encrypt_pass == $r->$map_password)
             {
                 Log::corewrite('Login was successful!', 1, __CLASS__, __FUNCTION__);

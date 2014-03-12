@@ -14,7 +14,7 @@ class Helper
     {
         if($model->responds_to('id'))
         {
-            return BASE_GLOBAL_URL.strtolower(get_class($model)).'/'.$model->id.$end;
+            return SkyDefines::Call('BASE_GLOBAL_URL').strtolower(get_class($model)).'/'.$model->id.$end;
         }
         trigger_error('Model has not been loaded. Unable to generate path.', E_USER_NOTICE);
         return '';

@@ -7,7 +7,7 @@ define('RADIO_FIELD', '_field_radio');
 define('PASSWORD_FIELD', '_field_password');
 define('FILE_FIELD', '_field_file');
 
-//import(VALIDATION_CLASS);
+//SkyL::Import(VALIDATION_CLASS);
 
 abstract class Model implements Iterator, ArrayAccess, Countable
 {
@@ -81,7 +81,7 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 				$_DB = $this->DatabaseOverwrite;
 			if(is_file(SKYCORE_CORE_MODEL."/drivers/".$_DB['MODEL_DRIVER'].".driver.php"))
 			{
-				import(SKYCORE_CORE_MODEL."/drivers/".$_DB['MODEL_DRIVER'].".driver.php");
+				SkyL::Import(SKYCORE_CORE_MODEL."/drivers/".$_DB['MODEL_DRIVER'].".driver.php");
 				$_DRIVER_CLASS = $_DB['MODEL_DRIVER'].'Driver';
 				self::$_static_info[$this->_child]['driver'] = new $_DRIVER_CLASS($_DB);
 				if(is_null($this->TableName))

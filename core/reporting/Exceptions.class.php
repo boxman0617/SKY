@@ -34,4 +34,10 @@ class FileNotSelectedException extends Exception
     protected $message = 'No file was selected.';    // exception message
     protected $code = 3001;                                 // user defined exception code
 }
+
+class InvalidRouteException extends Exception 
+{ 
+    protected $message = 'Route does not exists.';
+    protected $code = 4000;
+}
 ?>

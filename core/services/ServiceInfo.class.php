@@ -73,10 +73,10 @@ abstract class ServiceInfo
                 }
             }
             $file_name = $winner.'.implementation.php';
-            $file_path = DIR_APP_SERVICES.'/service.'.strtolower(str_replace('Info', '', get_class($this))).'/src/implementations/'.$file_name;
+            $file_path = SkyDefines::Call('DIR_APP_SERVICES').'/service.'.strtolower(str_replace('Info', '', get_class($this))).'/src/implementations/'.$file_name;
             if(is_file($file_path))
             {
-                import($file_path);
+                SkyL::Import($file_path);
                 return new $winner();
             }
         }

@@ -28,7 +28,7 @@ class SkyPayPal
                 curl_setopt($curl, CURLOPT_VERBOSE, 1);
                 curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, FALSE);
                 curl_setopt($curl, CURLOPT_TIMEOUT, 30);
-                curl_setopt($curl, CURLOPT_URL, self::$Settings[':endpoint_url'][$GLOBALS['ENV']]);
+                curl_setopt($curl, CURLOPT_URL, self::$Settings[':endpoint_url'][SkyDefines::GetEnv()]);
                 curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
                 curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($REQUEST_ARRAY));
         

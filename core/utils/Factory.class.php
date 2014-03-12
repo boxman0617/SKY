@@ -36,10 +36,10 @@ class ObjectFactory
      */
     public static function Manufactor($type)
     {
-        $ls = scandir(SKYCORE_CORE_OBJECTS);
+        $ls = scandir(SkyDefines::Call('SKYCORE_CORE_OBJECTS'));
         if(in_array($type.'.object.php', $ls))
         {
-            import(SKYCORE_CORE_OBJECTS.'/'.$type.'.object.php');
+            SkyL::Import(SkyDefines::Call('SKYCORE_CORE_OBJECTS').'/'.$type.'.object.php');
             return new $type();
         }
         return false;

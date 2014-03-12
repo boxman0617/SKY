@@ -12,7 +12,7 @@ class Cache
     //##########################################
     public static function IsPageCached($page_hash)
     {
-        $files = scandir(DIR_LIB_CACHE);
+        $files = scandir(SkyDefines::Call('DIR_LIB_CACHE'));
         foreach($files as $file)
         {
             if($file == '.' || $file == '..' || $file == 'README')
@@ -32,7 +32,7 @@ class Cache
     
     public static function CachePage($page_hash, $contents)
     {
-		$f = fopen(DIR_LIB_CACHE.'/'.$page_hash.'.cache', 'w');
+		$f = fopen(SkyDefines::Call('DIR_LIB_CACHE').'/'.$page_hash.'.cache', 'w');
 		fwrite($f, $contents);
 		fclose($f);
 		return true;
@@ -49,10 +49,10 @@ class Cache
             $future->add(new DateInterval('PT1H'));
             if(new DateTime() > $future)
             {
-                unlink(DIR_LIB_CACHE.'/'.$file);
+                unlink(SkyDefines::Call('DIR_LIB_CACHE').'/'.$file);
                 return false;
             }
-            echo file_get_contents(DIR_LIB_CACHE.'/'.$file);
+            echo file_get_contents(SkyDefines::Call('DIR_LIB_CACHE').'/'.$file);
             return true;
     }
         return false;

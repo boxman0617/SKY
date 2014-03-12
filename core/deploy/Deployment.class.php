@@ -1,7 +1,7 @@
 <?php
 SKY::LoadCore();
-import(DIR_CONFIGS.'/deploy.php');
-import(FILETRANSFER_CLASS);
+SkyL::Import(SkyDefines::Call('DIR_CONFIGS').'/deploy.php');
+SkyL::Import(SkyDefines::Call('FILETRANSFER_CLASS'));
 
 Error::Supress(E_WARNING);
 class Deployment
@@ -190,25 +190,25 @@ class Deployment
             $this->FT->CopyOpenedFile($tempHandle, 'deploy_version.info');
         }
         
-        $DB_DEPLOY = false;
-        if(array_key_exists(':database_deployment', $this->CONFIG[':options']))
-            $DB_DEPLOY = $this->CONFIG[':options'][':database_deployment'];
+        // $DB_DEPLOY = false;
+        // if(array_key_exists(':database_deployment', $this->CONFIG[':options']))
+        //     $DB_DEPLOY = $this->CONFIG[':options'][':database_deployment'];
         
-        if($DB_DEPLOY)
-        {
-            if($this->cli)
-                CommandLine::Puts("\nDeploying DB...");
+        // if($DB_DEPLOY)
+        // {
+        //     if($this->cli)
+        //         CommandLine::Puts("\nDeploying DB...");
             
-            if(MODEL_DRIVER == 'MySQL')
-            {
-                exec('mysqldump -u '.DB_USERNAME.' -h '.DB_SERVER.' -p'.DB_PASSWORD.' '.DB_DATABASE.' > '.DB_DATABASE.'.sql');
-                if($this->cli)
-                    CommandLine::Puts("MySQLDUMP Complete!");
+        //     if(MODEL_DRIVER == 'MySQL')
+        //     {
+        //         exec('mysqldump -u '.DB_USERNAME.' -h '.DB_SERVER.' -p'.DB_PASSWORD.' '.DB_DATABASE.' > '.DB_DATABASE.'.sql');
+        //         if($this->cli)
+        //             CommandLine::Puts("MySQLDUMP Complete!");
                 
-                $this->FT->SetWorkingDirectory('/'.$this->CONFIG[':options'][':deployment_location']);
-                $this->FT->CopyFile(getcwd().'/'.DB_DATABASE.'.sql');
-            }
-        }
+        //         $this->FT->SetWorkingDirectory('/'.$this->CONFIG[':options'][':deployment_location']);
+        //         $this->FT->CopyFile(getcwd().'/'.DB_DATABASE.'.sql');
+        //     }
+        // }
         
         return true;
     }

@@ -1,5 +1,5 @@
 ±<?php
-import(SKYCORE_CORE_MODEL."/Driver.interface.php");
+SkyL::Import(SKYCORE_CORE_MODEL."/Driver.interface.php");
 
 class MongoDBDriver implements iDriver
 {
@@ -141,7 +141,7 @@ class MongoDBDriver implements iDriver
 
     private function LogBeforeAction($action_name, $action)
     {
-        if($GLOBALS['ENV'] != 'PRO')
+        if(SkyDefines::GetEnv() != 'PRO')
         {
             $LOG = fopen(DIR_LOG."/development.log", 'a');
             fwrite($LOG, "\033[36mSTART\033[0m: ".date('H:i:s')."\t".$action_name.": ".trim(var_export($action, true))."\n");
@@ -152,7 +152,7 @@ class MongoDBDriver implements iDriver
 
     private function LogAfterAction(&$_START, $STATUS)
     {
-        if($GLOBALS['ENV'] != 'PRO')
+        if(SkyDefines::GetEnv() != 'PRO')
         {
             $_END = microtime(true);
             $LOG = fopen(DIR_LOG."/development.log", 'a');

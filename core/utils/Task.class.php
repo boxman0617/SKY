@@ -19,7 +19,7 @@
  * @package     Sky.Core
  */
 
-import(MODEL_CLASS);
+SkyL::Import(SkyDefines::Call('MODEL_CLASS'));
 
 /**
  * Task class
@@ -94,7 +94,7 @@ class Task
             if(!defined(strtoupper($tmp[0])))
                 define(strtoupper($tmp[0]), $tmp[1]);
         }
-        $files = scandir(DIR_LIB_TASKS);
+        $files = scandir(SkyDefines::Call('DIR_LIB_TASKS'));
         foreach($files as $file)
         {
             Log::corewrite('Getting task file [%s]', 1, __CLASS__, __FUNCTION__, array($file));
@@ -112,11 +112,11 @@ class Task
         $function_schema = array();
         foreach($this->taskfiles as $file)
         {
-            $content = file_get_contents(DIR_LIB_TASKS.'/'.$file);
+            $content = file_get_contents(SkyDefines::Call('DIR_LIB_TASKS').'/'.$file);
             preg_match_all('/class\s([a-zA-Z_]+)/', $content, $classes);
             if(!empty($classes[1]))
             {
-                import(DIR_LIB_TASKS.'/'.$file);
+                SkyL::Import(SkyDefines::Call('DIR_LIB_TASKS').'/'.$file);
                 foreach($classes[1] as $class)
                 {
                     $class_schema[$class] = get_class_methods($class);
@@ -126,7 +126,7 @@ class Task
         $tmp_func = array();
         foreach($this->taskfiles as $file)
         {
-            $content = file_get_contents(DIR_LIB_TASKS.'/'.$file);
+            $content = file_get_contents(SkyDefines::Call('DIR_LIB_TASKS').'/'.$file);
             preg_match_all('/function\s([a-zA-Z_]+)\(\)/', $content, $functions);
             if(isset($functions[1]))
             {
@@ -148,7 +148,7 @@ class Task
         $task_desc = array();
         foreach($this->taskfiles as $file)
         {
-            $content = file_get_contents(DIR_LIB_TASKS.'/'.$file);
+            $content = file_get_contents(SkyDefines::Call('DIR_LIB_TASKS').'/'.$file);
             preg_match_all('/\/\*\sTASK_DESCRIPTION:\s\[([a-zA-Z]+)\]\s([a-zA-Z0-9\ -]+)\*\//', $content, $desc);
             if(isset($desc[1]) && !empty($desc[1]))
             {
@@ -205,7 +205,7 @@ class Task
             
         foreach($this->taskfiles as $file)
         {
-            import(DIR_LIB_TASKS.'/'.$file);
+            SkyL::Import(SkyDefines::Call('DIR_LIB_TASKS').'/'.$file);
         }
         $classes = get_declared_classes();
         $func = get_defined_functions();

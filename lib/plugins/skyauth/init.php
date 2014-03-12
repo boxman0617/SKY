@@ -20,7 +20,7 @@ function LoadSkyAuth($class_name = false)
     if(file_exists($ConfigFile))
     {
         require_once($ConfigFile);
-        SkyAuth::$Settings[':ENV'] = array_merge(SkyAuth::$Settings[':ENV'], $_AUTH[$GLOBALS['ENV']]);
+        SkyAuth::$Settings[':ENV'] = array_merge(SkyAuth::$Settings[':ENV'], $_AUTH[SkyDefines::GetEnv()]);
         SkyAuth::$AccessControl = $_ACCESS_CONTROL;
     }
 }

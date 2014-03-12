@@ -65,7 +65,7 @@ abstract class Mailer
         extract($this->variables);
 
         ob_start();
-        include_once(DIR_APP_VIEWS.'/'.strtolower(get_class($this)).'/'.strtolower($this->method_name).'.view.php');
+        include_once(SkyDefines::Call('DIR_APP_VIEWS').'/'.strtolower(get_class($this)).'/'.strtolower($this->method_name).'.view.php');
         $message = ob_get_contents();
         ob_end_clean();
 

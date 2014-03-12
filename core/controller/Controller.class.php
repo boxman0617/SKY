@@ -18,11 +18,10 @@
 // @version     0.0.7 Starting from here
 // ##
 
-import(MODEL_CLASS);
-import(RENDER_CLASS);
-import(TASK_CLASS);
-import(FILE_CLASS);
-import(COMPRESSOR_CLASS);
+SkyL::Import(SkyDefines('MODEL_CLASS'));
+SkyL::Import(SkyDefines('RENDER_CLASS'));
+SkyL::Import(SkyDefines('TASK_CLASS'));
+SkyL::Import(SkyDefines('FILE_CLASS'));
 
 define('RENDER_NONE', 'RenderNONE');
 define('RENDER_HTML', 'RenderHTML');
@@ -206,9 +205,9 @@ abstract class Controller extends Base implements iController
                 $name[count($name)-1] = '_'.$name[count($name)-1].'.part.php';
                 $file = implode('/', $name);
             }
-            Log::corewrite('Rendering ViewPart [%s]', 2, __CLASS__, __FUNCTION__, array(DIR_APP_VIEWS.'/'.$file));
-            if(file_exists(DIR_APP_VIEWS.'/'.$file))
-                include(DIR_APP_VIEWS.'/'.$file);
+            Log::corewrite('Rendering ViewPart [%s]', 2, __CLASS__, __FUNCTION__, array(SkyDefines::Call('DIR_APP_VIEWS').'/'.$file));
+            if(file_exists(SkyDefines::Call('DIR_APP_VIEWS').'/'.$file))
+                include(SkyDefines::Call('DIR_APP_VIEWS').'/'.$file);
         }
     }
 
@@ -311,7 +310,7 @@ abstract class Controller extends Base implements iController
     {
         $class = get_called_class();
         $loc = self::CachedLocation($class);
-        return str_replace('//', '/', BASE_GLOBAL_URL.$loc['public_location'].'/'.$loc['locations']['css'].'/'.$file_path);
+        return str_replace('//', '/', SkyDefines::Call('BASE_GLOBAL_URL').$loc['public_location'].'/'.$loc['locations']['css'].'/'.$file_path);
     }
     
     // ####
@@ -372,7 +371,7 @@ abstract class Controller extends Base implements iController
     {
         $class = get_called_class();
         $loc = self::CachedLocation($class);
-        return str_replace('//', '/', BASE_GLOBAL_URL.$loc['public_location'].'/'.$loc['locations']['js'].'/'.$file_path);
+        return str_replace('//', '/', SkyDefines::Call('BASE_GLOBAL_URL').$loc['public_location'].'/'.$loc['locations']['js'].'/'.$file_path);
     }
     
     // ####
@@ -391,7 +390,7 @@ abstract class Controller extends Base implements iController
     {
         $class = get_called_class();
         $loc = self::CachedLocation($class);
-        return str_replace('//', '/', BASE_GLOBAL_URL.$loc['public_location'].'/'.$loc['locations']['img'].'/'.$file_path);
+        return str_replace('//', '/', SkyDefines::Call('BASE_GLOBAL_URL').$loc['public_location'].'/'.$loc['locations']['img'].'/'.$file_path);
     }
 
     // ####
@@ -716,24 +715,24 @@ abstract class Controller extends Base implements iController
         foreach(self::$_subview_queue['before'] as $subview)
         {
             Log::corewrite('Opening subviewed page: [%s/%s]', 1, __CLASS__, __FUNCTION__, array($subview['view_dir'], $subview['view_page']));
-            include_once(DIR_APP_VIEWS.'/'.$subview['view_dir'].'/'.$subview['view_page'].'.view.php');
+            include_once(SkyDefines::Call('DIR_APP_VIEWS').'/'.$subview['view_dir'].'/'.$subview['view_page'].'.view.php');
         }
         Log::corewrite('Opening page: [%s/%s]', 1, __CLASS__, __FUNCTION__, array(self::$_subview_info['dir'], self::$_subview_info['view']));
-        $view = DIR_APP_VIEWS.'/'.self::$_subview_info['dir'].'/'.self::$_subview_info['view'].'.view.php';
+        $view = SkyDefines::Call('DIR_APP_VIEWS').'/'.self::$_subview_info['dir'].'/'.self::$_subview_info['view'].'.view.php';
         if(file_exists($view))
             include_once($view);
         else
         {
             $msg = 'Looks like there is no view set up for this Route yet.<br>Create view ['.self::$_subview_info['view'].'.view.php] in the following directory: ['.self::$_subview_info['dir'].']';
             Error::LogError('VIEW NOT FOUND',$msg, $view, 0);
-            if($GLOBALS['ENV'] !== 'PRO')
+            if(SkyDefines::GetEnv() !== 'PRO')
                 Error::BuildMessage('VIEW NOT FOUND', $msg, $view, 0, 'f293ff');
             exit();
         }
         foreach(self::$_subview_queue['after'] as $subview)
         {
             Log::corewrite('Opening subviewed page: [%s/%s]', 1, __CLASS__, __FUNCTION__, array($subview['view_dir'], $subview['view_page']));
-            include_once(DIR_APP_VIEWS.'/'.$subview['view_dir'].'/'.$subview['view_page'].'.view.php');
+            include_once(SkyDefines::Call('DIR_APP_VIEWS').'/'.$subview['view_dir'].'/'.$subview['view_page'].'.view.php');
         }
     }
 

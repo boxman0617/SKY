@@ -18,7 +18,7 @@
  * @package     Sky.Core
  */
 
-import(FIXTURE_CLASS);
+SkyL::Import(SkyDefines::Call('FIXTURE_CLASS'));
 
 class TestMaster
 {
@@ -36,7 +36,7 @@ class TestMaster
             $class = $tmp[0];
             $method = $tmp[1];
         }
-        $files = scandir(DIR_TEST);
+        $files = scandir(SkyDefines::Call('DIR_TEST'));
         $found = false;
         foreach($files as $file)
         {
@@ -44,20 +44,20 @@ class TestMaster
             if(strtolower($file_name[0]) == strtolower($class))
             {
                 $found = true;
-                import(DIR_TEST.'/'.$file);
+                SkyL::Import(SkyDefines::Call('DIR_TEST').'/'.$file);
                 break;
             }
         }
         if(!$found)
         {
-            $files = scandir(SKYCORE_TEST);
+            $files = scandir(SkyDefines::Call('SKYCORE_TEST'));
             foreach($files as $file)
             {
                 $file_name = explode('.', $file);
                 if(strtolower($file_name[0]) == strtolower($class))
                 {
                     $found = true;
-                    import(SKYCORE_TEST.'/'.$file);
+                    SkyL::Import(SkyDefines::Call('SKYCORE_TEST').'/'.$file);
                     break;
                 }
             }

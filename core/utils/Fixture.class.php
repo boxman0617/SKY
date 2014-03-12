@@ -3,13 +3,13 @@ class Fixtures
 {
 	public static function Start($fixture)
 	{
-		if(file_exists(SKYCORE_FIXTURES.'/'.$fixture.'.fixture.php'))
+		if(file_exists(SkyDefines::Call('SKYCORE_FIXTURES').'/'.$fixture.'.fixture.php'))
 		{
-			import(SKYCORE_FIXTURES.'/'.$fixture.'.fixture.php');
+			SkyL::Import(SkyDefines::Call('SKYCORE_FIXTURES').'/'.$fixture.'.fixture.php');
 		}
-		elseif(file_exists(DIR_FIXTURES.'/'.$fixture.'.fixture.php'))
+		elseif(file_exists(SkyDefines::Call('DIR_FIXTURES').'/'.$fixture.'.fixture.php'))
 		{
-			import(DIR_FIXTURES.'/'.$fixture.'.fixture.php');
+			SkyL::Import(SkyDefines::Call('DIR_FIXTURES').'/'.$fixture.'.fixture.php');
 		}
 		else
 		{
@@ -60,7 +60,7 @@ class Fixture
 	{
 		if(!isset(self::$Rows[$model_name])) self::$Rows[$model_name] = array();
 		self::$Rows[$model_name][] = $data;
-		import(SKYCORE_CORE_MODEL.'/drivers/'.self::$Models[$model_name]['driver'].'.driver.php');
+		SkyL::Import(SkyDefines::Call('SKYCORE_CORE_MODEL').'/drivers/'.self::$Models[$model_name]['driver'].'.driver.php');
 		$DRIVER = self::$Models[$model_name]['driver'].'Driver';
 		$data[$DRIVER::$DefaultPrimaryKey] = count(self::$Rows[$model_name]);
 		$data['created_at'] = $DRIVER::created_at();
@@ -72,7 +72,7 @@ class Fixture
 	{
 		foreach(self::$Models as $name => $info)
 		{
-			import(SKYCORE_CORE_MODEL.'/drivers/'.$info['driver'].'.driver.php');
+			SkyL::Import(SkyDefines::Call('SKYCORE_CORE_MODEL').'/drivers/'.$info['driver'].'.driver.php');
 			$DRIVER = $info['driver'].'Driver';
 			$DRIVER::DropTable($name);
 			$DRIVER::CreateTable($name, $info['fields']);
@@ -96,8 +96,8 @@ class ".$MODEL." extends Model
 			$class .= "}
 ?>
 ";
-			if(file_exists(DIR_APP_MODELS."/".$MODEL.".model.php")) unlink(DIR_APP_MODELS."/".$MODEL.".model.php");
-	        $f = fopen(DIR_APP_MODELS."/".$MODEL.".model.php", "w");
+			if(file_exists(SkyDefines::Call('DIR_APP_MODELS')."/".$MODEL.".model.php")) unlink(SkyDefines::Call('DIR_APP_MODELS')."/".$MODEL.".model.php");
+	        $f = fopen(SkyDefines::Call('DIR_APP_MODELS')."/".$MODEL.".model.php", "w");
 	        fwrite($f, $class);
 	        fclose($f);
 

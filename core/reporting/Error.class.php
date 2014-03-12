@@ -52,7 +52,7 @@ class Error
 
     public function __construct()
     {
-        if($GLOBALS['ENV'] !== 'PRO')
+        if(SkyDefines::GetEnv() !== 'PRO')
             ini_set('display_errors', 1);
         else
             ini_set('display_errors', 0);
@@ -164,7 +164,7 @@ class Error
     
     public static function _HandleNotice($no, $str, $file, $line)
     {
-        if($GLOBALS['ENV'] !== 'PRO') // Display Error
+        if(SkyDefines::GetEnv() !== 'PRO') // Display Error
         {
             if(php_sapi_name() == 'cli')
             {
@@ -179,7 +179,7 @@ class Error
                 debug_print_backtrace();
                 $trace = ob_get_contents();
                 ob_end_clean();
-                $trace = str_replace(preg_replace('/(\/[a-z]+\/configs\/\.\.)$/', '', APPROOT), '', $trace);
+                $trace = str_replace(preg_replace('/(\/[a-z]+\/configs\/\.\.)$/', '', SkyDefines::Call('APPROOT')), '', $trace);
                 $message .= '<b>Stack trace:</b><br><pre>'.$trace.'</pre><br><br>';
                 $controller_params = array_merge($_POST, $_GET);
                 $message .= '<b>Controller Params</b></br><pre>'.var_export($controller_params, true).'</pre><br><br>';
@@ -191,13 +191,13 @@ class Error
 
     public static function _HandleDeprecated($no, $str, $file, $line)
     {
-        if($GLOBALS['ENV'] !== 'PRO') // Display Error
+        if(SkyDefines::GetEnv() !== 'PRO') // Display Error
             self::BuildMessage($no, $str, $file, $line, 'eaa5ef');
     }
 
     public static function _HandleWarning($no, $str, $file, $line)
     {
-        if($GLOBALS['ENV'] !== 'PRO') // Display Error
+        if(SkyDefines::GetEnv() !== 'PRO') // Display Error
             self::BuildMessage($no, $str, $file, $line, 'ffe900');
     }
 
@@ -217,7 +217,7 @@ class Error
         
         $message = $str."<h3>Traceback:</h3><pre>".var_export($trace, true)."</pre>";
 
-        if($GLOBALS['ENV'] !== 'PRO')
+        if(SkyDefines::GetEnv() !== 'PRO')
             self::BuildMessage($no, $message, $file, $line, 'f48989');
         exit();
     }
@@ -263,7 +263,7 @@ class Error
         if(ob_get_level() > 1)
             ob_end_clean();
         self::LogError($NO, $e->getMessage(), $_file, $_line);
-        if($GLOBALS['ENV'] !== 'PRO')
+        if(SkyDefines::GetEnv() !== 'PRO')
         {
             $message =  '<b>Date:</b> '.date('m-d-Y h:i:s A').'<br><br>';
             $message .= '<b>Message:</b> '.$e->getMessage().'<br><br>';
@@ -278,7 +278,7 @@ class Error
         $error = error_get_last();
         if($error)
         {
-            if($GLOBALS['ENV'] !== 'PRO')
+            if(SkyDefines::GetEnv() !== 'PRO')
             {
                 //ob_end_clean( );
                 self::LogError($error['type'], $error['message'], $error['file'], $error['line']);

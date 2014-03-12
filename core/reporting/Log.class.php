@@ -40,7 +40,7 @@ class Log
 
     public static function predebug()
     {
-        if($GLOBALS['ENV'] !== 'PRO')
+        if(SkyDefines::GetEnv() !== 'PRO')
         {
             $echo = "<pre>";
             $vars = func_get_args();
@@ -52,18 +52,18 @@ class Log
     
     public static function debugnow()
     {
-        $TMP_ENV = $GLOBALS['ENV'];
-        $GLOBALS['ENV'] = 'DEBUG';
+        $TMP_ENV = SkyDefines::GetEnv();
+        SkyDefines::SetEnv('DEBUG');
         $args = func_get_args();
         call_user_func_array('self::debug', $args);
-        $GLOBALS['ENV'] = $TMP_ENV;
+        SkyDefines::GetEnv() = $TMP_ENV;
     }
     
     public static function debug()
     {
-        if($GLOBALS['ENV'] != 'PRO')
+        if(SkyDefines::GetEnv() != 'PRO')
         {
-            $DEBUG_LOG = DIR_LOG.'/debug.log';
+            $DEBUG_LOG = SkyDefines::Call('DIR_LOG').'/debug.log';
             $f = fopen($DEBUG_LOG, 'a');
             self::$debug_count++;
             if(self::$debug_count == 1)
@@ -100,9 +100,9 @@ class Log
      */
     public static function write()
     {
-        if(LOGGING_ENABLED)
+        if(AppConfig::IsLoggingEnabled())
         {
-            $f = fopen(APP_LOG, 'a');
+            $f = fopen(SkyDefines::Call('APP_LOG'), 'a');
             self::$app_count++;
             if(self::$app_count == 1)
                 fwrite($f, ">========APP=LOG===========> ".date('m-d-Y H:i:s')."\n");
@@ -124,7 +124,7 @@ class Log
                 fwrite($f, $r);
             }
             fclose($f);
-            chmod(APP_LOG, 0777);
+            chmod(SkyDefines::Call('APP_LOG'), 0777);
         }
     }
 
@@ -169,9 +169,9 @@ class Log
      */
     public static function corewrite($msg, $level, $class, $method, $args = array())
     {
-        if(LOGGING_ENABLED && $GLOBALS['ENV'] != 'TEST')
+        if(AppConfig::IsLoggingEnabled() && SkyDefines::GetEnv() != 'TEST')
         {
-            if($level >= LOG_LEVEL)
+            if($level >= AppConfig::GetLoggingLevel())
             {
                 $f = fopen(CORE_LOG, 'a');
                 self::$core_count++;

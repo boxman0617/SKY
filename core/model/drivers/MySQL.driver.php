@@ -1,5 +1,5 @@
 <?php
-import(SKYCORE_CORE_MODEL."/Driver.interface.php");
+SkyL::Import(SKYCORE_CORE_MODEL."/Driver.interface.php");
 
 class Operator
 {
@@ -250,7 +250,7 @@ class MySQLDriver implements iDriver
 
     private function LogBeforeAction($action_name, $action)
     {
-        if($GLOBALS['ENV'] != 'PRO')
+        if(SkyDefines::GetEnv() != 'PRO')
         {
             $LOG = fopen(DIR_LOG."/development.log", 'a');
             if(self::$_log_count == 0)
@@ -264,7 +264,7 @@ class MySQLDriver implements iDriver
 
     private function LogAfterAction(&$_START, $STATUS, $EXTRA = array())
     {
-        if($GLOBALS['ENV'] != 'PRO')
+        if(SkyDefines::GetEnv() != 'PRO')
         {
             $_END = microtime(true);
             $LOG = fopen(DIR_LOG."/development.log", 'a');

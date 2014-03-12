@@ -11,9 +11,9 @@ abstract class FileTransfer
     
     public static function getProtocol($type)
     {
-        if(file_exists(SKYCORE_CORE_DEPLOY.'/'.$type.'.class.php'))
+        if(file_exists(SkyDefines::Call('SKYCORE_CORE_DEPLOY').'/'.$type.'.class.php'))
         {
-            import(SKYCORE_CORE_DEPLOY.'/'.$type.'.class.php');
+            SkyL::Import(SkyDefines::Call('SKYCORE_CORE_DEPLOY').'/'.$type.'.class.php');
             return new $type();
         }
     }

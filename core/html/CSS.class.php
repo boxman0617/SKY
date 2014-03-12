@@ -26,7 +26,7 @@ class CSS
 
 	public function __construct($file)
 	{
-		$file = DIR_APP."/../".$file;
+		$file = SkyDefines::Call('DIR_APP')."/../".$file;
 		if(!file_exists($file))
 		{
 			header('HTTP/1.0 404 Not Found');

@@ -42,17 +42,18 @@ class Plugin
     public static function Register($name)
     {
         $name = strtolower($name);
-        if(is_dir(SKYCORE_LIB.'/plugins/'.$name))
+        $thisplugin = SkyDefines::Call('SKYCORE_LIB_PLUGINS').$name;
+        if(is_dir($thisplugin))
         {
-            if(is_file(SKYCORE_LIB.'/plugins/'.$name.'/info.cnf'))
+            if(is_file($thisplugin.'/info.cnf'))
             {
-                $info = file_get_contents(SKYCORE_LIB.'/plugins/'.$name.'/info.cnf');
+                $info = file_get_contents($thisplugin.'/info.cnf');
                 preg_match_all('/((?!#).+)=(.*)/', $info, $matches);
                 for($i=0;$i<count($matches[1]);$i++)
                     self::$plugin[$name][$matches[1][$i]] = $matches[2][$i];
                 if(!isset(self::$plugin[$name]['dir']))
-                    self::$plugin[$name]['dir'] = SKYCORE_LIB.'/plugins/'.$name;
-                require_once(self::$plugin[$name]['dir'].'/init.php');
+                    self::$plugin[$name]['dir'] = $thisplugin;
+                SkyL::Import(self::$plugin[$name]['dir'].'/init.php');
             } else
                 unset(self::$plugin[$name]);
         } else

@@ -9,7 +9,6 @@
  * 
  * RouteTo::NEW_NOTE('activities', $a->id); /:model_name/:id/notes/new
  */
-class InvalidRouteException extends Exception { }
 class RouteTo
 {
     private static $_routes = array();
@@ -35,7 +34,7 @@ class RouteTo
                 }
                 if($winner == $c)
                 {
-                    $location = BASE_GLOBAL_URL;
+                    $location = SkyDefines::Call('BASE_GLOBAL_URL');
                     $i = 0;
                     foreach($broken_route as $br)
                     {

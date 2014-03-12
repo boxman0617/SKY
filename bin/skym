@@ -66,7 +66,7 @@ class SkyMCLI
 
 	private function MigrationLog()
 	{
-		return DIR_LIB_MIGRATIONS.'/.migrations.log';
+		return SkyDefines::Call('DIR_LIB_MIGRATIONS').'/.migrations.log';
 	}
 
 	private function InitialMigrationLog()
@@ -130,7 +130,7 @@ class SkyMCLI
 	public function GetListOfMigrations()
 	{
 		$migrations = array();
-		if($handle = opendir(DIR_LIB_MIGRATIONS))
+		if($handle = opendir(SkyDefines::Call('DIR_LIB_MIGRATIONS')))
 		{
 		    while(false !== ($entry = readdir($handle))) 
 		    {

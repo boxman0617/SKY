@@ -18,7 +18,7 @@
  * @package     Sky.Core
  */
 
-import(SKYCORE_CORE_MODEL."/Driver.interface.php");
+SkyL::Import(SKYCORE_CORE_MODEL."/Driver.interface.php");
 
 /**
  * MySQLDriver Driver Class Implements iDriver interface
@@ -288,7 +288,7 @@ class MySQLDriver implements iDriver
         }
         $where = substr($where, 0, -1);
         $where .= ")";
-        if($GLOBALS['ENV'] == 'DEV')
+        if(SkyDefines::GetEnv() == 'DEV')
         {
             $f = fopen(DIR_LOG."/development.log", 'a');
             fwrite($f, "START: ".date('H:i:s')."\t".trim($sql.$where)."\n");
@@ -333,7 +333,7 @@ class MySQLDriver implements iDriver
             }
         }
         $query = substr($query,0,-1);
-        if($GLOBALS['ENV'] == 'DEV')
+        if(SkyDefines::GetEnv() == 'DEV')
         {
             $f = fopen(DIR_LOG."/development.log", 'a');
             fwrite($f, "START: ".date('H:i:s')."\t".trim($query.$where)."\n");

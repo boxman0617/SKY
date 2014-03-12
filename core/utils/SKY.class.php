@@ -30,7 +30,7 @@ class SKY
     
 	public static function Version()
 	{
-		return trim(file_get_contents(SKYCORE.'/version.info'));
+		return trim(file_get_contents(SkyDefines::Call('SKYCORE').'/version.info'));
 	}
 
 	public static function RCP($src, $dst) 
@@ -82,14 +82,9 @@ class SKY
 	{
 		require_once(getenv('SKYCORE').'/configs/defines.php');
 		define('APPROOT', $_SERVER['PWD']);
-
-		require_once(APPROOT.'/configs/defines.php');
-		require_once(DIR_CONFIGS.'/configure.php');
-
-		$GLOBALS['ENV'] = $ENV;
-
-		require_once(SKYCORE_CONFIGS.'/configure.php');
-		require_once(SKYCORE_CONFIGS.'/loadcore.php');
+        SkyL::Import(SkyDefines::Call('SKYCORE_CONFIGS'.'/app_defines.php'));
+		
+        SkyDefines::SetEnv($ENV);
 	}
 
 	//############################################################

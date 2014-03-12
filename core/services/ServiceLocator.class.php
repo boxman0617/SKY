@@ -29,17 +29,17 @@ class ServiceLocator
     
     public function __construct()
     {
-        $services = scandir(DIR_APP_SERVICES);
+        $services = scandir(SkyDefines::Call('DIR_APP_SERVICES'));
         foreach($services as $service)
         {
-            $info_dir = DIR_APP_SERVICES.'/'.$service.'/info';
+            $info_dir = SkyDefines::Call('DIR_APP_SERVICES').'/'.$service.'/info';
             if(is_dir($info_dir))
             {
                 $info_file = SKY::UnderscoreToUpper(str_replace('service.', '', $service)).'Info';
                 $info_path = $info_dir.'/'.$info_file.'.php';
                 if(is_file($info_path))
                 {
-                    require_once($info_path);
+                    SkyL::Import($info_path);
                     self::$ServicesCache[] = new $info_file();
                 }
             }

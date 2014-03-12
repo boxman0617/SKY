@@ -18,7 +18,8 @@ SkyDefines::Define('DIR_LIB', SkyDefines::Call('APPROOT').'/lib');
 SkyDefines::Define('DIR_LIB_PLUGINS', SkyDefines::Call('DIR_LIB').'/plugins');
 SkyDefines::Define('DIR_LIB_TASKS', SkyDefines::Call('DIR_LIB').'/tasks');
 SkyDefines::Define('DIR_LIB_OBJECTS', SkyDefines::Call('DIR_LIB').'/objects');
-SkyDefines::Define('DIR_LIB_CACHE', SkyDefines::Call('APPROOT').'/lib/tmp/cache');
+SkyDefines::Define('DIR_LIB_MIGRATIONS', SkyDefines::Call('DIR_LIB').'/migrations');
+SkyDefines::Define('DIR_LIB_CACHE', SkyDefines::Call('DIR_LIB').'/tmp/cache');
 
 // #APP Log Files
 SkyDefines::Define('DIR_LOG', SkyDefines::Call('APPROOT').'/log');
@@ -33,7 +34,7 @@ SkyDefines::Define('DIR_TEST', SkyDefines::Call('APPROOT').'/test');
 SkyDefines::Define('DIR_FIXTURES', SkyDefines::Call('APPROOT').'/test/fixtures');
 
 //#############################################
-// import() import paths @DoNotEdit
+// SkyL::Import() import paths @DoNotEdit
 //#############################################
 SkyDefines::Define('IMPORT_PATHS', 
     SkyDefines::Call('DIR_APP_CONTROLLERS').';'.
@@ -113,6 +114,16 @@ class AppConfig
 		self::$_logging['LOG_LEVEL'] = $level;
 	}
 
+	public static function IsLoggingEnabled()
+	{
+		return self::$_logging['LOGGING_ENABLED'];
+	}
+
+	public static function GetLoggingLevel()
+	{
+		return self::$_logging['LOG_LEVEL'];
+	}
+
 	// #################################################################
 
 	private static $_auth = array(
@@ -127,9 +138,19 @@ class AppConfig
 		self::$_auth['AUTH_MODEL'] = $value;
 	}
 
+	public static function GetAuthModel()
+	{
+		return self::$_auth['AUTH_MODEL'];
+	}
+
 	public static function AuthModelUsername($value)
 	{
 		self::$_auth['AUTH_MODEL_USERNAME'] = $value;
+	}
+
+	public static function GetAuthModelUsername()
+	{
+		return self::$_auth['AUTH_MODEL_USERNAME'];
 	}
 
 	public static function AuthModelPassword($value)
@@ -137,21 +158,31 @@ class AppConfig
 		self::$_auth['AUTH_MODEL_PASSWORD'] = $value;
 	}
 
+	public static function GetAuthModelPassword()
+	{
+		return self::$_auth['AUTH_MODEL_PASSWORD'];
+	}
+
 	public static function AuthSalt($value)
 	{
 		self::$_auth['AUTH_SALT'] = $value;
 	}
+
+	public static function GetAuthSalt()
+	{
+		return self::$_auth['AUTH_SALT'];
+	}
 }
 
-require_once(SkyDefines::Call('APPROOT').'/configs/defines.php');
-require_once(SkyDefines::Call('DIR_CONFIGS').'/configure.php');
+SkyL::Import(SkyDefines::Call('APPROOT').'/configs/defines.php');
+SkyL::Import(SkyDefines::Call('DIR_CONFIGS').'/configure.php');
 
 // #Initialize SKYCORE Configures
-require_once(SkyDefines::Call('SKYCORE_CONFIGS').'/loadcore.php');
+SkyL::Import(SkyDefines::Call('SKYCORE_CONFIGS').'/loadcore.php');
 
 // #initialize Sessions
 Session::getInstance();
 
 // #Initialize Router
-require_once(SkyDefines::Call('SKYCORE_CONFIGS').'/router_init.php');
+SkyL::Import(SkyDefines::Call('SKYCORE_CONFIGS').'/router_init.php');
 ?>

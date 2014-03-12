@@ -196,13 +196,13 @@ class Router extends Base implements iRouter
         {
             Log::corewrite('Direct Match', 1, __CLASS__, __FUNCTION__);
             $class = ucfirst(strtolower($tmp[$query]['controller']));
-            import(DIR_APP_CONTROLLERS.'/'.strtolower($class).'.controller.php');
+            SkyL::Import(SkyDefines::Call('DIR_APP_CONTROLLERS').'/'.strtolower($class).'.controller.php');
             if(class_exists($class))
             {
                 $this->ControllerInit($class, $query, $tmp[$query]['action']);
                 return true;
             }
-            throw new Exception('Seems as though the following Controller has not yet been defined: ['.$class.'] Define it in the following directory to fix this issue: ['.DIR_APP_CONTROLLERS.']');
+            throw new Exception('Seems as though the following Controller has not yet been defined: ['.$class.'] Define it in the following directory to fix this issue: ['.SkyDefines::Call('DIR_APP_CONTROLLERS').']');
             return false;
         }
         else if(!isset($tmp[$query]))
@@ -251,7 +251,7 @@ class Router extends Base implements iRouter
             if(!is_null($winner))
             {
                 $class = ucfirst(strtolower($indirect_matches[$winner]['controller']));
-                import(DIR_APP_CONTROLLERS.'/'.strtolower($class).'.controller.php');
+                SkyL::Import(SkyDefines::Call('DIR_APP_CONTROLLERS').'/'.strtolower($class).'.controller.php');
                 if(class_exists($class))
                 {
                     $this->ControllerInit(
@@ -262,58 +262,17 @@ class Router extends Base implements iRouter
                     );
                     return true;
                 }
-                throw new Exception('Seems as though the following Controller has not yet been defined: ['.$class.'] Define it in the following directory to fix this issue: ['.DIR_APP_CONTROLLERS.']');
+                throw new Exception('Seems as though the following Controller has not yet been defined: ['.$class.'] Define it in the following directory to fix this issue: ['.SkyDefines::Call('DIR_APP_CONTROLLERS').']');
                 return false;
             }
         }
 
         $this->status = STATUS_NOTFOUND;
         $class = ucfirst(strtolower($routes['GET'][1]['_notfound']['controller']));
-        import(DIR_APP_CONTROLLERS.'/'.strtolower($class).'.controller.php');
+        SkyL::Import(SkyDefines::Call('DIR_APP_CONTROLLERS').'/'.strtolower($class).'.controller.php');
         $obj = new $class();
         $obj->HandleRequest(ucfirst(strtolower($routes['GET'][1]['_notfound']['action'])));
         return false;
-    }
-    
-    /**
-     * Fetches files from the public directory
-     * @access private
-     * @param string $file_loc Path to file and file name
-     * @deprecated Do Not Use
-     */
-    private function FetchPublicFile($file_loc)
-    {
-        $file = file_get_contents(dirname(__FILE__).'/../public/'.$file_loc);
-        ob_start("ob_ghandler");
-        $ext = explode('.', $file_loc);
-        switch ($ext[(count($ext) - 1)])
-        {
-            case "pdf": $ctype="application/pdf"; break; 
-            case "exe": $ctype="application/octet-stream"; break; 
-            case "zip": $ctype="application/zip"; break; 
-            case "doc": $ctype="application/msword"; break; 
-            case "xls": $ctype="application/vnd.ms-excel"; break; 
-            case "ppt": $ctype="application/vnd.ms-powerpoint"; break; 
-            case "gif": $ctype="image/gif"; break; 
-            case "png": $ctype="image/png"; break; 
-            case "jpeg": 
-            case "jpg": $ctype="image/jpg"; break;
-            case "css": $ctype="text/css"; break;
-            case "js": $ctype="text/javascript"; break;
-            default: $ctype="application/force-download";
-        }
-        header("content-type: ".$ctype."; charset: UTF-8");
-        header("cache-control: must-revalidate");
-        $offset = 60 * 60;
-        $expire = "expire: ".gmdate("D, d M Y H:i:s", time() + $offset)." GMT";
-        header($expire);
-        if($GLOBALS['ENV'] == "PRO")
-        {
-            $buffer = preg_replace('!/\*[^*]*\*+([^/][^*]*\*+)*/!', '', $file);
-            $file = str_replace(array("\r\n", "\r", "\n", "\t", '  ', '    ', '    '), '', $buffer);
-        }
-        echo $file;
-        ob_end_flush();
     }
 }
 ?>

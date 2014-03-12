@@ -8,6 +8,21 @@ class SkyDefines
     public static function AddCoreDir($name, $path)
     {
         self::$_core_dirs[$name] = $path;
+        self::Define($name, $path);
+    }
+
+    public static function DefineClasses()
+    {
+        foreach(self::$_core_dirs as $path)
+        {
+            $classes = scandir($path);
+            foreach($classes as $class)
+            {
+                $m = explode('.', $class);
+                if(isset($m[1]) && $m[1] == 'class') 
+                    SkyDefines::Define(strtoupper($m[0]).'_CLASS', $path.'/'.$class);
+            }
+        }
     }
 
     public static function SetEnv($env)
@@ -45,95 +60,62 @@ class SkyDefines
 }
 
 SkyDefines::Define('SKYCORE', getenv('SKYCORE'));
-require_once(SKYCORE.'/core/main/Base.class.php');
-require_once(SKYCORE.'/core/reporting/Benchmark.class.php');
+require_once(SkyDefines::Call('SKYCORE').'/core/main/Base.class.php');
+require_once(SkyDefines::Call('SKYCORE').'/core/reporting/Benchmark.class.php');
 Benchmark::Start();
 // #Defining ROOT dirs
-SkyDefines::Define('SKYCORE_CORE', SKYCORE.'/core' );
-SkyDefines::Define('SKYCORE_CONFIGS', SKYCORE.'/configs' );
-SkyDefines::Define('SKYCORE_LIB', SKYCORE.'/lib' );
-SkyDefines::Define('SKYCORE_BIN', SKYCORE.'/bin' );
-SkyDefines::Define('SKYCORE_SCRIPTS', SKYCORE.'/scripts');
-SkyDefines::Define('SKYCORE_TEST', SKYCORE.'/test');
-SkyDefines::Define('SKYCORE_FIXTURES', SKYCORE.'/test/fixtures');
+SkyDefines::Define('SKYCORE_CORE', SkyDefines::Call('SKYCORE').'/core' );
+SkyDefines::Define('SKYCORE_CONFIGS', SkyDefines::Call('SKYCORE').'/configs' );
+SkyDefines::Define('SKYCORE_LIB', SkyDefines::Call('SKYCORE').'/lib' );
+SkyDefines::Define('SKYCORE_LIB_PLUGINS', SkyDefines::Call('SKYCORE_LIB').'/plugins' );
+SkyDefines::Define('SKYCORE_BIN', SkyDefines::Call('SKYCORE').'/bin' );
+SkyDefines::Define('SKYCORE_SCRIPTS', SkyDefines::Call('SKYCORE').'/scripts');
+SkyDefines::Define('SKYCORE_TEST', SkyDefines::Call('SKYCORE').'/test');
+SkyDefines::Define('SKYCORE_FIXTURES', SkyDefines::Call('SKYCORE').'/test/fixtures');
 
 // #Defining ROOT/CORE dirs
-SkyDefines::Define('SKYCORE_CORE_CONTROLLER', SKYCORE_CORE.'/controller');
-SkyDefines::Define('SKYCORE_CORE_DEPLOY', SKYCORE_CORE.'/deploy');
-SkyDefines::Define('SKYCORE_CORE_HTML', SKYCORE_CORE.'/html');
-SkyDefines::Define('SKYCORE_CORE_MODEL', SKYCORE_CORE.'/model');
-SkyDefines::Define('SKYCORE_CORE_PLUGIN', SKYCORE_CORE.'/plugin');
-SkyDefines::Define('SKYCORE_CORE_REPORTING', SKYCORE_CORE.'/reporting');
-SkyDefines::Define('SKYCORE_CORE_ROUTER', SKYCORE_CORE.'/router');
-SkyDefines::Define('SKYCORE_CORE_SERVICES', SKYCORE_CORE.'/services');
-SkyDefines::Define('SKYCORE_CORE_STORAGE', SKYCORE_CORE.'/storage');
-SkyDefines::Define('SKYCORE_CORE_UTILS', SKYCORE_CORE.'/utils');
-SkyDefines::Define('SKYCORE_CORE_IMAGES', SKYCORE_CORE.'/images');
-SkyDefines::Define('SKYCORE_CORE_OBJECTS', SKYCORE_CORE.'/objects');
-
-// #Class Definer Function
-function _ClassDefiner($path)
+if($handle = opendir(SkyDefines::Call('SKYCORE_CORE')))
 {
-    $classes = scandir($path);
-    foreach($classes as $class)
+    while(false !== ($entry = readdir($handle))) 
     {
-        $m = explode('.', $class);
-        if(isset($m[1]) && $m[1] == 'class') SkyDefines::Define(strtoupper($m[0]).'_CLASS', $path.'/'.$class);
+        if($entry != "." && $entry != "..")
+            SkyDefines::AddCoreDir('SKYCORE_CORE_'.strtoupper($entry), SkyDefines::Call('SKYCORE_CORE').'/'.$entry);
     }
+    closedir($handle);
 }
-// #Defining CLASSES
-_ClassDefiner(SKYCORE_CORE_CONTROLLER);
-_ClassDefiner(SKYCORE_CORE_DEPLOY);
-_ClassDefiner(SKYCORE_CORE_UTILS);
-_ClassDefiner(SKYCORE_CORE_STORAGE);
-_ClassDefiner(SKYCORE_CORE_MODEL);
-_ClassDefiner(SKYCORE_CORE_ROUTER);
-_ClassDefiner(SKYCORE_CORE_SERVICES);
-_ClassDefiner(SKYCORE_CORE_REPORTING);
-_ClassDefiner(SKYCORE_CORE_PLUGIN);
-_ClassDefiner(SKYCORE_CORE_HTML);
+SkyDefines::DefineClasses();
 
-
-// #Define Helper Functions
-function _import_by_array($myfile, $paths)
+class SkyL
 {
-    foreach($paths as $dir)
+    private static $_imported = array();
+
+    public static function Import($path)
     {
-        if(is_dir($dir)) 
+        if(!in_array($path, self::$_imported))
         {
-            if($dh = opendir($dir)) 
-            {
-                while(($file = readdir($dh)) !== false) 
-                {
-                    $INFO = pathinfo($file);
-                    if($INFO['filename'] == $myfile)
-                    {
-                        require_once($dir.'/'.$myfile.'.'.$INFO['extension']);
-                        return true;
-                    }
-                }
-                closedir($dh);
-            }
+            if(is_file($path))
+                return self::_Import($path);
+
+            if(strpos($path, 'service.') !== false) 
+                return self::_ImportService($path);
+
+            return self::_ImportFromUserPaths($path);
         }
+
+        return false;
     }
-    return false;
-}
 
-$GLOBALS['IMPORTS'] = array();
-function import($path)
-{
-    preg_match('/\/([a-zA-Z\.]+(?:\.php|\.task))/', $path, $match);
-    if(array_key_exists(1, $match) && !isset($GLOBALS['IMPORTS'][$match[1]]))
+    private static function _Import($file)
     {
-        if(is_file($path))
-        {
-            $GLOBALS['IMPORTS'][$match[1]] = true;
-            require_once($path);
-            return true;
-        }
-    } elseif(strpos($path, 'service.') !== false) {
-        $broken = explode('.', $path);
-        $base = DIR_APP_SERVICES.'/'.$broken[0].'.'.$broken[1];
+        require_once($file);
+        self::$_imported[] = $file;
+        return true;
+    }
+
+    private static function _ImportService($name)
+    {
+        $broken = explode('.', $name);
+        $base = SkyDefines::Call('DIR_APP_SERVICES').'/'.$broken[0].'.'.$broken[1];
         if(is_dir($base))
         {
             $src_dir = $base.'/src/'.SKY::pluralize($broken[2]);
@@ -142,24 +124,49 @@ function import($path)
                 $file = $src_dir.'/'.$broken[3].'.'.$broken[2].'.php';
                 if(is_file($file))
                 {
-                    require_once($file);
-                    return true;
+                    return self::_Import($file);
                 }
             }
         }
-    } else {
-        $paths = explode(';', IMPORT_PATHS);
-        if(_import_by_array($path, $paths) === false)
+    }
+
+    private static function _ImportUsingPathArray($paths, $name)
+    {
+        foreach($paths as $dir)
         {
-            if(SkyDefines::Define('USER_IMPORT_PATHS'))
+            if(is_dir($dir)) 
             {
-                $paths = explode(';', USER_IMPORT_PATHS);
-                return _import_by_array($path, $paths);
+                if($dh = opendir($dir)) 
+                {
+                    while(($file = readdir($dh)) !== false) 
+                    {
+                        $INFO = pathinfo($file);
+                        if($INFO['filename'] == $name)
+                        {
+                            closedir($dh);
+                            return self::_Import($dir.'/'.$name.'.'.$INFO['extension']);
+                        }
+                    }
+                    closedir($dh);
+                }
             }
         }
-        return true;
+        return false;
     }
-    return false;
+
+    private static function _ImportFromUserPaths($name)
+    {
+        $paths = explode(';', SkyDefines::Call('IMPORT_PATHS'));
+        if(self::_ImportUsingPathArray($paths, $name) === false)
+        {
+            try {
+                $paths = explode(';', SkyDefines::Call('USER_IMPORT_PATHS'));
+                return self::_ImportFromUserPaths($paths, $name);
+            } catch(Exception $e) {
+                return false;
+            }
+        }
+    }
 }
 
 if(!function_exists('date_diff'))

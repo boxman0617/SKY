@@ -91,7 +91,7 @@ class Event implements iEvent
                 {
                     if(isset($info['class']) && $info['class'] == self::$hooks['action'][$hook][0])
                     {
-                        import(Plugin::$plugin[$name]['dir'].'/'.Plugin::$plugin[$name]['file']);
+                        SkyL::Import(Plugin::$plugin[$name]['dir'].'/'.Plugin::$plugin[$name]['file']);
                         $class = Plugin::$plugin[$name]['class'];
                         $obj = new $class();
                         return call_user_func_array(array($obj, self::$hooks['action'][$hook][1]), $args);
@@ -99,7 +99,7 @@ class Event implements iEvent
                 }
             } else {
                 if(strpos('::', self::$hooks['action'][$hook]) !== false) // Static Method
-                    import(Plugin::$plugin[$name]['dir'].'/'.Plugin::$plugin[$name]['file']);
+                    SkyL::Import(Plugin::$plugin[$name]['dir'].'/'.Plugin::$plugin[$name]['file']);
                 
                 return call_user_func_array(self::$hooks['action'][$hook], $args);
             }

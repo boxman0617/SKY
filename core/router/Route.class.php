@@ -34,16 +34,16 @@ abstract class Route
 	            foreach($URL_ARRAY as $URL => $ControllerAction)
 	            {
 	                $TERM = $REQUEST_TYPE.'_';
-	                $DEFINITION = BASE_GLOBAL_URL.$URL;
+	                $DEFINITION = SkyDefines::Call('BASE_GLOBAL_URL').$URL;
 	                if($URL == '_') // Match => Home
 	                {
 	                    $TERM .= 'HOME';
-	                    $DEFINITION = BASE_GLOBAL_URL;
+	                    $DEFINITION = SkyDefines::Call('BASE_GLOBAL_URL');
 	                }
 	                elseif($URL == '_notfound') // Match => NotFound (404) #@ToDo: Make this so other "error" pages will show EX: 500 error
 	                {
 	                    $TERM .= 'PAGE_NOT_FOUND';
-	                    $DEFINITION = BASE_GLOBAL_URL.'404';
+	                    $DEFINITION = SkyDefines::Call('BASE_GLOBAL_URL').'404';
 	                } else {
 	                    if(strpos($URL, ':') === false)
 	                    {
@@ -53,7 +53,7 @@ abstract class Route
 	                        continue;
 	                    }
 	                }
-	                if($GLOBALS['ENV'] == 'DEV')
+	                if(SkyDefines::GetEnv() == 'DEV')
 	                    Log::write('Route Def: %s => %s [%s#%s]', $TERM, $DEFINITION, $ControllerAction['controller'], $ControllerAction['action']);
 	                define($TERM, $DEFINITION);
 	            }
