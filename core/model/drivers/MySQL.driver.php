@@ -1,5 +1,5 @@
 <?php
-SkyL::Import(SKYCORE_CORE_MODEL."/Driver.interface.php");
+SkyL::Import(SkyDefines::Call('SKYCORE_CORE_MODEL')."/Driver.interface.php");
 
 class Operator
 {
@@ -252,7 +252,7 @@ class MySQLDriver implements iDriver
     {
         if(SkyDefines::GetEnv() != 'PRO')
         {
-            $LOG = fopen(DIR_LOG."/development.log", 'a');
+            $LOG = fopen(SkyDefines::Call('DIR_LOG')."/development.log", 'a');
             if(self::$_log_count == 0)
                 fwrite($LOG, ">========DEV=LOG===========> ".date('m-d-Y H:i:s')."\n");
             fwrite($LOG, "\033[36mSTART\033[0m: ".date('H:i:s')."\t".$action_name.": ".trim($action)."\n");
@@ -267,7 +267,7 @@ class MySQLDriver implements iDriver
         if(SkyDefines::GetEnv() != 'PRO')
         {
             $_END = microtime(true);
-            $LOG = fopen(DIR_LOG."/development.log", 'a');
+            $LOG = fopen(SkyDefines::Call('DIR_LOG')."/development.log", 'a');
             if($STATUS === false && isset(self::$DB[$this->Server]->error))
             {
                 fwrite($LOG, "\033[35mERROR\033[0m: ".date('H:i:s')."\tMSG:\033[0m [".self::$DB[$this->Server]->error."\n");

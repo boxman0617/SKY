@@ -70,18 +70,19 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 		// # If driver for this Child Model is not set, instantiate!
 		if(!isset(self::$_static_info[$this->_child]['driver']))
 		{
+            $db = AppConfig::GetDatabaseSettings();
 			$_DB = array(
-				'DB_SERVER'		=> DB_SERVER,
-				'DB_USERNAME' 	=> DB_USERNAME,
-				'DB_PASSWORD' 	=> DB_PASSWORD,
-				'DB_DATABASE' 	=> DB_DATABASE,
-				'MODEL_DRIVER' 	=> MODEL_DRIVER
+				'DB_SERVER'		=> $db[':server'],
+				'DB_USERNAME' 	=> $db[':username'],
+				'DB_PASSWORD' 	=> $db[':password'],
+				'DB_DATABASE' 	=> $db[':database'],
+				'MODEL_DRIVER' 	=> $db[':driver']
 			);
 			if(isset($this->DatabaseOverwrite['MODEL_DRIVER'])) 
 				$_DB = $this->DatabaseOverwrite;
-			if(is_file(SKYCORE_CORE_MODEL."/drivers/".$_DB['MODEL_DRIVER'].".driver.php"))
+			if(is_file(SkyDefines::Call('SKYCORE_CORE_MODEL')."/drivers/".$_DB['MODEL_DRIVER'].".driver.php"))
 			{
-				SkyL::Import(SKYCORE_CORE_MODEL."/drivers/".$_DB['MODEL_DRIVER'].".driver.php");
+				SkyL::Import(SkyDefines::Call('SKYCORE_CORE_MODEL')."/drivers/".$_DB['MODEL_DRIVER'].".driver.php");
 				$_DRIVER_CLASS = $_DB['MODEL_DRIVER'].'Driver';
 				self::$_static_info[$this->_child]['driver'] = new $_DRIVER_CLASS($_DB);
 				if(is_null($this->TableName))

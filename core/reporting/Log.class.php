@@ -56,7 +56,7 @@ class Log
         SkyDefines::SetEnv('DEBUG');
         $args = func_get_args();
         call_user_func_array('self::debug', $args);
-        SkyDefines::GetEnv() = $TMP_ENV;
+        SkyDefines::SetEnv($TMP_ENV);
     }
     
     public static function debug()
@@ -173,7 +173,7 @@ class Log
         {
             if($level >= AppConfig::GetLoggingLevel())
             {
-                $f = fopen(CORE_LOG, 'a');
+                $f = fopen(SkyDefines::Call('CORE_LOG'), 'a');
                 self::$core_count++;
                 if(self::$core_count == 1)
                     fwrite($f, ">========CORE=LOG===========> ".date('m-d-Y H:i:s')."\n");

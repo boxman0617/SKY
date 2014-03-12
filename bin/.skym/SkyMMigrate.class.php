@@ -29,7 +29,7 @@ class SkyMMigrate implements SkyMCommand
 
 	public function Execute($args = array())
 	{
-		SkyL::Import(SkyDefines::Call('MIGRATION_CLASS'));
+		import(MIGRATION_CLASS);
 		$num = count($args);
 		if($num == 1)
 			$this->RunMigrationsForEnv($args[0]);
@@ -53,7 +53,7 @@ class SkyMMigrate implements SkyMCommand
 		$this->_cli->PrintLn('# Running migrations...');
 		foreach($migrations as $migration)
 		{
-			SkyL::Import(SkyDefines::Call('DIR_LIB_MIGRATIONS').'/'.$migration);
+			require_once(DIR_LIB_MIGRATIONS.'/'.$migration);
 			$this->_cli->PrintLn('#=> '.$migration);
 			flush();
 			$tmp = explode('_', $migration);

@@ -22,7 +22,7 @@ class RenderHTML extends Base implements RenderInterface
 			if(is_null(self::$_subview_render_cache))
 			{
 				$prop = call_user_func(get_class($this->REF).'::GetStaticProperty', '_subview_info');
-				$view = DIR_APP_VIEWS.'/'.$prop['dir'].'/'.$prop['view'].'.view.php';
+				$view = SkyDefines::Call('DIR_APP_VIEWS').'/'.$prop['dir'].'/'.$prop['view'].'.view.php';
         		if(file_exists($view))
         		{
         			ob_start();
@@ -32,7 +32,7 @@ class RenderHTML extends Base implements RenderInterface
 			}
             ob_start();
             Log::corewrite('OB Level [%s]', 3, __CLASS__, __FUNCTION__, array(ob_get_level()));
-    		include_once(DIR_APP_VIEWS.'/'.$render_info['layout']);
+    		include_once(SkyDefines::Call('DIR_APP_VIEWS').'/'.$render_info['layout']);
     		Log::corewrite('Number of errors [%s]', 3, __CLASS__, __FUNCTION__, array(Error::ErrorCount()));
     		if(Error::IsThereErrors())
     		{

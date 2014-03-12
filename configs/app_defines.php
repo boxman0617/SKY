@@ -53,7 +53,7 @@ class AppConfig
 		'DEV' => array(),
 		'TEST' => array(),
 		'PRO' => array()
-	)
+	);
 
 	public static function DatabaseENV($env, $settings)
 	{

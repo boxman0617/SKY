@@ -128,12 +128,13 @@ class File
     );
     
     public static $FILES = array();
-    public $FileDestination = SkyDefines::Call('DIR_PUBLIC');
+    public $FileDestination = null;
     public $FileType = null;
     public $FileMimeType = null;
     
     public function __construct($file_locator)
     {
+        $this->FileDestination = SkyDefines::Call('DIR_PUBLIC');
         if(!array_key_exists($file_locator, self::$FILES))
             throw new FileNotFoundException();
         $this->_file_selected = $file_locator;

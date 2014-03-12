@@ -1,7 +1,7 @@
 <?php
 date_default_timezone_set('America/Los_Angeles');
 $_router = new Router();
-SkyL::Import(DIR_CONFIGS.'/routes.php');
+SkyL::Import(SkyDefines::Call('DIR_CONFIGS').'/routes.php');
 $_approute = new AppRoute();
 $_approute->AppRoutes();
 Benchmark::End();

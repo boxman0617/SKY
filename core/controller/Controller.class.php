@@ -18,10 +18,10 @@
 // @version     0.0.7 Starting from here
 // ##
 
-SkyL::Import(SkyDefines('MODEL_CLASS'));
-SkyL::Import(SkyDefines('RENDER_CLASS'));
-SkyL::Import(SkyDefines('TASK_CLASS'));
-SkyL::Import(SkyDefines('FILE_CLASS'));
+SkyL::Import(SkyDefines::Call('MODEL_CLASS'));
+SkyL::Import(SkyDefines::Call('RENDER_CLASS'));
+SkyL::Import(SkyDefines::Call('TASK_CLASS'));
+SkyL::Import(SkyDefines::Call('FILE_CLASS'));
 
 define('RENDER_NONE', 'RenderNONE');
 define('RENDER_HTML', 'RenderHTML');
