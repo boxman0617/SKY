@@ -81,8 +81,10 @@ class SKY
 	public static function LoadCore($ENV = 'DEV')
 	{
 		require_once(getenv('SKYCORE').'/configs/defines.php');
-		define('APPROOT', $_SERVER['PWD']);
-        SkyL::Import(SkyDefines::Call('SKYCORE_CONFIGS'.'/app_defines.php'));
+		SkyDefines::Define('APPROOT', $_SERVER['PWD']);
+
+        SkyDefines::Overwrite('ARTIFICIAL_LOAD', true);
+        SkyL::Import(SkyDefines::Call('SKYCORE_CONFIGS').'/app_defines.php');
 		
         SkyDefines::SetEnv($ENV);
 	}

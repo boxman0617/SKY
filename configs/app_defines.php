@@ -180,9 +180,12 @@ SkyL::Import(SkyDefines::Call('DIR_CONFIGS').'/configure.php');
 // #Initialize SKYCORE Configures
 SkyL::Import(SkyDefines::Call('SKYCORE_CONFIGS').'/loadcore.php');
 
-// #initialize Sessions
-Session::getInstance();
+if(SkyDefines::Call('ARTIFICIAL_LOAD') === false)
+{
+	// #initialize Sessions
+	Session::getInstance();
 
-// #Initialize Router
-SkyL::Import(SkyDefines::Call('SKYCORE_CONFIGS').'/router_init.php');
+	// #Initialize Router
+	SkyL::Import(SkyDefines::Call('SKYCORE_CONFIGS').'/router_init.php');
+}
 ?>

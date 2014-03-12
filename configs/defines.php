@@ -183,5 +183,6 @@ if(!function_exists('date_diff'))
         return $count; 
     } 
 }
+SkyDefines::Define('ARTIFICIAL_LOAD', false);
 Benchmark::Mark('END_SKYCORE_DEFINES');
 ?>

@@ -3,67 +3,11 @@
 date_default_timezone_set('UTC');
 require_once(getenv('SKYCORE').'/core/utils/SKY.class.php');
 SKY::LoadCore();
+SkyL::Import(SkyDefines::Call('SKYCLI_CLASS'));
+SkyL::Import(SkyDefines::Call('SKYCORE_CORE_COMMANDS').'/SkyCommand.interface.php');
 
-interface SkyMCommand
+class SkyM extends SkyCLI
 {
-	public function __construct($cli);
-	public function GetShortHelp();
-	public function GetLongHelp();
-	public function Execute($args = array());
-}
-
-class SkyMCLI
-{
-	private $_commands = array();
-
-	private $_command = null;
-	private $_command_args = array();
-
-	public function __construct($arguments)
-	{
-		$this->BootstrapCommands();
-
-		unset($arguments[0]);
-		$arguments = array_values($arguments);
-		$this->_command = $arguments[0];
-		
-		if(array_key_exists($this->_command, $this->_commands))
-		{
-			array_shift($arguments);
-			if(count($arguments) > 0)
-				$this->_command_args = $arguments;
-			$this->ExecuteCommand();
-		} else {
-			$this->ShowError('Command ['.$this->_command.'] not found! (Run "skym help" for list of commands)');
-		}
-	}
-
-	private function ExecuteCommand()
-	{
-		$this->_commands[$this->_command]->Execute($this->_command_args);
-	}
-
-	private function BootstrapCommands()
-	{
-		$real = realpath(dirname(__FILE__).'/.skym');
-		if($handle = opendir($real))
-		{
-		    while(false !== ($entry = readdir($handle))) 
-		    {
-		        if($entry != '.' && $entry != '..')
-		        {
-		        	$class = str_replace('.class.php', '', $entry);
-		        	$name = strtolower(str_replace('SkyM', '', $class));
-
-		        	require_once($real.'/'.$entry);
-		        	$this->_commands[$name] = new $class($this);
-		        }
-		    }
-
-		    closedir($handle);
-		}
-	}
-
 	private function MigrationLog()
 	{
 		return SkyDefines::Call('DIR_LIB_MIGRATIONS').'/.migrations.log';
@@ -143,31 +87,9 @@ class SkyMCLI
 		usort($migrations, array(get_class(), 'SortMigrations'));
 		return $migrations;
 	}
-
-	// ## Helper Methods
-	public function GetCommands()
-	{
-		return $this->_commands;
-	}
-
-	public function ShowError($error)
-	{
-		$this->PrintLn('[ERROR]:: '.$error);
-		exit();
-	}
-
-	public function ShowBar($char = '#', $multi = 50)
-	{
-		$this->PrintLn(str_repeat($char, $multi));
-	}
-
-	public function PrintLn($str)
-	{
-		echo $str."\n";
-	}
 }
 
-$skym = new SkyMCLI($argv);
+$skym = new SkyM($argv);
 
 // skym new MyMigrationName
 

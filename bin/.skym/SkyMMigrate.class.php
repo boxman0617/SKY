@@ -1,5 +1,5 @@
 <?php
-class SkyMMigrate implements SkyMCommand
+class SkyMMigrate implements SkyCommand
 {
 	private $_cli; // For two-way communication
 

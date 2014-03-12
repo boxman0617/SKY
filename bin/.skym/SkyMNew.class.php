@@ -1,5 +1,5 @@
 <?php
-class SkyMNew implements SkyMCommand
+class SkyMNew implements SkyCommand
 {
 	private $_cli; // For two-way communication
 
