@@ -247,6 +247,56 @@ class CreateTable extends MigrateTable
 		);
 	}
 
+	private function _ProcessRequired($column, $name, $query)
+	{
+		$query = $this->_IterateThroughColumnTypes('required', $column, $name, $query, function($type, $i, $column, $name, $query) 
+		{
+			if(!array_key_exists($type, $column['options']))
+					throw new Exception('Migration failed due to unfullfilled required field ['.$i.'] for column ['.$name.']');
+				
+			return $this->_CallMethod($i, $query);
+		});
+
+		return $query;
+	}
+
+	private function _IterateThroughColumnTypes($type, $column, $name, $query, callable $c)
+	{
+		if(array_key_exists($type, $this->_column_types[$column['type']]))
+		{
+			foreach($this->_column_types[$column['type']][$type] as $required)
+				$query = $c($type, $required, $column, $name, $query);
+		}
+		return $query;
+	}
+
+	private function _CallMethod($type, $query)
+	{
+		$method = 'Process'.ucfirst($type);
+		if(method_exists($this, $method))
+			$query .= call_user_func(array($this, $method), $column['options'][$type]);
+		return $query;
+	}
+
+	private function _ProcessOptional($column, $name, $query)
+	{
+		$query = $this->_IterateThroughColumnTypes('optional', $column, $name, $query, function($type, $i, $column, $name, $query) 
+		{
+			if(array_key_exists($i, $column['options']))
+				$query = $this->_CallMethod($i, $query);
+			return $query;
+		});
+
+		return $query;
+	}
+
+	private function _ColumnAttribute($key, $column, $query, callable $c)
+	{
+		if(array_key_exists($key, $column['options']))
+			$query = $c($column, $query);
+		return $query;
+	}
+
 	public function Create()
 	{
 		$query = 'CREATE TABLE `'.$this->_table_name.'` ';
@@ -254,54 +304,34 @@ class CreateTable extends MigrateTable
 		foreach($this->_columns as $name => $column)
 		{
 			$query .= '`'.$name.'` '.strtoupper($column['type']);
+
+			$query = $this->_ProcessRequired($column, $name, $query);
+			$query = $this->_ProcessOptional($column, $name, $query);
 			
-			if(array_key_exists('required', $this->_column_types[$column['type']]))
-			{
-				foreach($this->_column_types[$column['type']]['required'] as $required)
-				{
-					if(!array_key_exists($required, $column['options']))
-						throw new Exception('Migration failed due to unfullfilled required field ['.$required.'] for column ['.$name.']');
-					
-					$method = 'Process'.ucfirst($required);
-					if(method_exists($this, $method))
-						$query .= call_user_func(array($this, $method), $column['options'][$required]);
-				}
-			}
-
-			if(array_key_exists('optional', $this->_column_types[$column['type']]))
-			{
-				foreach($this->_column_types[$column['type']]['optional'] as $optional)
-				{
-					if(array_key_exists($optional, $column['options']))
-					{
-						$method = 'Process'.ucfirst($optional);
-						if(method_exists($this, $method))
-							$query .= call_user_func(array($this, $method), $column['options'][$optional]);
-					}
-				}
-			}
-
-			if(array_key_exists('null', $column['options']))
+			$query = $this->_ColumnAttribute('null', $column, $query, function($column, $query)
 			{
 				if($column['options']['null'] === false)
 					$query .= ' NOT NULL';
 				else
 					$query .= ' NULL';
-			}
+				return $query;
+			});
 
-			if(array_key_exists('default', $column['options']))
+			$query = $this->_ColumnAttribute('default', $column, $query, function($column, $query)
 			{
 				$query .= ' DEFAULT ';
 				if(is_string($column['options']['default']))
 					$query .= '"'.$column['options']['default'].'"';
 				else
 					$query .= $column['options']['default'];
-			}
+				return $query;
+			});
 
-			if(array_key_exists('auto_increment', $column['options']))
+			$query = $this->_ColumnAttribute('auto_increment', $column, $query, function($column, $query)
 			{
 				$query .= ' AUTO_INCREMENT';
-			}
+				return $query;
+			});
 
 			if(array_key_exists('comment', $column['options']))
 			{
