@@ -17,6 +17,7 @@ define('DIR_APP', APPROOT.'/app');
 define('DIR_APP_CONTROLLERS', APPROOT.'/app/controllers');
 define('DIR_APP_MAILERS', APPROOT.'/app/mailers');
 define('DIR_APP_MODELS', APPROOT.'/app/models');
+define('DIR_APP_SERVICES', APPROOT.'/app/services');
 define('DIR_APP_VIEWS', APPROOT.'/app/views');
 
 // #APP Configs Files

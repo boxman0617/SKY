@@ -18,6 +18,7 @@ import(ROUTER_CLASS);
 import(ROUTE_CLASS);
 import(SKY_CLASS);
 import(HELPER_CLASS);
+import(SERVICELOCATOR_CLASS);
 
 Event::PublishActionHook('/preimports/after/');
 

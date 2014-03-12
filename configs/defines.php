@@ -20,6 +20,7 @@ define('SKYCORE_CORE_MODEL', SKYCORE_CORE.'/model');
 define('SKYCORE_CORE_PLUGIN', SKYCORE_CORE.'/plugin');
 define('SKYCORE_CORE_REPORTING', SKYCORE_CORE.'/reporting');
 define('SKYCORE_CORE_ROUTER', SKYCORE_CORE.'/router');
+define('SKYCORE_CORE_SERVICES', SKYCORE_CORE.'/services');
 define('SKYCORE_CORE_STORAGE', SKYCORE_CORE.'/storage');
 define('SKYCORE_CORE_UTILS', SKYCORE_CORE.'/utils');
 define('SKYCORE_CORE_IMAGES', SKYCORE_CORE.'/images');
@@ -42,6 +43,7 @@ _ClassDefiner(SKYCORE_CORE_UTILS);
 _ClassDefiner(SKYCORE_CORE_STORAGE);
 _ClassDefiner(SKYCORE_CORE_MODEL);
 _ClassDefiner(SKYCORE_CORE_ROUTER);
+_ClassDefiner(SKYCORE_CORE_SERVICES);
 _ClassDefiner(SKYCORE_CORE_REPORTING);
 _ClassDefiner(SKYCORE_CORE_PLUGIN);
 _ClassDefiner(SKYCORE_CORE_HTML);
@@ -83,6 +85,22 @@ function import($path)
             $GLOBALS['IMPORTS'][$match[1]] = true;
             require_once($path);
             return true;
+        }
+    } elseif(strpos($path, 'service.') !== false) {
+        $broken = explode('.', $path);
+        $base = DIR_APP_SERVICES.'/'.$broken[0].'.'.$broken[1];
+        if(is_dir($base))
+        {
+            $src_dir = $base.'/src/'.SKY::pluralize($broken[2]);
+            if(is_dir($src_dir))
+            {
+                $file = $src_dir.'/'.$broken[3].'.'.$broken[2].'.php';
+                if(is_file($file))
+                {
+                    require_once($file);
+                    return true;
+                }
+            }
         }
     } else {
         $paths = explode(';', IMPORT_PATHS);

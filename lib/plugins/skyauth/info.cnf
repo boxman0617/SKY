@@ -1,0 +1,8 @@
+# Config file for SkyAuth
+name=SkyAuth
+version=0.0.1
+file=SkyAuth.plugin.php
+interface=SkyAuthUser.interface.php
+denypage=deny.page.php
+class=SkyAuth
+configfile=configs.php
