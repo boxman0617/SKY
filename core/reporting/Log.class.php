@@ -70,7 +70,10 @@ class Log
                 fwrite($f, ">========DEBUG=LOG===========> ".date('m-d-Y H:i:s')."\n");
             if(func_num_args() == 1)
             {
-                fwrite($f, sprintf(self::$app_format, date('H:i:s'), func_get_arg(0)));
+                $arg = func_get_arg(0);
+                if(is_array($arg))
+                    $arg = var_export($arg, true);
+                fwrite($f, sprintf(self::$app_format, date('H:i:s'), $arg));
             }
             elseif(func_num_args() > 1)
             {
@@ -82,6 +85,9 @@ class Log
                 $args[] = date('H:i:s');
                 $args[] = "%s > ".$msg."\n";
                 $args = array_reverse($args);
+                foreach($args as $k => $arg)
+                    if(is_array($arg))
+                        $args[$k] = var_export($arg, true);
                 $r = call_user_func_array('sprintf', $args);
                 fwrite($f, $r);
             }

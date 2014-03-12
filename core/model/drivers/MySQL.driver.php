@@ -352,7 +352,6 @@ class MySQLDriver implements iDriver
     public function search($where = array(), $select = array())
     {
         if(!empty($select)) call_user_func_array(array($this, 'select'), $select);
-        $this->bool_to_string($where);
         $this->where($where);
     }
 
@@ -524,7 +523,9 @@ class MySQLDriver implements iDriver
         // SQL: WHERE `id` IN (1, 2, 3, 4, 5, 6)
         elseif(func_num_args() == 1 && is_array(func_get_arg(0)))
         {
-            foreach(func_get_arg(0) as $key => $value)
+            $arg = func_get_arg(0);
+            $this->bool_to_string($arg);
+            foreach($arg as $key => $value)
             {
                 $operator = '=';
                 if(is_array($value))
