@@ -15,7 +15,12 @@ abstract class Migration
 
 	protected function DropTable($table)
 	{
+		if(self::GetDB()->query('DROP TABLE `'.$table.'`') === false)
+			throw new Exception('Unable to drop table! Unexpected error.');
 
+		$model = SkyDefines::Call('DIR_APP_MODELS').'/'.Sky::UnderscoreToUpper($table).'.model.php';
+		if(is_file($model))
+			@unlink($model);
 	}
 
 	abstract public function Up();
@@ -100,6 +105,83 @@ abstract class MigrateTable
 			'optional' => array('character_set', 'collate')
 		)
 	);
+
+	// #############################################################################
+	protected function CreateAddColumn($query, $name, $column)
+	{
+		$query .= '`'.$name.'` '.strtoupper($column['type']);
+			
+		if(array_key_exists('required', $this->_column_types[$column['type']]))
+		{
+			foreach($this->_column_types[$column['type']]['required'] as $required)
+			{
+				if(!array_key_exists($required, $column['options']))
+					throw new Exception('Migration failed due to unfullfilled required field ['.$required.'] for column ['.$name.']');
+				
+				$method = 'Process'.ucfirst($required);
+				if(method_exists($this, $method))
+					$query .= call_user_func(array($this, $method), $column['options'][$required]);
+			}
+		}
+
+		if(array_key_exists('optional', $this->_column_types[$column['type']]))
+		{
+			foreach($this->_column_types[$column['type']]['optional'] as $optional)
+			{
+				if(array_key_exists($optional, $column['options']))
+				{
+					$method = 'Process'.ucfirst($optional);
+					if(method_exists($this, $method))
+						$query .= call_user_func(array($this, $method), $column['options'][$optional]);
+				}
+			}
+		}
+
+		if(array_key_exists('null', $column['options']))
+		{
+			if($column['options']['null'] === false)
+				$query .= ' NOT NULL';
+			else
+				$query .= ' NULL';
+		}
+
+		if(array_key_exists('default', $column['options']))
+		{
+			$query .= ' DEFAULT ';
+			if(is_string($column['options']['default']))
+				$query .= '"'.$column['options']['default'].'"';
+			else
+				$query .= $column['options']['default'];
+		}
+
+		if(array_key_exists('auto_increment', $column['options']))
+		{
+			$query .= ' AUTO_INCREMENT';
+		}
+
+		if(array_key_exists('comment', $column['options']))
+		{
+			$query .= ' COMMENT "'.$column['options']['comment'].'"';
+		}
+
+		if(array_key_exists('column_format', $column['options']))
+		{
+			if(!in_array(strtoupper($column['options']['column_format']), array('FIXED', 'DYNAMIC', 'DEFAULT')))
+				throw new Exception('Migration failed due to column formating being incorrect ['.$name.'] {FIXED, DYNAMIC, DEFAULT}');
+			$query .= ' COLUMN_FORMAT '.strtoupper($column['options']['column_format']);
+		}
+
+		if(array_key_exists('storage', $column['options']))
+		{
+			if(!in_array(strtoupper($column['options']['storage']), array('DISK', 'MEMORY', 'DEFAULT')))
+				throw new Exception('Migration failed due to column storage being incorrect ['.$name.'] {DISK, MEMORY, DEFAULT}');
+			$query .= ' STORAGE '.strtoupper($column['options']['storage']);
+		}
+
+		$query .= ', ';
+		return $query;
+	}
+	// #############################################################################
 
 	protected function ProcessOptionRow_format($value, $options = array())
 	{
@@ -251,78 +333,11 @@ class CreateTable extends MigrateTable
 	{
 		$query = 'CREATE TABLE `'.$this->_table_name.'` ';
 		$query .= '(`id` INT(11) NOT NULL AUTO_INCREMENT, ';
+		$columns = '';
 		foreach($this->_columns as $name => $column)
 		{
-			$query .= '`'.$name.'` '.strtoupper($column['type']);
-			
-			if(array_key_exists('required', $this->_column_types[$column['type']]))
-			{
-				foreach($this->_column_types[$column['type']]['required'] as $required)
-				{
-					if(!array_key_exists($required, $column['options']))
-						throw new Exception('Migration failed due to unfullfilled required field ['.$required.'] for column ['.$name.']');
-					
-					$method = 'Process'.ucfirst($required);
-					if(method_exists($this, $method))
-						$query .= call_user_func(array($this, $method), $column['options'][$required]);
-				}
-			}
-
-			if(array_key_exists('optional', $this->_column_types[$column['type']]))
-			{
-				foreach($this->_column_types[$column['type']]['optional'] as $optional)
-				{
-					if(array_key_exists($optional, $column['options']))
-					{
-						$method = 'Process'.ucfirst($optional);
-						if(method_exists($this, $method))
-							$query .= call_user_func(array($this, $method), $column['options'][$optional]);
-					}
-				}
-			}
-
-			if(array_key_exists('null', $column['options']))
-			{
-				if($column['options']['null'] === false)
-					$query .= ' NOT NULL';
-				else
-					$query .= ' NULL';
-			}
-
-			if(array_key_exists('default', $column['options']))
-			{
-				$query .= ' DEFAULT ';
-				if(is_string($column['options']['default']))
-					$query .= '"'.$column['options']['default'].'"';
-				else
-					$query .= $column['options']['default'];
-			}
-
-			if(array_key_exists('auto_increment', $column['options']))
-			{
-				$query .= ' AUTO_INCREMENT';
-			}
-
-			if(array_key_exists('comment', $column['options']))
-			{
-				$query .= ' COMMENT "'.$column['options']['comment'].'"';
-			}
-
-			if(array_key_exists('column_format', $column['options']))
-			{
-				if(!in_array(strtoupper($column['options']['column_format']), array('FIXED', 'DYNAMIC', 'DEFAULT')))
-					throw new Exception('Migration failed due to column formating being incorrect ['.$name.'] {FIXED, DYNAMIC, DEFAULT}');
-				$query .= ' COLUMN_FORMAT '.strtoupper($column['options']['column_format']);
-			}
-
-			if(array_key_exists('storage', $column['options']))
-			{
-				if(!in_array(strtoupper($column['options']['storage']), array('DISK', 'MEMORY', 'DEFAULT')))
-					throw new Exception('Migration failed due to column storage being incorrect ['.$name.'] {DISK, MEMORY, DEFAULT}');
-				$query .= ' STORAGE '.strtoupper($column['options']['storage']);
-			}
-
-			$query .= ', ';
+			$columns .= sprintf("// %-20s %s\n", $name, $column['type']);
+			$query = $this->CreateAddColumn($query, $name, $column);
 		}
 
 		$query .= '`created_at` DATETIME NOT NULL, `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, PRIMARY KEY (`id`)';
@@ -349,12 +364,44 @@ class CreateTable extends MigrateTable
 		$result = $db->query($query);
 		if($result === false)
 			throw new Exception('Unable to create new table! Unexpected error.');
+
+		$org_name = $this->_table_name;
+        // Building Model
+        if(strpos($this->_table_name, '_') !== false)
+        {
+            $MODEL_NAME = ucwords(str_replace('_', ' ', $this->_table_name));
+            $this->_table_name = str_replace(' ', '', $MODEL_NAME);
+        } else {
+            $this->_table_name = ucfirst($this->_table_name);
+        }
+        $class = "<?php
+// ####
+// [".$org_name."]
+".$columns."// ##
+
+class ".$this->_table_name." extends Model
+{
+
+}
+?>
+";
+        $f = fopen(SkyDefines::Call('DIR_APP_MODELS')."/".$this->_table_name.".model.php", "w");
+        fwrite($f, $class);
+        fclose($f);
 	}
 }
 
 class AlterTable extends MigrateTable
 {
 	private $_table_name;
+	private $_columns = array();
+	private $_rename_table = false;
+	
+	const ADD = 'ADD';
+	const DROP = 'DROP';
+	const CHANGE = 'CHANGE';
+	const ALTER = 'ALTER';
+	const MODIFY = 'MODIFY';
 
 	public function __construct($table_name)
 	{
@@ -363,12 +410,118 @@ class AlterTable extends MigrateTable
 
 	public function RenameTable($table_name)
 	{
-
+		$this->_rename_table = $table_name;
 	}
 
-	public function RenameColumn($old_name, $new_name)
+	public function AddIndex($columns = array(), $type = 'index')
 	{
+		$this->_indexes[] = array(
+			'columns' => $columns,
+			'type' => $type,
+			'action' => self::ADD
+		);
+	}
 
+	public function DropIndex($name)
+	{
+		$this->_indexes[] = array(
+			'name' => $name,
+			'action' => self::DROP
+		);
+	}
+
+	public function AddColumn($name, $type, $options = array())
+	{
+		$this->_columns[$name] = array(
+			'type' => $type,
+			'options' => $options,
+			'action' => self::ADD
+		);
+	}
+
+	public function DropColumn($name)
+	{
+		$this->_columns[$name] = array(
+			'action' => self::DROP
+		);
+	}
+
+	public function AlterColumn($name, $options = array())
+	{
+		if((array_key_exists('set_default', $options) || array_key_exists('drop_default', $options)) === false)
+			throw new Exception('::AlterColumn() options should have {set_defaulr | drop_default}');
+		$this->_columns[$name] = array(
+			'action' => self::ALTER,
+			'options' => $options
+		);
+	}
+
+	public function ChangeColumn($old_col_name, $new_col_name, $options = array())
+	{
+		$this->_columns[$old_col_name] = array(
+			'action' => self::CHANGE,
+			'new_col_name' => $new_col_name,
+			'options' => $options
+		);
+	}
+
+	public function ModifyColumn($name, $options = array())
+	{
+		$this->_columns[$name] = array(
+			'action' => self::MODIFY,
+			'options' => $options
+		);
+	}
+
+	public function Alter()
+	{
+		$query = 'ALTER TABLE `'.$this->_table_name.'` ';
+
+		$query = $this->ProcessingColumns($query);
+
+		// @ToDo: Process other alter statements
+
+		$db = Migration::GetDB();
+		$result = $db->query($query);
+		if($result === false)
+			throw new Exception('Unable to alter table! Unexpected error.');
+	}
+
+	private function ProcessingColumns($query)
+	{
+		foreach($this->_columns as $name => $column)
+		{
+			$query .= call_user_func_array(
+				array($this, '_'.$column['action'].'Column'), 
+				array($name, $column)
+			);
+
+			$pos = false;
+			if(array_key_exists('options', $column))
+			{
+				if(array_key_exists('before', $column['options']))
+					$pos = 'BEFORE';
+				elseif(array_key_exists('after', $column['options']))
+					$pos = 'AFTER';
+			}
+			if($pos !== false)
+			{
+				$query = substr($query, 0, -2);
+				$query .= ' '.$pos.' `'.$column['options'][strtolower($pos)].', ';
+			}
+		}
+		return substr($query, 0, -2);
+	}
+
+	private function _ADDColumn($name, $options)
+	{
+		$column = self::ADD.' COLUMN ';
+		return $this->CreateAddColumn($column, $name, $options);
+	}
+
+	private function _DROPColumn($name, $options)
+	{
+		return self::DROP.' COLUMN `'.$name.'`, ';
 	}
 }
 

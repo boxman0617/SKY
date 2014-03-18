@@ -17,7 +17,8 @@ class SkyM extends SkyCLI
 	{
 		return array(
 			'ran' => array(),
-			'failed' => array()
+			'failed' => array(),
+			'rolled' => array()
 		);
 	}
 
@@ -49,8 +50,9 @@ class SkyM extends SkyCLI
 
 	public function GetMySQLConnection($env)
 	{
-		$db = DatabaseConfig::GetENVDB($env);
-		$c = new mysqli($db['DB_SERVER'], $db['DB_USERNAME'], $db['DB_PASSWORD'], $db['DB_DATABASE']);
+		SkyDefines::SetEnv($env);
+		$db = AppConfig::GetDatabaseSettings();
+		$c = new mysqli($db[':server'], $db[':username'], $db[':password'], $db[':database']);
 		if($c->connect_error)
 		    throw new Exception('Connection Error: ('.$c->connect_errno.') '.$c->connect_error);
 		return $c;

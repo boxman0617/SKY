@@ -37,6 +37,41 @@ class SkyMMigrate implements SkyCommand
 			$this->RunMigrationsForEnvAndTarget($args[0], $args[1]);
 	}
 
+	private function RunMigrations($migrations, $env, $log)
+	{
+		$ran_count = 0;
+		foreach($migrations as $migration)
+		{
+			SkyL::Import(SkyDefines::Call('DIR_LIB_MIGRATIONS').'/'.$migration);
+			$this->_cli->PrintLn('#=> '.$migration);
+			flush();
+			$tmp = explode('_', $migration);
+			$class = $tmp[0];
+
+			$mObj = new $class($this->_cli->GetMySQLConnection($env));
+			try {
+				$mObj->Up();
+			} catch(Exception $e) {
+				$this->_cli->PrintLn('#!!! Was unable to complete migrations. SKipping...');
+				continue;
+			}
+			
+			$log['ran'][$env][] = $migration;
+			if(array_key_exists($env, $log['rolled']) && in_array($migration, $log['rolled'][$env]))
+				unset($log['rolled'][$env][array_search($migration, $log['rolled'][$env])]);
+			$this->_cli->PrintLn('#=== Complete!');
+			$ran_count++;
+			$this->_cli->WriteToMigrationLog($log);
+			$log = $this->_cli->ReadFromMigrationLog();
+		}
+		return $ran_count;
+	}
+
+	private function LoadMigrationsToRun($env)
+	{
+
+	}
+
 	private function RunMigrationsForEnv($env)
 	{
 		$log = $this->_cli->ReadFromMigrationLog();
@@ -49,22 +84,20 @@ class SkyMMigrate implements SkyCommand
 				unset($migrations[$key]);
 		}
 		$migrations = array_values($migrations);
+		$about_to_run = count($migrations);
+		if($about_to_run == 0)
+		{
+			$this->_cli->PrintLn('# No migrations to run...');
+			exit();
+		} else {
+			$this->_cli->PrintLn('# About to run ['.$about_to_run.'] migrations(s)');
+			$this->_cli->PrintLn('#');
+		}
 
 		$this->_cli->PrintLn('# Running migrations...');
-		foreach($migrations as $migration)
-		{
-			SkyL::Import(SkyDefines::Call('DIR_LIB_MIGRATIONS').'/'.$migration);
-			$this->_cli->PrintLn('#=> '.$migration);
-			flush();
-			$tmp = explode('_', $migration);
-			$class = $tmp[0];
+		$ran_count = $this->RunMigrations($migrations, $env, $log);
 
-			$mObj = new $class($this->_cli->GetMySQLConnection($env));
-			$mObj->Up();
-			$log['ran'][$env][] = $migration;
-			$this->_cli->PrintLn('#=== Complete!');
-		}
-		$this->_cli->WriteToMigrationLog($log);
+		$this->_cli->PrintLn('# Ran ['.$ran_count.'/'.$about_to_run.'] migration(s)!');
 	}
 
 	private function RunMigrationsForEnvAndTarget($env, $target)
