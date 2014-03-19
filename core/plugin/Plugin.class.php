@@ -31,6 +31,7 @@ class Plugin
      * @var array
      */
     public static $plugin = array();
+    private static $regex = '/((?!#).+)=(.*)/';
     
     /**
      * Sets up {@link $plugin} under self::$plugin
@@ -48,7 +49,7 @@ class Plugin
             if(is_file($thisplugin.'/info.cnf'))
             {
                 $info = file_get_contents($thisplugin.'/info.cnf');
-                preg_match_all('/((?!#).+)=(.*)/', $info, $matches);
+                preg_match_all(self::$regex, $info, $matches);
                 for($i=0;$i<count($matches[1]);$i++)
                     self::$plugin[$name][$matches[1][$i]] = $matches[2][$i];
                 if(!isset(self::$plugin[$name]['dir']))
@@ -58,6 +59,17 @@ class Plugin
                 unset(self::$plugin[$name]);
         } else
             unset(self::$plugin[$name]);
+    }
+
+    public static function ReadCNF($info_file)
+    {
+        $info = file_get_contents($info_file);
+        preg_match_all(self::$regex, $info, $matches);
+        $cnf = array();
+
+        foreach($matches[1] as $i => $key)
+            $cnf[$key] = $matches[2][$i];
+        return $cnf;
     }
 }
 ?>

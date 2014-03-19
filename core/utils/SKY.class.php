@@ -33,18 +33,26 @@ class SKY
 		return trim(file_get_contents(SkyDefines::Call('SKYCORE').'/version.info'));
 	}
 
+    public static function RRMDIR($dir) 
+    { 
+        $files = array_diff(scandir($dir), array('.', '..'));
+        foreach($files as $file)
+            (is_dir("$dir/$file")) ? self::RRMDIR("$dir/$file") : unlink("$dir/$file");
+        return rmdir($dir);
+    } 
+
 	public static function RCP($src, $dst) 
 	{ 
 		$dir = opendir($src); 
-		@mkdir($dst); 
+		@mkdir($dst);
 		while(false !== ($file = readdir($dir)))
 		{ 
 			if(($file != '.' ) && ( $file != '..' ))
 			{ 
 				if(is_dir($src . '/' . $file))
-					self::RCP($src . '/' . $file,$dst . '/' . $file);
+					self::RCP($src . '/' . $file, $dst . '/' . $file);
 				else
-					copy($src . '/' . $file,$dst . '/' . $file);
+					copy($src . '/' . $file, $dst . '/' . $file);
 			}
 		}
 		closedir($dir);
@@ -78,13 +86,20 @@ class SKY
 		return true;
 	}
 
+    public static function IsInApp()
+    {
+        return is_file(SkyDefines::Call('APPROOT').'/.skycore');
+    }
+
 	public static function LoadCore($ENV = 'DEV')
 	{
 		require_once(getenv('SKYCORE').'/configs/defines.php');
 		SkyDefines::Define('APPROOT', $_SERVER['PWD']);
 
         SkyDefines::Overwrite('ARTIFICIAL_LOAD', true);
-        SkyL::Import(SkyDefines::Call('SKYCORE_CONFIGS').'/app_defines.php');
+
+        if(self::IsInApp())
+            SkyL::Import(SkyDefines::Call('SKYCORE_CONFIGS').'/app_defines.php');
 		
         SkyDefines::SetEnv($ENV);
 	}

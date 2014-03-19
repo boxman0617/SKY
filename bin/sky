@@ -1,116 +1,75 @@
 #!/usr/bin/php
 <?php
-require_once(dirname(__FILE__).'/../configs/defines.php');
-SkyL::Import(SkyDefines::Call('SKY_CLASS'));
-SkyL::Import(SkyDefines::Call('COMMANDLINE_CLASS'));
-$cli = new CommandLine($argv);
+// sky new project_name
+// sky help
+require_once(getenv('SKYCORE').'/core/utils/SKY.class.php');
+SKY::LoadCore();
+SkyL::Import(SkyDefines::Call('SKYCLI_CLASS'));
+SkyL::Import(SkyDefines::Call('SKYCORE_CORE_COMMANDS').'/SkyCommand.interface.php');
 
-$cli->Delegate(array(
-	0 => array(
-		'new' => array('BuildNewProject', 1),
-		'upgrade' => array('UpgradeSky', 1),
-		'help' => 'DisplayHelp'
-	)
-));
-
-//#####################################################
-//# Delegate Functions
-//#####################################################
-function DisplayHelp()
+class SkyC extends SkyCLI
 {
-	CommandLine::HeaderBar();
-	CommandLine::Puts(CommandLine::LJust("# SKY Version ".SKY::Version(), 34, ' ')."#");
-	CommandLine::HeaderBar('=');
-	CommandLine::Puts("Usage: sky [option, [arguments]]");
-	CommandLine::Puts("=> new");
-	CommandLine::Puts(" -> sky new project_name");
-	CommandLine::Puts("=> upgrade");
-	CommandLine::Puts("=> help");
-	CommandLine::HeaderBar();
+
 }
 
-function BuildNewProject($path)
-{
-	SKY::RCP(SkyDefines::Call('SKYCORE').'/skytemp', $path);
-	CommandLine::HeaderBar();
-	$dirs = scandir(SkyDefines::Call('SKYCORE').'/skytemp');
-	CommandLine::Puts('Creating new SKY project:');
-	foreach($dirs as $d)
-	{
-		if(is_dir(SkyDefines::Call('SKYCORE').'/skytemp/'.$d) && $d != '.' && $d != '..')
-		{
-			CommandLine::Puts(" => ".$d);
-			$inner = scandir(SkyDefines::Call('SKYCORE').'/skytemp/'.$d);
-			foreach ($inner as $inner_d) 
-			{
-				if(is_dir(SkyDefines::Call('SKYCORE').'/skytemp/'.$d.'/'.$inner_d) && $inner_d != '.' && $inner_d != '..')
-					CommandLine::Puts("\t => ".$d.'/'.$inner_d);
-			}
-		}
-	}
-	CommandLine::HeaderBar();
-	chmod($path.'/log', 0777);
-}
+$skyc = new SkyC($argv);
 
-function UpgradeSky()
-{
-	set_time_limit(0);
-	CommandLine::Puts("Getting master version...");
-	$live_version = trim(file_get_contents('http://codethesky.com/version/current'));
-	$live_v = explode('.', $live_version);
-	$local_v = explode('.', SKY::Version());
-	$levels = array('Major', 'Minor', 'Revision');
+// function UpgradeSky()
+// {
+// 	set_time_limit(0);
+// 	CommandLine::Puts("Getting master version...");
+// 	$live_version = trim(file_get_contents('http://codethesky.com/version/current'));
+// 	$live_v = explode('.', $live_version);
+// 	$local_v = explode('.', SKY::Version());
+// 	$levels = array('Major', 'Minor', 'Revision');
 	
-	$upgrade = false;
-	if($live_v[0] > $local_v[0]) $upgrade = $levels[0];
-	if($upgrade === false && $live_v[1] > $local_v[1]) $upgrade = $levels[1];
-	if($upgrade === false && $live_v[2] > $local_v[2]) $upgrade = $levels[2];
+// 	$upgrade = false;
+// 	if($live_v[0] > $local_v[0]) $upgrade = $levels[0];
+// 	if($upgrade === false && $live_v[1] > $local_v[1]) $upgrade = $levels[1];
+// 	if($upgrade === false && $live_v[2] > $local_v[2]) $upgrade = $levels[2];
 
-	if($upgrade === false) // No upgrade
-	{
-		CommandLine::Puts("Nothing to upgrade. Current Version [".$live_version."]");
-		return false;
-	} else {
-		CommandLine::HeaderBar();
-		CommandLine::Puts("There is a [".$upgrade."] upgrade");
-		$ans = CommandLine::Question("Want to upgrade from [".SKY::Version()."] to [".$live_version."]?");
+// 	if($upgrade === false) // No upgrade
+// 	{
+// 		CommandLine::Puts("Nothing to upgrade. Current Version [".$live_version."]");
+// 		return false;
+// 	} else {
+// 		CommandLine::HeaderBar();
+// 		CommandLine::Puts("There is a [".$upgrade."] upgrade");
+// 		$ans = CommandLine::Question("Want to upgrade from [".SKY::Version()."] to [".$live_version."]?");
 
-		if(strtoupper($ans) == 'Y')
-		{
-			CommandLine::Puts('Checking changelog...');
-			$changelog = unserialize(trim(file_get_contents('http://codethesky.com/version/changelog/'.SKY::Version().'/'.$live_version)));
-			CommandLine::HeaderBar();
-			CommandLine::Puts("Change log:");
-			CommandLine::HeaderBar('-');
-			foreach($changelog as $cl)
-				CommandLine::Puts(" => ".$cl['filechanged']);
-			CommandLine::HeaderBar('-');
-			$continue = CommandLine::Question('Want to continue?');
-			if(strtoupper($ans) == 'Y')
-			{
-				CommandLine::Puts('Downloading version ['.$live_version.'] of SKY...');
-				$v_info = unserialize(trim(file_get_contents('http://codethesky.com/version/info/'.$live_version)));
-				mkdir('/tmp/SKYupgrade_'.implode('', $live_v));
-				SKY::DownloadFile(
-					'http://github.com/boxman0617/SKY/archive/'.$v_info['hash'].'.zip', 
-					'/tmp/SKYupgrade_'.implode('', $live_v).'/tmp.zip'
-				);
-				CommandLine::Puts("Upgrading...");
-				echo "[=="; flush();
-				exec('unzip /tmp/SKYupgrade_'.implode('', $live_v).'/tmp.zip -d /tmp/SKYupgrade_'.implode('', $live_v).'/');
-				echo "=="; flush();
-				exec('rm -f /tmp/SKYupgrade_'.implode('', $live_v).'/tmp.zip');
-				echo "=="; flush();
-				SKY::RCP('/tmp/SKYupgrade_'.implode('', $live_v).'/', SkyDefines::Call('SKYCORE').'/');
-				CommandLine::Puts("==] Done!");
-				flush();
-			} else
-				CommandLine::End('Good bye!');
-		} else
-			CommandLine::End('Good bye!');
-	}
-}
-
-
-$cli->Run();
+// 		if(strtoupper($ans) == 'Y')
+// 		{
+// 			CommandLine::Puts('Checking changelog...');
+// 			$changelog = unserialize(trim(file_get_contents('http://codethesky.com/version/changelog/'.SKY::Version().'/'.$live_version)));
+// 			CommandLine::HeaderBar();
+// 			CommandLine::Puts("Change log:");
+// 			CommandLine::HeaderBar('-');
+// 			foreach($changelog as $cl)
+// 				CommandLine::Puts(" => ".$cl['filechanged']);
+// 			CommandLine::HeaderBar('-');
+// 			$continue = CommandLine::Question('Want to continue?');
+// 			if(strtoupper($ans) == 'Y')
+// 			{
+// 				CommandLine::Puts('Downloading version ['.$live_version.'] of SKY...');
+// 				$v_info = unserialize(trim(file_get_contents('http://codethesky.com/version/info/'.$live_version)));
+// 				mkdir('/tmp/SKYupgrade_'.implode('', $live_v));
+// 				SKY::DownloadFile(
+// 					'http://github.com/boxman0617/SKY/archive/'.$v_info['hash'].'.zip', 
+// 					'/tmp/SKYupgrade_'.implode('', $live_v).'/tmp.zip'
+// 				);
+// 				CommandLine::Puts("Upgrading...");
+// 				echo "[=="; flush();
+// 				exec('unzip /tmp/SKYupgrade_'.implode('', $live_v).'/tmp.zip -d /tmp/SKYupgrade_'.implode('', $live_v).'/');
+// 				echo "=="; flush();
+// 				exec('rm -f /tmp/SKYupgrade_'.implode('', $live_v).'/tmp.zip');
+// 				echo "=="; flush();
+// 				SKY::RCP('/tmp/SKYupgrade_'.implode('', $live_v).'/', SkyDefines::Call('SKYCORE').'/');
+// 				CommandLine::Puts("==] Done!");
+// 				flush();
+// 			} else
+// 				CommandLine::End('Good bye!');
+// 		} else
+// 			CommandLine::End('Good bye!');
+// 	}
+// }
 ?>

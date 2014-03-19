@@ -1,5 +1,18 @@
 #!/usr/bin/php
 <?php
+// skym new MyMigrationName
+
+// skym migrate DEV
+// skym migrate PRO 20140310150303
+
+// skym rollback DEV
+// skym rollback PRO 20140301000000
+// skym rollback PRO ALL
+
+// skym show ran
+// skym show list
+// skym show failed
+
 date_default_timezone_set('UTC');
 require_once(getenv('SKYCORE').'/core/utils/SKY.class.php');
 SKY::LoadCore();
@@ -92,17 +105,4 @@ class SkyM extends SkyCLI
 }
 
 $skym = new SkyM($argv);
-
-// skym new MyMigrationName
-
-// skym migrate DEV
-// skym migrate PRO 20140310150303
-
-// skym rollback DEV
-// skym rollback PRO 20140301000000
-// skym rollback PRO ALL
-
-// skym show ran
-// skym show list
-// skym show failed
 ?>

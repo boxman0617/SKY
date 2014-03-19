@@ -75,5 +75,15 @@ abstract class SkyCLI
 	{
 		echo $str."\n";
 	}
+
+	public function LJust($string, $size, $fill = ' ')
+	{
+		printf("%'".$fill[0].'-'.$size."s", $string);
+	}
+
+	public function RJust($string, $size, $fill = ' ')
+	{
+		printf("%'".$fill[0].$size."s", $string);
+	}
 }
 ?>
