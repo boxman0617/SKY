@@ -14,7 +14,8 @@ class SkyCPlugin implements SkyCommand
 		$help .= "#\tsky plugin load pluginname\n";
 		$help .= "#\tsky plugin list\n";
 		$help .= "#\tsky plugin remove pluginname\n";
-		$help .= "#\tsky plugin destroy pluginname";
+		$help .= "#\tsky plugin destroy pluginname\n";
+		$help .= "#\tsky plugin search pluginname";
 		return $help;
 	}
 
@@ -36,7 +37,10 @@ class SkyCPlugin implements SkyCommand
 
 		$help .= "#\tsky plugin destroy pluginname\n";
 		$help .= "#\t - Will remove an installed plugin from you SKYCORE\n";
-		$help .= "#\t - install.";
+		$help .= "#\t - install.\n#\n";
+
+		$help .= "#\tsky plugin search pluginname\n";
+		$help .= "#\t - Will search the repo of plugins.";
 
 		return $help;
 	}

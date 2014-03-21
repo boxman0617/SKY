@@ -50,6 +50,10 @@ class SkyCNew implements SkyCommand
 			}
 		}
 
+		$htaccess = file_get_contents($app.'/.htaccess');
+		$htaccess = preg_replace('/(SetEnv SKYCORE\s+)(.+)/', '$1'.SkyDefines::Call('SKYCORE'), $htaccess);
+		file_put_contents($app.'/.htaccess', $htaccess);
+
 		$f = fopen($app.'/.skycore', 'w');
 		fwrite($f, 'Generated with Sky version ['.SKY::Version().']');
 		fclose($f);

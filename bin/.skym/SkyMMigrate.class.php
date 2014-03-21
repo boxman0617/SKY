@@ -3,6 +3,8 @@ class SkyMMigrate implements SkyCommand
 {
 	private $_cli; // For two-way communication
 
+	private static $target;
+
 	public function __construct($cli)
 	{
 		$this->_cli = $cli;
@@ -67,12 +69,7 @@ class SkyMMigrate implements SkyCommand
 		return $ran_count;
 	}
 
-	private function LoadMigrationsToRun($env)
-	{
-
-	}
-
-	private function RunMigrationsForEnv($env)
+	private function LoadMigrationsToRun($env, callable $filter)
 	{
 		$log = $this->_cli->ReadFromMigrationLog();
 		$migrations = $this->_cli->GetListOfMigrations();
@@ -83,6 +80,7 @@ class SkyMMigrate implements SkyCommand
 			if(in_array($migration, $log['ran'][$env]))
 				unset($migrations[$key]);
 		}
+		$migrations = array_filter($migrations, $filter);
 		$migrations = array_values($migrations);
 		$about_to_run = count($migrations);
 		if($about_to_run == 0)
@@ -100,9 +98,28 @@ class SkyMMigrate implements SkyCommand
 		$this->_cli->PrintLn('# Ran ['.$ran_count.'/'.$about_to_run.'] migration(s)!');
 	}
 
+	private function RunMigrationsForEnv($env)
+	{
+		$this->LoadMigrationsToRun($env, function($m){
+			return true;
+		});
+	}
+
 	private function RunMigrationsForEnvAndTarget($env, $target)
 	{
-		
+		self::$target = $target;
+		$this->LoadMigrationsToRun($env, function($m){
+			return SkyMMigrate::CheckIfGreaterThenTarget($m);
+		});
+	}
+
+	public static function CheckIfGreaterThenTarget($m)
+	{
+		$t = explode('_', $m);
+		$m = explode('.', $t[1]);
+		$target = strtotime(self::$target);
+		$migration = strtotime($m[0]);
+		return ($migration <= $target);
 	}
 }
 ?>

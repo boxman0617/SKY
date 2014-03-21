@@ -456,10 +456,11 @@ class AlterTable extends MigrateTable
 		);
 	}
 
-	public function ChangeColumn($old_col_name, $new_col_name, $options = array())
+	public function ChangeColumn($old_col_name, $new_col_name, $type, $options = array())
 	{
 		$this->_columns[$old_col_name] = array(
 			'action' => self::CHANGE,
+			'type' => $type,
 			'new_col_name' => $new_col_name,
 			'options' => $options
 		);
@@ -522,6 +523,28 @@ class AlterTable extends MigrateTable
 	private function _DROPColumn($name, $options)
 	{
 		return self::DROP.' COLUMN `'.$name.'`, ';
+	}
+
+	private function _ALTERColumn($name, $options)
+	{
+		$column = self::ALTER.' COLUMN `'.$name.'` ';
+		if(array_key_exists('set_default', $options))
+		{
+			$column .= 'SET_DEFAULT ';
+			if(is_string($options['set_default']))
+				$column /= '"'.$options['set_default'].'"';
+			else
+				$column .= $options['set_default'];
+		} elseif(array_key_exists('drop_default', $options)) {
+			$column .= 'DROP_DEFAULT';
+		}
+		return $column.', ';
+	}
+
+	private function _CHANGEColumn($name, $options)
+	{
+		$column = self::CHANGE.' COLUMN `'.$name.'` ';
+		return $this->CreateAddColumn($column, $options['new_col_name'], $options);
 	}
 }
 
