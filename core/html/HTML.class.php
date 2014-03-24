@@ -26,11 +26,6 @@ class HTML
         'img'
     );
 
-    public function __construct()
-    {
-
-    }
-
     public function __call($tag, $params)
     {
         if(is_array($params[0]))

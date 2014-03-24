@@ -124,7 +124,7 @@ class TestMaster
     {
         $result = ((self::$score['fail'] > 0) ? 'FAIL' : 'PASS');
         if(php_sapi_name() == 'cli')
-    {
+        {
             echo "==============================================\n";
             echo "[".$result."] Pass: ".self::$score['pass']." Fail: ".self::$score['fail']." Total: ".array_sum(self::$score)."\n";
         } else {
@@ -151,9 +151,9 @@ class TestMaster
     }
 
     public static function AssertNotEqual($var1, $var2, $msg = null)
-        {
+    {
         self::_IncreaseCount($var1 != $var2, 'NotEqual', $msg);
-        }
+    }
 
     public static function AssertSame($var1, $var2, $msg = null)
     {
@@ -166,9 +166,9 @@ class TestMaster
     }
 
     public static function AssertNull($var, $msg = null)
-        {
+    {
         self::_IncreaseCount(is_null($var), 'Null', $msg);
-        }
+    }
 
     public static function AssertNotNull($var, $msg = null)
     {

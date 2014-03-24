@@ -62,8 +62,19 @@ class DataCache
 		throw new Exception('No cache key of that name found ['.$key.']');
 	}
 
+	public static function Clear($key)
+	{
+		$file = self::GetKeyFile($key);
+		if($file !== false)
+			return self::ClearCache($file);
+
+		throw new Exception('No cache key of that name found ['.$key.']');
+	}
+
 	protected static function GetKeyFile($key)
 	{
+		if(!is_dir(SkyDefines::Call('DIR_APP').self::$CacheDir))
+			@mkdir(SkyDefines::Call('DIR_APP').self::$CacheDir);
 		if($handle = opendir(SkyDefines::Call('DIR_APP').self::$CacheDir))
 		{
 			while(false !== ($entry = readdir($handle)))

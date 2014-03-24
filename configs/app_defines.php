@@ -20,6 +20,7 @@ SkyDefines::Define('DIR_LIB_TASKS', SkyDefines::Call('DIR_LIB').'/tasks');
 SkyDefines::Define('DIR_LIB_OBJECTS', SkyDefines::Call('DIR_LIB').'/objects');
 SkyDefines::Define('DIR_LIB_MIGRATIONS', SkyDefines::Call('DIR_LIB').'/migrations');
 SkyDefines::Define('DIR_LIB_CACHE', SkyDefines::Call('DIR_LIB').'/tmp/cache');
+SkyDefines::Define('DIR_LIB_SCRIPTS', SkyDefines::Call('DIR_LIB').'/scripts');
 
 // #APP Log Files
 SkyDefines::Define('DIR_LOG', SkyDefines::Call('APPROOT').'/log');

@@ -40,4 +40,21 @@ class InvalidRouteException extends Exception
     protected $message = 'Route does not exists.';
     protected $code = 4000;
 }
+
+class NoScriptFoundException extends Exception
+{
+    protected $message = 'Unable to fork! No script found for [';
+    protected $code = 5000;
+
+    public function __construct($script)
+    {
+        parent::__construct($this->message.$script.']', $this->code);
+    }
+}
+
+class ForkException extends Exception
+{
+    protected $message = 'Unable to fork';
+    protected $code = 5001;
+}
 ?>
