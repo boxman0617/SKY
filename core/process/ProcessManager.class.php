@@ -3,6 +3,23 @@ class ProcessManager
 {
 	public static $StartupWaitCycles = 60;
 	public static $ProcessListTableName = 'processes';
+
+	const PS_INIT 		= 0;
+	const PS_CREATED	= 1;
+	const PS_RUNNING	= 2;
+	const PS_KILLED 	= 3;
+	const PS_ERROR 		= 4;
+	const PS_DONE 		= 5;
+
+	public static $Status = array(
+		'INIT' => 'Initializing',
+		'CREATED' => 'Process has been created',
+		'RUNNING' => 'Running...',
+		'KILLED' => 'Process has been killed',
+		'KILLING' => 'Attempting to kill process',
+		'ERROR' => 'Encountered an error',
+		'DONE' => 'Process is done running'
+	);
 	
 	private static $_DB = null;
 
@@ -22,10 +39,34 @@ class ProcessManager
 		return $db->query($query);
 	}
 
+	public static function Insert($values = array())
+	{
+		$query = 'INSERT INTO `'.self::$ProcessListTableName.'` (';
+		$columns = array_keys($values);
+		$values = array_values($values);
+		foreach($columns as $column)
+			$query .= '`'.$column.'`, ';
+		$query = substr($query, 0, -2);
+		$query .= ') VALUES (';
+		foreach($values as $value)
+		{
+			if(is_string($value))
+				$query .= '"'.$value.'", ';
+			else
+				$query .= $value.', ';
+		}
+		$query = substr($query, 0, -2);
+		$query .= ')';
+
+		$ID = self::RunQuery($query);
+		if($ID !== false)
+			return self::GetDatabaseInstance()->insert_id;
+		return false;
+	}
+
 	public static function Fork($script)
 	{
-		$s = self::DoesScriptExists($script);
-		if($s === false)
+		if(self::DoesScriptExists($script) === false)
 			throw new NoScriptFoundException($script);
 
 		$desc = array(
@@ -35,7 +76,7 @@ class ProcessManager
 		);
 
 		$process = proc_open(
-			'exec '.$s.' > /dev/null & echo $!',
+			'exec '.PHP_BINARY.' '.SkyDefines::Call('SKYCORE_CORE_PROCESS').'/Run.php '.$script.' > /dev/null & echo $!',
 			$desc, $pipes
 		);
 
@@ -52,13 +93,10 @@ class ProcessManager
 			$STDERR = fread($pipes[2], 4096);
 			fclose($pipes[2]);
 
+			var_dump($STDERR, $PID, in_array($PID, self::GetPIDs()));
+
 			if($STDERR != '' && !in_array($PID, self::GetPIDs()))
-			{
-				return Process::Init(array(
-					'script' => $script,
-					'error' => $STDERR
-				));
-			}
+				return Process::InitError($PID, $script, $STDERR);
 			elseif($STDERR == '' && $PLID = self::IsChildActive($PID))
 			{
 				$process = Process::Get($PLID);
@@ -72,12 +110,7 @@ class ProcessManager
 				return $process;
 			}
 			else
-			{
-				return Process::Init(array(
-					'script' => $script,
-					'error' => 'Unknown startup error occured!'
-				));
-			}
+				return Process::InitError($PID, $script, 'Unknown startup error occured!');
 
 		}
 
@@ -127,4 +160,29 @@ class ProcessManager
 		return false;
 	}
 }
+
+// class CreateProcessList extends Migration
+// {
+// 	public function Up()
+// 	{
+// 		$t = Table::Create('processes');
+// 		$t->AddColumn('PID', 'mediumint', array('null' => false, 'unsigned' => true));
+// 		$t->AddColumn('name', 'varchar', array('null' => false, 'length' => 255));
+// 		$t->AddColumn('progress', 'tinyint', array('null' => false, 'unsigned' => true, 'default' => 0));
+// 		$t->AddColumn('status', 'varchar', array('null' => false, 'length' => 255));
+// 		$t->AddColumn('status_code', 'tinyint', array('null' => false, 'unsigned' => true, 'length' => 1));
+// 		$t->AddColumn('error', 'text', array('null' => false));
+// 		$t->AddColumn('max_time', 'smallint', array('null' => false, 'unsigned' => true, 'default' => 0, 'comment' => 'By seconds'));
+
+// 		$t->AddIndex(array('PID'));
+// 		$t->AddIndex(array('status_code'));
+
+// 		$t->Create();
+// 	}
+
+// 	public function Down()
+// 	{
+// 		$this->DropTable('processes');
+// 	}
+// }
 ?>
