@@ -1,17 +1,15 @@
 <?php
-class RunningProcess
+SkyL::Import(SkyDefines::Call('BASEPROCESS_CLASS'));
+
+class RunningProcess extends BaseProcess
 {
-	private $_ID = null;
 	private $_PID = null;
 	private $_max_time = 0;
 	private $_wait = 60; //seconds
 
-	private $_cached_data = array();
-	private $_data = array();
-	private $_dirty = false;
-
 	public function __construct($max_time = 0)
 	{
+		parent::__construct();
 		$this->_PID = getmypid();
 		$this->_max_time = $max_time;
 
@@ -21,10 +19,16 @@ class RunningProcess
 
 	private function WaitForConnection()
 	{
+		$this->status_code = ProcessManager::PS_WAITING;
 		$s = 0;
 		while($s < $this->_wait)
 		{
-			
+			if($this->status_code == ProcessManager::PS_CREATED)
+			{
+				$this->status_code = ProcessManager::PS_RUNNING;
+				return true;
+			}
+			$s++;
 			sleep(1);
 		}
 	}
@@ -37,33 +41,19 @@ class RunningProcess
 	private function Register()
 	{
 		$this->_ID = ProcessManager::Insert(array(
-			'PID' => $this->PID,
+			'PID' => $this->_PID,
+			'name' => ProcessManager::GetScriptName(),
 			'status' => ProcessManager::$Status['INIT'],
 			'status_code' => ProcessManager::PS_INIT,
 			'max_time' => $this->_max_time
 		));
+		$this->Sync();
 	}
 
 	public function Finish()
 	{
-
-	}
-
-	private function Sync()
-	{
-		if($this->_dirty)
-		{
-			
-		} else {
-			$query = 'SELECT * FROM `'.ProcessManager::$ProcessListTableName.' WHERE ';
-			$query .= '`id` = '.$this->_ID;
-			if($r = ProcessManager::RunQuery($query))
-			{
-				$row = $r->fetch_assoc();
-				$this->_data = $row;
-				$this->CacheData();
-			}
-		}
+		$this->status_code = ProcessManager::PS_DONE;
+		exit();
 	}
 }
 ?>

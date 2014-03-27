@@ -10,18 +10,31 @@ class ProcessManager
 	const PS_KILLED 	= 3;
 	const PS_ERROR 		= 4;
 	const PS_DONE 		= 5;
+	const PS_WAITING	= 7;
 
 	public static $Status = array(
-		'INIT' => 'Initializing',
+		'INIT'    => 'Initializing',
+		'WAIT'    => 'Waiting...',
 		'CREATED' => 'Process has been created',
 		'RUNNING' => 'Running...',
-		'KILLED' => 'Process has been killed',
+		'KILLED'  => 'Process has been killed',
 		'KILLING' => 'Attempting to kill process',
-		'ERROR' => 'Encountered an error',
-		'DONE' => 'Process is done running'
+		'ERROR'   => 'Encountered an error',
+		'DONE'    => 'Process is done running'
 	);
 	
 	private static $_DB = null;
+	private static $_tmpScriptHold;
+
+	public static function SetScriptName($name)
+	{
+		self::$_tmpScriptHold = $name;
+	}
+
+	public static function GetScriptName()
+	{
+		return self::$_tmpScriptHold;
+	}
 
 	public static function GetDatabaseInstance()
 	{
@@ -46,8 +59,7 @@ class ProcessManager
 		$values = array_values($values);
 		foreach($columns as $column)
 			$query .= '`'.$column.'`, ';
-		$query = substr($query, 0, -2);
-		$query .= ') VALUES (';
+		$query .= '`created_at`) VALUES (';
 		foreach($values as $value)
 		{
 			if(is_string($value))
@@ -55,8 +67,7 @@ class ProcessManager
 			else
 				$query .= $value.', ';
 		}
-		$query = substr($query, 0, -2);
-		$query .= ')';
+		$query .= 'NOW())';
 
 		$ID = self::RunQuery($query);
 		if($ID !== false)
@@ -93,25 +104,26 @@ class ProcessManager
 			$STDERR = fread($pipes[2], 4096);
 			fclose($pipes[2]);
 
-			var_dump($STDERR, $PID, in_array($PID, self::GetPIDs()));
-
-			if($STDERR != '' && !in_array($PID, self::GetPIDs()))
+			if(!empty($STDERR))
 				return Process::InitError($PID, $script, $STDERR);
-			elseif($STDERR == '' && $PLID = self::IsChildActive($PID))
-			{
-				$process = Process::Get($PLID);
-				$process->script = $script;
-				return $process;
-			}
-			elseif($PLID = self::IsInProcessList($PID))
-			{
-				$process = Process::Get($PLID);
-				$process->script = $script;
-				return $process;
-			}
-			else
+			else {
+				$s = 0;
+				while($s < self::$StartupWaitCycles)
+				{
+					if($ID = self::IsInProcessList($PID))
+					{
+						$process = Process::Get($ID);
+						if($process->status_code == self::PS_WAITING)
+						{
+							$process->status_code = self::PS_CREATED;
+							return $process;
+						}
+					}
+					$s++;
+					sleep(1);
+				}
 				return Process::InitError($PID, $script, 'Unknown startup error occured!');
-
+			}
 		}
 
 		throw new ForkException();
@@ -132,16 +144,41 @@ class ProcessManager
 		return false;
 	}
 
-	public static function IsInProcessList($PID)
+	private static function ProcessListQuery($column, $value)
 	{
-		$sql = 'SELECT `id` FROM `'.self::$ProcessListTableName.' WHERE ';
-		$sql .= '`PID` = "'.$PID.'"';
+		$sql = 'SELECT `id` FROM `'.self::$ProcessListTableName.'` WHERE ';
+		$sql .= '`'.$column.'` = ';
+		if(is_string($value))
+			$sql .= '"'.$value.'"';
+		else
+			$sql .= $value;
+
 		if($r = self::RunQuery($sql))
 		{
 			$row = $r->fetch_assoc();
 			return $row['id'];
 		}
-		return false;
+		throw new ProcessDisconnectException();
+	}
+
+	public static function CheckFor($ID)
+	{
+		try {
+			self::ProcessListQuery('id', $ID);
+			return true;
+		} catch(ProcessDisconnectException $e) {
+			return false;
+		}
+	}
+
+	public static function IsInProcessList($PID)
+	{
+		try {
+			$ID = self::ProcessListQuery('PID', $PID);
+			return $ID;
+		} catch(ProcessDisconnectException $e) {
+			return false;
+		}
 	}
 
 	public static function GetPIDs()

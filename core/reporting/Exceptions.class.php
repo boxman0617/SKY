@@ -57,4 +57,10 @@ class ForkException extends Exception
     protected $message = 'Unable to fork';
     protected $code = 5001;
 }
+
+class ProcessDisconnectException extends Exception
+{
+    protected $message = 'Unable to push/pull data due to unknown reason.';
+    protected $code = 5002;
+}
 ?>

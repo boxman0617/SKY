@@ -278,10 +278,10 @@ class Error
         $error = error_get_last();
         if($error)
         {
+            self::LogError($error['type'], $error['message'], $error['file'], $error['line']);
             if(SkyDefines::GetEnv() !== 'PRO')
             {
                 //ob_end_clean( );
-                self::LogError($error['type'], $error['message'], $error['file'], $error['line']);
                 self::BuildMessage($error['type'], $error['message'], $error['file'], $error['line'], 'f48989');
             }
         }
