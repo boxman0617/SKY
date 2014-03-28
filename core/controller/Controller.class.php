@@ -625,7 +625,7 @@ abstract class Controller extends Base
     public function JSON($info)
     {
         $this->Render(array(
-            'flag' => RENDER_JSON,
+            'flag' => self::RENDER_JSON,
             'info' => $info
         ));
     }
