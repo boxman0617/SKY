@@ -16,7 +16,7 @@ class RenderHTML extends Base implements RenderInterface
     
 	public function Render(&$render_info)
 	{
-		if($render_info['status'] == NOT_RENDERED)
+		if($render_info['status'] == Controller::NOT_RENDERED)
 		{
 			extract(Controller::$_variables);
 			if(is_null(self::$_subview_render_cache))
@@ -42,7 +42,7 @@ class RenderHTML extends Base implements RenderInterface
     		    return false;
     		}
             ob_flush();
-			$render_info['status'] = RENDERED;
+			$render_info['status'] = Controller::RENDERED;
 		}
 	}
 }
