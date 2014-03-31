@@ -253,6 +253,13 @@ abstract class MigrateTable
 		return '('.$size.')';
 	}
 
+	protected function ProcessDecimals($size)
+	{
+		if(!is_array($size))
+			throw new Exception('Option decimals expects an array.');
+		return '('.$size[0].', '.$size[1].')';
+	}
+
 	protected function ProcessLength_decimals($size)
 	{
 		if(is_array($size))

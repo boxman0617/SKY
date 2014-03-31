@@ -58,8 +58,7 @@ class SkyMRollback implements SkyCommand
 			try {
 				$mObj->Down();
 			} catch(Exception $e) {
-				$this->_cli->PrintLn('#!!! Was unable to complete rollback. SKipping...');
-				continue;
+				$this->_cli->ShowError('#!!! Was unable to complete migrations due to unexpected error.');
 			}
 			
 			unset($log['ran'][$env][array_search($migration, $log['ran'][$env])]);
@@ -90,8 +89,8 @@ class SkyMRollback implements SkyCommand
 			if(in_array($migration, $log['ran'][$env]) && !in_array($migration, $log['rolled'][$env]))
 				$need_to_roll[] = $migration;
 		}
-		$migrations = array_filter($migrations, $filter);
-		$migrations = array_values($migrations);
+		$need_to_roll = array_filter($need_to_roll, $filter);
+		$need_to_roll = array_values($need_to_roll);
 		$about_to_run = count($need_to_roll);
 		if($about_to_run == 0)
 		{
@@ -103,7 +102,7 @@ class SkyMRollback implements SkyCommand
 		}
 
 		$this->_cli->PrintLn('# Rolling back...');
-		$ran_count = $this->RunRollbacks($migrations, $env, $log);
+		$ran_count = $this->RunRollbacks($need_to_roll, $env, $log);
 
 		$this->_cli->PrintLn('# Rolled back ['.$ran_count.'/'.$about_to_run.'] migration(s)!');
 	}
@@ -129,7 +128,7 @@ class SkyMRollback implements SkyCommand
 		$m = explode('.', $t[1]);
 		$target = strtotime(self::$target);
 		$migration = strtotime($m[0]);
-		return ($migration <= $target);
+		return ($migration >= $target);
 	}
 }
 // $log = $this->_cli->ReadFromMigrationLog();

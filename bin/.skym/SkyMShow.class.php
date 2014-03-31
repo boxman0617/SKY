@@ -49,7 +49,7 @@ class SkyMShow implements SkyCommand
 		{
 			$t = explode('_', $migration);
 			$d = explode('.', $t[1]);
-			$this->_cli->PrintLn('# ['.$d[0].'] '.$t[0]);
+			$this->_cli->PrintLn('# ['.$d[0].'] ('.date('F j, Y g:i A', strtotime($d[0])).') '.$t[0]);
 		}
 	}
 
@@ -88,7 +88,7 @@ class SkyMShow implements SkyCommand
 			{
 				$t = explode('_', $migration);
 				$d = explode('.', $t[1]);
-				$this->_cli->PrintLn('# ['.$d[0].'] '.$t[0]);
+				$this->_cli->PrintLn('# ['.$d[0].'] ('.date('F j, Y g:i A', strtotime($d[0])).') '.$t[0]);
 			}
 		} else {
 			$this->_cli->PrintLn($failed);

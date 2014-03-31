@@ -54,8 +54,7 @@ class SkyMMigrate implements SkyCommand
 			try {
 				$mObj->Up();
 			} catch(Exception $e) {
-				$this->_cli->PrintLn('#!!! Was unable to complete migrations. SKipping...');
-				continue;
+				$this->_cli->ShowError('#!!! Was unable to complete migrations due to unexpected error.');
 			}
 			
 			$log['ran'][$env][] = $migration;
