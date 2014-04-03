@@ -30,7 +30,7 @@
  * SOFTWARE.
  * 
  * @author      Alan Tirado <alan@deeplogik.com>
- * @copyright   2013 DeepLogik, All Rights Reserved
+ * @copyright   2014 DeepLogik, All Rights Reserved
  * @license     MIT
  * @package     Core\Controller\Controller
  * @version     1.0.0
@@ -1105,10 +1105,10 @@ abstract class Controller extends Base
         if(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on')
             $pageURL .= 's';
         $pageURL .= '://';
-        // if($_SERVER['SERVER_PORT'] != '80')
-        //     $pageURL .= $_SERVER['SERVER_NAME'].':'.$_SERVER['SERVER_PORT'];
-        // else
-        $pageURL .= $_SERVER['SERVER_NAME'];
+        if($_SERVER['SERVER_PORT'] != '80')
+            $pageURL .= $_SERVER['SERVER_NAME'].':'.$_SERVER['SERVER_PORT'];
+        else
+            $pageURL .= $_SERVER['SERVER_NAME'];
         if($full && array_key_exists('REQUEST_URI', $_SERVER))
             $pageURL .= $_SERVER['REQUEST_URI'];
         return $pageURL;

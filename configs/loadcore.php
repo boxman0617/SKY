@@ -16,6 +16,7 @@ SkyL::Import(SkyDefines::Call('MAILER_CLASS'));
 SkyL::Import(SkyDefines::Call('ROUTETO_CLASS'));
 SkyL::Import(SkyDefines::Call('ROUTER_CLASS'));
 SkyL::Import(SkyDefines::Call('ROUTE_CLASS'));
+SkyL::Import(SkyDefines::Call('PUBLISHAPI_CLASS'));
 SkyL::Import(SkyDefines::Call('SKY_CLASS'));
 SkyL::Import(SkyDefines::Call('HELPER_CLASS'));
 SkyL::Import(SkyDefines::Call('SERVICELOCATOR_CLASS'));

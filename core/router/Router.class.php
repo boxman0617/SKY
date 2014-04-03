@@ -1,42 +1,53 @@
 <?php
-// ####
-// Router Class
-// 
-// This class acts like a router for all incoming requests.
-// It uses the Route class to determine where the requests
-// should go. Once the request matches up with one of the
-// routes in the Route class, it will create an instance
-// of the controller defined within the route definition.
-// Then the method that should be ran will be.
-//
-// @license
-// - This file may not be redistributed in whole or significant part, or
-// - used on a web site without licensing of the enclosed code, and
-// - software features.
-//
-// @author      Alan Tirado <alan@deeplogik.com>
-// @copyright   2013 DeepLogik, All Rights Reserved
-//
-// @version     0.0.7 Starting from here
-// ##
+/**
+ * Router Class
+ * 
+ * This class acts like a router for all incoming requests.
+ * It uses the Route class to determine where the requests
+ * should go. Once the request matches up with one of the
+ * routes in the Route class, it will create an instance
+ * of the controller defined within the route definition.
+ * Then the method that should be ran will be.
+ * 
+ * LICENSE:
+ * The MIT License (MIT)
+ * 
+ * Copyright (c) 2014 DeeplogiK
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ * 
+ * @author      Alan Tirado <alan@deeplogik.com>
+ * @copyright   2014 DeepLogik, All Rights Reserved
+ * @license     MIT
+ * @package     Core\router\Router
+ * @version     1.0.0
+ */
 
 define('STATUS_NOTFOUND', 404);
 define('STATUS_FOUND', 200);
-
-interface iRouter
-{
-    public function __construct();
-    
-    public static function GetSalt();
-    public static function CreateHash($salt);
-}
 
 // ####
 // Router Class
 // @desc Handles requests from server and sends them to the proper controller.
 // @package SKY.Core.Router
 // ##
-class Router extends Base implements iRouter
+class Router extends Base
 {
     private $home;
     private $notfound;
@@ -191,6 +202,8 @@ class Router extends Base implements iRouter
         
         self::$_share['router']['query'] = $query;
         self::$_share['router']['METHOD'] = $this->REQUEST_METHOD;
+
+        Event::PublishActionHook('/Route/query/ready/before/', array($query, $this->REQUEST_METHOD));
 
         if(isset($tmp[$query])) //Direct match
         {

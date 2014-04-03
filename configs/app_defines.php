@@ -9,6 +9,7 @@ SkyDefines::Define('DIR_APP_MAILERS', SkyDefines::Call('APPROOT').'/app/mailers'
 SkyDefines::Define('DIR_APP_MODELS', SkyDefines::Call('APPROOT').'/app/models');
 SkyDefines::Define('DIR_APP_SERVICES', SkyDefines::Call('APPROOT').'/app/services');
 SkyDefines::Define('DIR_APP_VIEWS', SkyDefines::Call('APPROOT').'/app/views');
+SkyDefines::Define('DIR_APP_API', SkyDefines::Call('APPROOT').'/app/api');
 
 // #APP Configs Files
 SkyDefines::Define('DIR_CONFIGS', SkyDefines::Call('APPROOT').'/configs');
@@ -33,6 +34,9 @@ SkyDefines::Define('DIR_PUBLIC', SkyDefines::Call('APPROOT').'/public');
 // #APP Test Files
 SkyDefines::Define('DIR_TEST', SkyDefines::Call('APPROOT').'/test');
 SkyDefines::Define('DIR_FIXTURES', SkyDefines::Call('APPROOT').'/test/fixtures');
+
+// #Reserved API route
+SkyDefines::Define('API_BASE_ROUTE', 'api');
 
 //#############################################
 // SkyL::Import() import paths @DoNotEdit
