@@ -526,7 +526,9 @@ class MySQLDriver implements iDriver
         // SQL: WHERE `id` IN (1, 2, 3, 4, 5, 6)
         elseif(func_num_args() == 1 && is_array(func_get_arg(0)))
         {
-            foreach(func_get_arg(0) as $key => $value)
+            $args = func_get_arg(0);
+            $this->bool_to_string($args);
+            foreach($args as $key => $value)
             {
                 $operator = '=';
                 if(is_array($value))
@@ -591,6 +593,7 @@ class MySQLDriver implements iDriver
                 $arg = func_get_arg($i);
                 if(!is_array($arg))
                     trigger_error(__CLASS__."::".__FUNCTION__." Must be an array");
+                $this->bool_to_string($arg);
                 foreach($arg as $key => $value)
                 {
                     $operator = '=';
