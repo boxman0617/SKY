@@ -36,14 +36,16 @@ class SkyMRollback implements SkyCommand
 	public function Execute($args = array())
 	{
 		SkyL::Import(SkyDefines::Call('MIGRATION_CLASS'));
+		SkyDefines::SetEnv($args[0]);
+
 		$num = count($args);
 		if($num == 1)
-			$this->RunRollbacksForEnv($args[0]);
+			$this->RunRollbacksForEnv();
 		elseif($num == 2)
-			$this->RunRollbacksForEnvAndTarget($args[0], $args[1]);
+			$this->RunRollbacksForEnvAndTarget($args[1]);
 	}
 
-	private function RunRollbacks($migrations, $env, $log)
+	private function RunRollbacks($migrations)
 	{
 		$ran_count = 0;
 		foreach($migrations as $migration)
@@ -54,44 +56,25 @@ class SkyMRollback implements SkyCommand
 			$tmp = explode('_', $migration);
 			$class = $tmp[0];
 
-			$mObj = new $class($this->_cli->GetMySQLConnection($env));
+			$mObj = new $class($this->_cli->GetMySQLConnection(SkyDefines::GetEnv()));
 			try {
 				$mObj->Down();
 			} catch(Exception $e) {
 				$this->_cli->ShowError('#!!! Was unable to complete migrations due to unexpected error.');
 			}
-			
-			unset($log['ran'][$env][array_search($migration, $log['ran'][$env])]);
-			$log['rolled'][$env][] = $migration;
 
+			MigrationLog::MarkAsRolled($migration);
 			$this->_cli->PrintLn('#=== Complete!');
 			$ran_count++;
-			$this->_cli->WriteToMigrationLog($log);
-			$log = $this->_cli->ReadFromMigrationLog();
 		}
 		return $ran_count;
 	}
 
-	private function LoadRollbacksToRun($env, callable $filter)
+	private function LoadRollbacksToRun(callable $filter)
 	{
-		$log = $this->_cli->ReadFromMigrationLog();
-		$migrations = $this->_cli->GetListOfMigrations();
-		$migrations = array_reverse($migrations);
+		$migrations = array_values(array_filter(MigrationLog::GetMigrated(), $filter));
 		
-		if(!array_key_exists($env, $log['ran']))
-			$log['ran'][$env] = array();
-		if(!array_key_exists($env, $log['rolled']))
-			$log['rolled'][$env] = array();
-
-		$need_to_roll = array();
-		foreach($migrations as $migration)
-		{
-			if(in_array($migration, $log['ran'][$env]) && !in_array($migration, $log['rolled'][$env]))
-				$need_to_roll[] = $migration;
-		}
-		$need_to_roll = array_filter($need_to_roll, $filter);
-		$need_to_roll = array_values($need_to_roll);
-		$about_to_run = count($need_to_roll);
+		$about_to_run = count($migrations);
 		if($about_to_run == 0)
 		{
 			$this->_cli->PrintLn('# No rollbacks to run...');
@@ -102,22 +85,22 @@ class SkyMRollback implements SkyCommand
 		}
 
 		$this->_cli->PrintLn('# Rolling back...');
-		$ran_count = $this->RunRollbacks($need_to_roll, $env, $log);
+		$ran_count = $this->RunRollbacks($migrations);
 
 		$this->_cli->PrintLn('# Rolled back ['.$ran_count.'/'.$about_to_run.'] migration(s)!');
 	}
 
-	private function RunRollbacksForEnv($env)
+	private function RunRollbacksForEnv()
 	{
-		$this->LoadRollbacksToRun($env, function($m){
+		$this->LoadRollbacksToRun(function($m){
 			return true;
 		});
 	}
 
-	private function RunRollbacksForEnvAndTarget($env, $target)
+	private function RunRollbacksForEnvAndTarget($target)
 	{
 		self::$target = $target;
-		$this->LoadRollbacksToRun($env, function($m){
+		$this->LoadRollbacksToRun(function($m){
 			return SkyMRollback::CheckIfGreaterThenTarget($m);
 		});
 	}
@@ -131,48 +114,4 @@ class SkyMRollback implements SkyCommand
 		return ($migration >= $target);
 	}
 }
-// $log = $this->_cli->ReadFromMigrationLog();
-// 		$migrations = $this->_cli->GetListOfMigrations();
-// 		$migrations = array_reverse($migrations);
-		
-// 		if(!array_key_exists($env, $log['ran']))
-// 			$log['ran'][$env] = array();
-// 		if(!array_key_exists($env, $log['rolled']))
-// 			$log['rolled'][$env] = array();
-// 		$need_to_roll = array();
-// 		foreach($migrations as $migration)
-// 		{
-// 			if(in_array($migration, $log['ran'][$env]) && !in_array($migration, $log['rolled'][$env]))
-// 				$need_to_roll[] = $migration;
-// 		}
-
-// 		$about_to_run = count($need_to_roll);
-// 		if($about_to_run == 0)
-// 		{
-// 			$this->_cli->PrintLn('# No rollbacks to run...');
-// 			exit();
-// 		} else {
-// 			$this->_cli->PrintLn('# About to roll back ['.$about_to_run.'] migrations(s)');
-// 			$this->_cli->PrintLn('#');
-// 		}
-
-// 		$this->_cli->PrintLn('# Rolling back...');
-// 		$ran_count = 0;
-// 		foreach($need_to_roll as $migration)
-// 		{
-// 			SkyL::Import(SkyDefines::Call('DIR_LIB_MIGRATIONS').'/'.$migration);
-// 			$this->_cli->PrintLn('#=> '.$migration);
-// 			flush();
-// 			$tmp = explode('_', $migration);
-// 			$class = $tmp[0];
-
-// 			$mObj = new $class($this->_cli->GetMySQLConnection($env));
-// 			$mObj->Down();
-// 			unset($log['ran'][$env][array_search($migration, $log['ran'][$env])]);
-// 			$log['rolled'][$env][] = $migration;
-// 			$this->_cli->PrintLn('#=== Complete!');
-// 			$ran_count++;
-// 		}
-// 		$this->_cli->PrintLn('# Rolled back ['.$ran_count.'/'.$about_to_run.'] migration(s)!');
-// 		$this->_cli->WriteToMigrationLog($log);
 ?>

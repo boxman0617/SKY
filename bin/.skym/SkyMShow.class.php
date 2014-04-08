@@ -10,22 +10,22 @@ class SkyMShow implements SkyCommand
 
 	public function GetShortHelp()
 	{
-		$help = "#\tskym show ran\n";
+		$help = "#\tskym show migrated\n";
 		$help .= "#\tskym show list\n";
-		$help .= "#\tskym show failed";
+		$help .= "#\tskym show rolled";
 		return $help;
 	}
 
 	public function GetLongHelp()
 	{
-		$help = "#\tskym show ran\n";
-		$help .= "#\t - Will show a list of all the migrations that where successfully ran.\n";
+		$help = "#\tskym show migrated\n";
+		$help .= "#\t - Will show a list of all the migrations that where successfully migrated.\n";
 		$help .= "#\n";
 		$help .= "#\tskym show list\n";
 		$help .= "#\t - Will show a list of all migrations no matter what status.\n";
 		$help .= "#\n";
-		$help .= "#\tskym show failed\n";
-		$help .= "#\t - Will show a list of all the migrations that failed.";
+		$help .= "#\tskym show rolled\n";
+		$help .= "#\t - Will show a list of all the migrations that where successfully rolled back.";
 		return $help;
 	}
 
@@ -46,53 +46,47 @@ class SkyMShow implements SkyCommand
 		$this->_cli->ShowBar('=');
 		$migrations = $this->_cli->GetListOfMigrations();
 		foreach($migrations as $migration)
-		{
-			$t = explode('_', $migration);
-			$d = explode('.', $t[1]);
-			$this->_cli->PrintLn('# ['.$d[0].'] ('.date('F j, Y g:i A', strtotime($d[0])).') '.$t[0]);
-		}
+			$this->DisplayMigration($migration);
 	}
 
-	private function ExecuteRan()
+	private function ExecuteMigrated()
 	{
 		$this->_cli->ShowBar();
-		$this->_cli->PrintLn('# List of all ran Migrations under ['.SkyDefines::GetEnv().']');
+		$this->_cli->PrintLn('# List of all migrated Migrations under ['.SkyDefines::GetEnv().']');
 		$this->_cli->ShowBar('=');
 		$log = $this->_cli->ReadFromMigrationLog();
 
-		$this->ShowListOf('ran', '# No migrations have been ran under the current env.');
+		$this->ShowListOf('migrated', '# No migrations have been migrated under the current env.');
 	}
 
-	private function ExecuteFailed()
+	private function ExecuteRolled()
 	{
 		$this->_cli->ShowBar();
-		$this->_cli->PrintLn('# List of all failed Migrations under ['.SkyDefines::GetEnv().']');
+		$this->_cli->PrintLn('# List of all rolled back Migrations under ['.SkyDefines::GetEnv().']');
 		$this->_cli->ShowBar('=');
 		$log = $this->_cli->ReadFromMigrationLog();
 
-		$this->ShowListOf('failed', '# No migrations have failed under the current env.');
+		$this->ShowListOf('rolled', '# No migrations have been rolled back under the current env.');
 	}
 
 	private function ShowListOf($of, $failed)
 	{
-		$log = $this->_cli->ReadFromMigrationLog();
-		
-		if(array_key_exists(SkyDefines::GetEnv(), $log[$of]))
+		$migrations = call_user_func('MigrationLog::Get'.ucfirst($of));
+		if(empty($migrations))
 		{
-			if(count($log[$of][SkyDefines::GetEnv()]) == 0)
-			{
-				$this->_cli->PrintLn($failed);
-				return true;
-			}
-			foreach($log[$of][SkyDefines::GetEnv()] as $migration)
-			{
-				$t = explode('_', $migration);
-				$d = explode('.', $t[1]);
-				$this->_cli->PrintLn('# ['.$d[0].'] ('.date('F j, Y g:i A', strtotime($d[0])).') '.$t[0]);
-			}
-		} else {
 			$this->_cli->PrintLn($failed);
+			return false;
 		}
+
+		foreach($migrations as $migration)
+			$this->DisplayMigration($migration);
+	}
+
+	private function DisplayMigration($migration)
+	{
+		$t = explode('_', $migration);
+		$d = explode('.', $t[1]);
+		$this->_cli->PrintLn('# ['.$d[0].'] ('.date('F j, Y g:i A', strtotime($d[0])).') '.$t[0]);
 	}
 }
 ?>
