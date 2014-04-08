@@ -18,6 +18,129 @@ SKY::LoadCore();
 SkyL::Import(SkyDefines::Call('SKYCLI_CLASS'));
 SkyL::Import(SkyDefines::Call('SKYCORE_CORE_COMMANDS').'/SkyCommand.interface.php');
 
+class MigrationLog
+{
+	private static $Instance = null;
+	private static $HostName;
+
+	private $LogName 	= '.migrations.log';
+	private $LogLoc  	= 'DIR_LIB_MIGRATIONS';
+	private $InitArray 	= array(
+		'migrated' => array(),
+		'rolled'   => array()
+	);
+
+	// ## STATIC
+	public static function GetInstance()
+	{
+		if(is_null(self::$Instance))
+			self::$Instance = new MigrationLog();
+		return self::$Instance;
+	}
+
+	public static function GetUnmigrated()
+	{
+		$ML = self::GetInstance();
+		$migrations = SkyM::GetListOfMigrations();
+		$migrated = $ML->Read('migrated');
+
+		return array_values(array_diff($migrations, $migrated));
+	}
+
+	public static function GetMigrated()
+	{
+		$ML = self::GetInstance();
+		$migrations = SkyM::GetListOfMigrations();
+		return $ML->Read('migrated');
+	}
+
+	public static function GetRolled()
+	{
+		$ML = self::GetInstance();
+		$migrations = SkyM::GetListOfMigrations();
+		return $ML->Read('rolled');
+	}
+
+	public static function MarkAsMigrated($migration)
+	{
+		self::Mark('migrated', 'rolled', $migration);
+	}
+
+	public static function MarkAsRolled($migration)
+	{
+		self::Mark('rolled', 'migrated', $migration);
+	}
+
+	private static function Mark($as, $remove, $migration)
+	{
+		$ML = self::GetInstance();
+		$ML->AddTo($as, $migration);
+		$ML->RemoveFrom($remove, $migration);
+	}
+
+	// ## PUBLIC
+	public function __construct()
+	{
+		self::$HostName = php_uname('n');
+		$file = $this->GetMigrationFile();
+		if(!is_file($file)) // If migration log does not exists
+			$this->InitLogFile($file);
+
+		$log = unserialize(file_get_contents($this->GetMigrationFile()));
+		if(!array_key_exists(self::$HostName, $log))
+		{
+			$log[self::$HostName] = array(
+				'DEV'  => $this->InitArray,
+				'TEST' => $this->InitArray,
+				'PRO'  => $this->InitArray
+			);
+			file_put_contents($this->GetMigrationFile(), serialize($log));
+		}
+	}
+
+	public function GetMigrationFile()
+	{
+		return SkyDefines::Call($this->LogLoc).'/'.$this->LogName;
+	}
+
+	public function AddTo($to, $migration)
+	{
+		$log = unserialize(file_get_contents($this->GetMigrationFile()));
+		$log[self::$HostName][SkyDefines::GetEnv()][$to][] = $migration;
+		file_put_contents($this->GetMigrationFile(), serialize($log));
+	}
+
+	public function RemoveFrom($from, $migration)
+	{
+		$log = unserialize(file_get_contents($this->GetMigrationFile()));
+		if(($key = array_search($migration, $log[self::$HostName][SkyDefines::GetEnv()][$from])) !== false)
+			unset($log[self::$HostName][SkyDefines::GetEnv()][$from][$key]);
+		else
+			return false;
+		return (bool) file_put_contents($this->GetMigrationFile(), serialize($log));
+	}
+
+	public function Read($type = 'migrated')
+	{
+		$log = unserialize(file_get_contents($this->GetMigrationFile()));
+		return $log[self::$HostName][SkyDefines::GetEnv()][$type];
+	}
+
+	// ## PRIVATE
+	private function InitLogFile($file)
+	{
+		$f = fopen($file, 'w');
+		fwrite($f, serialize(array(
+			self::$HostName => array(
+				'DEV'  => $this->InitArray,
+				'TEST' => $this->InitArray,
+				'PRO'  => $this->InitArray
+			)
+		)));
+		fclose($f);
+	}
+}
+
 class SkyM extends SkyCLI
 {
 	private function MigrationLog()
@@ -85,7 +208,7 @@ class SkyM extends SkyCLI
 		return ($a_date > $b_date) ? +1 : -1;
 	}
 
-	public function GetListOfMigrations()
+	public static function GetListOfMigrations()
 	{
 		$migrations = array();
 		if($handle = opendir(SkyDefines::Call('DIR_LIB_MIGRATIONS')))

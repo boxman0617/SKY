@@ -32,14 +32,16 @@ class SkyMMigrate implements SkyCommand
 	public function Execute($args = array())
 	{
 		SkyL::Import(SkyDefines::Call('MIGRATION_CLASS'));
+		SkyDefines::SetEnv($args[0]);
+
 		$num = count($args);
 		if($num == 1)
-			$this->RunMigrationsForEnv($args[0]);
+			$this->RunMigrationsForEnv();
 		elseif($num == 2)
-			$this->RunMigrationsForEnvAndTarget($args[0], $args[1]);
+			$this->RunMigrationsForEnvAndTarget($args[1]);
 	}
 
-	private function RunMigrations($migrations, $env, $log)
+	private function RunMigrations($migrations)
 	{
 		$ran_count = 0;
 		foreach($migrations as $migration)
@@ -50,37 +52,24 @@ class SkyMMigrate implements SkyCommand
 			$tmp = explode('_', $migration);
 			$class = $tmp[0];
 
-			$mObj = new $class($this->_cli->GetMySQLConnection($env));
+			$mObj = new $class($this->_cli->GetMySQLConnection(SkyDefines::GetEnv()));
 			try {
 				$mObj->Up();
 			} catch(Exception $e) {
 				$this->_cli->ShowError('#!!! Was unable to complete migrations due to unexpected error.');
 			}
 			
-			$log['ran'][$env][] = $migration;
-			if(array_key_exists($env, $log['rolled']) && in_array($migration, $log['rolled'][$env]))
-				unset($log['rolled'][$env][array_search($migration, $log['rolled'][$env])]);
+			MigrationLog::MarkAsMigrated($migration);
 			$this->_cli->PrintLn('#=== Complete!');
 			$ran_count++;
-			$this->_cli->WriteToMigrationLog($log);
-			$log = $this->_cli->ReadFromMigrationLog();
 		}
 		return $ran_count;
 	}
 
-	private function LoadMigrationsToRun($env, callable $filter)
+	private function LoadMigrationsToRun(callable $filter)
 	{
-		$log = $this->_cli->ReadFromMigrationLog();
-		$migrations = $this->_cli->GetListOfMigrations();
-		if(!array_key_exists($env, $log['ran']))
-			$log['ran'][$env] = array();
-		foreach($migrations as $key => $migration)
-		{
-			if(in_array($migration, $log['ran'][$env]))
-				unset($migrations[$key]);
-		}
-		$migrations = array_filter($migrations, $filter);
-		$migrations = array_values($migrations);
+		$migrations = array_values(array_filter(MigrationLog::GetUnmigrated(), $filter));
+
 		$about_to_run = count($migrations);
 		if($about_to_run == 0)
 		{
@@ -92,22 +81,22 @@ class SkyMMigrate implements SkyCommand
 		}
 
 		$this->_cli->PrintLn('# Running migrations...');
-		$ran_count = $this->RunMigrations($migrations, $env, $log);
+		$ran_count = $this->RunMigrations($migrations);
 
 		$this->_cli->PrintLn('# Ran ['.$ran_count.'/'.$about_to_run.'] migration(s)!');
 	}
 
-	private function RunMigrationsForEnv($env)
+	private function RunMigrationsForEnv()
 	{
-		$this->LoadMigrationsToRun($env, function($m){
+		$this->LoadMigrationsToRun(function($m){
 			return true;
 		});
 	}
 
-	private function RunMigrationsForEnvAndTarget($env, $target)
+	private function RunMigrationsForEnvAndTarget($target)
 	{
 		self::$target = $target;
-		$this->LoadMigrationsToRun($env, function($m){
+		$this->LoadMigrationsToRun(function($m){
 			return SkyMMigrate::CheckIfGreaterThenTarget($m);
 		});
 	}
