@@ -331,7 +331,24 @@ abstract class Controller extends Base
      */
     public function __set($name, $value)
     {
-        $this->Assign($name, $value);
+        Event::PublishActionHook('/Controller/before/__set/', array($name, $value));
+        self::$_variables[$name] = $value;
+        Event::PublishActionHook('/Controller/after/__set/', array($name, $value));
+    }
+
+    /**
+     * __get
+     * 
+     * Getter for assign properties
+     * 
+     * @param string $name Name of the variable
+     * @app
+     */
+    public function __get($name)
+    {
+        Event::PublishActionHook('/Controller/before/__get/', array($name));
+        return self::$_variables[$name];
+        Event::PublishActionHook('/Controller/after/__get/', array($name));
     }
 
     /**
@@ -1050,6 +1067,7 @@ abstract class Controller extends Base
      * @args String $value
      * - Value of the variable
      * @app
+     * @deprecated Use $this->name = value instead
      */
     public function Assign($name, $value)
     {
