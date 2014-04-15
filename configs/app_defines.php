@@ -38,6 +38,9 @@ SkyDefines::Define('DIR_FIXTURES', SkyDefines::Call('APPROOT').'/test/fixtures')
 // #Reserved API route
 SkyDefines::Define('API_BASE_ROUTE', 'api');
 
+// #PHP Binary
+SkyDefines::Define('PHP_BIN', '/usr/bin/php');
+
 //#############################################
 // SkyL::Import() import paths @DoNotEdit
 //#############################################

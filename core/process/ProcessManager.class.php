@@ -1,4 +1,5 @@
 <?php
+SkyL::Import(SkyDefines::Call('PROCESS_CLASS'));
 class ProcessManager
 {
 	public static $StartupWaitCycles = 60;
@@ -77,6 +78,7 @@ class ProcessManager
 
 	public static function Fork($script)
 	{
+		Log::corewrite('Forking script [%s]', 3, __CLASS__, __FUNCTION__, array($script));
 		if(self::DoesScriptExists($script) === false)
 			throw new NoScriptFoundException($script);
 
@@ -86,13 +88,22 @@ class ProcessManager
 			array('pipe', 'w')
 		);
 
-		$process = proc_open(
-			'exec '.PHP_BINARY.' '.SkyDefines::Call('SKYCORE_CORE_PROCESS').'/Run.php '.$script.' > /dev/null & echo $!',
-			$desc, $pipes
-		);
+		$PHP = PHP_BINARY;
+		if($PHP == '')
+		{
+			if(is_file(PHP_BINDIR.'/php'))
+				$PHP = PHP_BINDIR.'/php';
+			else
+				$PHP = SkyDefines::Call('PHP_BIN');
+		}
+
+		$exec = 'exec '.$PHP.' '.SkyDefines::Call('SKYCORE_CORE_PROCESS').'/Run.php '.$script.' '.realpath(SkyDefines::Call('APPROOT')).' > /dev/null & echo $!';
+		Log::corewrite('Exec string [%s]', 1, __CLASS__, __FUNCTION__, array($exec));
+		$process = proc_open($exec, $desc, $pipes);
 
 		if(is_resource($process))
 		{
+			Log::corewrite('Script is a resource [%s]', 2, __CLASS__, __FUNCTION__, array($script));
 			usleep(100000); // wait .05 seconds for startup errors.
 			fclose($pipes[0]);
 			stream_set_blocking($pipes[1], 0);
@@ -104,6 +115,7 @@ class ProcessManager
 			$STDERR = fread($pipes[2], 4096);
 			fclose($pipes[2]);
 
+			Log::corewrite('Script STRERR [%s]', 2, __CLASS__, __FUNCTION__, array($STDERR));
 			if(!empty($STDERR))
 				return Process::InitError($PID, $script, $STDERR);
 			else {
@@ -142,6 +154,45 @@ class ProcessManager
 			sleep(1);
 		}
 		return false;
+	}
+
+	public static function GC()
+	{
+		$r = rand(0, 1000);
+		if($r >= 500 && $r <= 552)
+		{
+			$sql = 'DELETE FROM `'.self::$ProcessListTableName.'` WHERE `status_code` IN ('.implode(',', array(
+				self::PS_DONE, self::PS_KILLED
+			)).')';
+			self::RunQuery($sql);
+		}
+	}
+
+	private static $PLCache = null;
+
+	public static function GetProcessList()
+	{
+		self::GC();
+		return self::_GetProcessList();
+	}
+
+	private static function _GetProcessList()
+	{
+		if(is_null(self::$PLCache))
+		{
+			$sql = 'SELECT * FROM `'.self::$ProcessListTableName;
+			if($r = self::RunQuery($sql))
+			{
+				$list = array();
+				while ($row = $r->fetch_assoc())
+			        $list[] = $row;
+			    self::$PLCache = $list;
+				return $list;
+			}
+			throw new ProcessDisconnectException();
+		} else {
+			return self::$PLCache;
+		}
 	}
 
 	private static function ProcessListQuery($column, $value)

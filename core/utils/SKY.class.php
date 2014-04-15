@@ -114,7 +114,7 @@ class SKY
 	public static function LoadCore($ENV = 'DEV')
 	{
 		require_once(getenv('SKYCORE').'/configs/defines.php');
-		SkyDefines::Define('APPROOT', $_SERVER['PWD']);
+		SkyDefines::Define('APPROOT', getcwd());
 
         SkyDefines::Overwrite('ARTIFICIAL_LOAD', true);
 

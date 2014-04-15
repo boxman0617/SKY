@@ -1,4 +1,7 @@
 <?php
+putenv('SKYCORE='.realpath(dirname(__FILE__).'/../../'));
+$CWD = $argv[2];
+chdir($CWD);
 require_once(getenv('SKYCORE').'/core/utils/SKY.class.php');
 SKY::LoadCore();
 SkyL::Import(SkyDefines::Call('PROCESSMANAGER_CLASS'));
