@@ -54,7 +54,6 @@ class SkyMShow implements SkyCommand
 		$this->_cli->ShowBar();
 		$this->_cli->PrintLn('# List of all migrated Migrations under ['.SkyDefines::GetEnv().']');
 		$this->_cli->ShowBar('=');
-		$log = $this->_cli->ReadFromMigrationLog();
 
 		$this->ShowListOf('migrated', '# No migrations have been migrated under the current env.');
 	}
@@ -64,7 +63,6 @@ class SkyMShow implements SkyCommand
 		$this->_cli->ShowBar();
 		$this->_cli->PrintLn('# List of all rolled back Migrations under ['.SkyDefines::GetEnv().']');
 		$this->_cli->ShowBar('=');
-		$log = $this->_cli->ReadFromMigrationLog();
 
 		$this->ShowListOf('rolled', '# No migrations have been rolled back under the current env.');
 	}

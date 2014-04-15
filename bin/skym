@@ -143,46 +143,6 @@ class MigrationLog
 
 class SkyM extends SkyCLI
 {
-	private function MigrationLog()
-	{
-		return SkyDefines::Call('DIR_LIB_MIGRATIONS').'/.migrations.log';
-	}
-
-	private function InitialMigrationLog()
-	{
-		return array(
-			'ran' => array(),
-			'failed' => array(),
-			'rolled' => array()
-		);
-	}
-
-	private function CreateMigrationLog()
-	{
-		$log = $this->MigrationLog();
-		if(is_file($log))
-			return true;
-		$f = fopen($log, 'w');
-		fwrite($f, serialize($this->InitialMigrationLog()));
-		return fclose($f);
-	}
-
-	public function ReadFromMigrationLog()
-	{
-		$log = $this->MigrationLog();
-		$this->CreateMigrationLog();
-		return unserialize(file_get_contents($log));
-	}
-
-	public function WriteToMigrationLog($log = array())
-	{
-		if(empty($log))
-			$log = $this->InitialMigrationLog();
-		$logfile = $this->MigrationLog();
-		$this->CreateMigrationLog();
-		return file_put_contents($logfile, serialize($log));
-	}
-
 	public function GetMySQLConnection($env)
 	{
 		SkyDefines::SetEnv($env);
