@@ -1,0 +1,16 @@
+#!/usr/bin/php
+<?php
+// skyt help
+// skyt run TaskName
+require_once(getenv('SKYCORE').'/core/utils/SKY.class.php');
+SKY::LoadCore();
+SkyL::Import(SkyDefines::Call('SKYCLI_CLASS'));
+SkyL::Import(SkyDefines::Call('SKYCORE_CORE_COMMANDS').'/SkyCommand.interface.php');
+
+class SkyT extends SkyCLI
+{
+	
+}
+
+$skyt = new SkyT($argv);
+?>
