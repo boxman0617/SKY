@@ -44,7 +44,7 @@ interface Task
     /**
      * Use this method to declare all you dependencies
      * 
-     * Internally, use the TaskManager::DependsOn method
+     * Internally, use the TaskManager::DependentOn method
      * to register a dependency
      */
     public function DeclareDependencies();
@@ -91,12 +91,50 @@ class TaskManager
     private $_cli;
 
     /**
+     * Options for task
+     * @var string[]
+     */
+    private $_options = array();
+
+    /**
      * Array of depdendencies
      * @var string[]
      */
     private static $_dependencies = array();
 
     const TASKFILEENDING = '.task.php';
+
+    /**
+     * Options
+     *
+     * This is the way you pass arguments to your
+     * taks. If any of the options passed have a
+     * '=' in them, this method will split them and
+     * set the left hand side as the key, and the other
+     * as the value.
+     *
+     * Example:
+     * hello=world will be turned to array('hello' => 'world')
+     *
+     * @param mixed[] $options An array of options that will be
+     * passed to the task
+     */
+    public function Options(array $options)
+    {
+        foreach($options as $key => $option)
+        {
+            if(strpos($option, '=') !== false)
+            {
+                $tmp = explode('=', $option);
+                $this->_options[$tmp[0]] = $tmp[1];
+            } else {
+                if(is_numeric($key))
+                    $this->_options[] = $option;
+                else
+                    $this->_options[$key] = $option;
+            }
+        }
+    }
 
     /**
      * Verbose
@@ -156,6 +194,12 @@ class TaskManager
 
         $class = $this->_loaded_class;
         $TASK = new $class();
+        if(!empty($this->_options))
+        {
+            if(!property_exists($TASK, 'Options'))
+                $this->VerboseErr('Task ['.$task.'] needs the Options public property.');
+            $TASK->Options = $this->_options;
+        }
         $this->VerboseOut('# Loading dependencies...');
         $TASK->DeclareDependencies();
 

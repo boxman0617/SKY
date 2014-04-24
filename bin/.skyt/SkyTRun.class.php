@@ -35,13 +35,25 @@ class SkyTRun implements SkyCommand
 		if($c == 0)
 			$this->_cli->ShowError('skyt run needs more parameters! (Run "skyt help" for list of commands)');
 
+		if(strpos($args[0], ':') !== false)
+		{
+			$actions = explode(':', $args[0]);
+			unset($args[0]);
+		} else {
+			$actions = array($args[0]);
+			unset($args[0]);
+		}
+
 		$this->tm = new TaskManager();
 		$this->tm->Verbose($this->_cli);
-		$this->tm->LoadTask($args[0]);
-		if($c == 1)
+
+		if(count($args) > 0)
+			$this->tm->Options($args);
+		$this->tm->LoadTask($actions[0]);
+		if(count($actions) == 1)
 			return $this->RunTask();
-		elseif($c == 2)
-			return $this->RunTaskMethod($args[1]);
+		elseif(count($actions) == 2)
+			return $this->RunTaskMethod($actions[1]);
 	}
 
 	private function RunTask()

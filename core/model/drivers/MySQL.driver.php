@@ -292,6 +292,13 @@ class MySQLDriver implements iDriver
         return $db->query("DROP TABLE `".$name."`");
     }
 
+    public static function TruncateTable($name)
+    {
+        $settings = AppConfig::GetDatabaseSettings();
+        $db = new mysqli($settings[':server'], $settings[':username'], $settings[':password'], $settings[':database']);
+        return $db->query('TRUNCATE TABLE `'.$name.'`');
+    }
+
     public static function CreateTable($name, $fields)
     {
         $CREATE_STATEMENT = "CREATE TABLE `".$name."`\n (`".self::$DefaultPrimaryKey."` INT(11) NOT NULL AUTO_INCREMENT, \n";
