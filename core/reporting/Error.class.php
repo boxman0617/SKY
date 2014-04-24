@@ -6,22 +6,33 @@
  * both PHP level, or user level exceptions.
  *
  * LICENSE:
- *
- * This file may not be redistributed in whole or significant part, or
- * used on a web site without licensing of the enclosed code, and
- * software features.
+ * The MIT License (MIT)
  * 
- * @author      Alan Tirado <root@deeplogik.com>
- * @copyright   2013 DeepLogik, All Rights Reserved
- * @license     http://www.codethesky.com/license
- * @link        http://www.codethesky.com/docs/errorclass
- * @package     Sky.Core
- */
-
-/**
- * ErrorHandler class
- * Handles errors created by code
- * @package Sky.Core.Error
+ * Copyright (c) 2014 DeeplogiK
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ * @author      Alan Tirado <alan@deeplogik.com>
+ * @copyright   2014 DeepLogik, All Rights Reserved
+ * @license     MIT
+ * @package     Core\Reporting\Error
+ * @version     1.0.0
  */
  
 if(!defined('E_USER_DEPRECATED'))
@@ -29,27 +40,98 @@ if(!defined('E_USER_DEPRECATED'))
 if(!defined('E_DEPRECATED'))
     define('E_DEPRECATED', 8192); 
 
-class Error
+/**
+ * ErrorHandler class
+ *
+ * Handles errors created by code
+ */
+class Error extends Base
 {
+    /**
+     * Singleton object placehold
+     *
+     * Holds the single instance of this class
+     * @var mixed
+     */
     public static $instance = null;
+
+	/**
+	 * Holds all errors that occur
+	 *
+	 * When an error occurs, it will eventually
+	 * be appended to this array
+	 * @var array[]
+	 */
     protected static $_errors = array();
+
+	/**
+	 * Predefined error colors
+	 *
+	 * A predefined array of colors for when
+	 * an error message is displayed in HTML
+	 * @var string[]
+	 */
     protected static $_colors = array(
-        'notice' => 'dbf0fc',
+        'notice'     => 'dbf0fc',
         'depricated' => 'eaa5ef',
-        'warning' => 'ffe900',
-        'error' => 'f48989',
-        'exception' => '949ce8'
+        'warning'    => 'ffe900',
+        'error'      => 'f48989',
+        'exception'  => '949ce8'
     );
+
+	/**
+	 * Predefined error type map
+	 *
+	 * A predefined array of strings that
+	 * map the error type with a string
+	 * representation of it
+	 * @var string[]
+	 */
+	private static $_error_type_map = array(
+		E_NOTICE 			=> 'E_NOTICE',
+		E_USER_NOTICE 		=> 'E_USER_NOTICE',
+		E_DEPRECATED 		=> 'E_DEPRECATED',
+		E_USER_DEPRECATED 	=> 'E_USER_DEPRECATED',
+		E_STRICT 			=> 'E_STRICT',
+		E_WARNING 			=> 'E_WARNING',
+		E_USER_WARNING 		=> 'E_USER_WARNING',
+		E_USER_WARNING 		=> 'E_USER_WARNING',
+		E_ERROR 			=> 'E_ERROR',
+		E_USER_ERROR 		=> 'E_USER_ERROR',
+		0 					=> 'EXCEPTION'
+	);
+
+	/**
+	 * An array of error types to supress
+	 *
+	 * Using ::Supress() will append an error type
+	 * into this property
+	 * @var string[]
+	 */
     private static $_supress = array();
 
+	/**
+	 * GetInstance
+	 *
+	 * Singleton entry point that will always return
+	 * an instance of self
+	 *
+	 * @return Error
+	 */
     public static function GetInstance()
     {
         if(is_null(self::$instance))
             self::$instance = new Error();
-        else
-            return self::$instance;
+        return self::$instance;
     }
 
+	/**
+	 * __construct
+	 *
+	 * Sets up error handlingto use this class by
+	 * calling set_error_handler, set_exception_handler, and
+	 * register_shutdown_function
+	 */
     public function __construct()
     {
         if(SkyDefines::GetEnv() !== 'PRO')
@@ -57,16 +139,36 @@ class Error
         else
             ini_set('display_errors', 0);
         error_reporting(-1);
-        set_error_handler( array( 'Error', 'HandleNormalErrors' ) );
-        set_exception_handler( array( 'Error', 'HandleExceptionErrors' ) );
-        register_shutdown_function( array( 'Error', 'HandleShutdown' ) );
+        set_error_handler(array('Error', 'HandleNormalErrors'));
+        set_exception_handler(array('Error', 'HandleExceptionErrors'));
+        register_shutdown_function(array('Error', 'HandleShutdown'));
     }
     
+	/**
+	 * Supress
+	 *
+	 * Use this method to supress a type of error
+	 * from being logged or displayed
+	 *
+	 * @param int $type Use constants to set this
+	 */
     public static function Supress($type)
     {
         self::$_supress[] = $type;
     }
 
+	/**
+	 * HandleNormalErrors
+	 *
+	 * The method is called by set_error_handler and
+	 * deligates to the correct internal method that handles that type
+	 * of error
+	 *
+	 * @param int $no Error type
+	 * @param string $str Error message
+	 * @param string $file File path of where error occured
+	 * @param int $line Line in file where error occured
+	 */
     public static function HandleNormalErrors($no, $str, $file, $line)
     {
         self::LogError($no, $str, $file, $line);
@@ -100,47 +202,54 @@ class Error
         }
     }
 
+	/**
+	 * Stringify
+	 *
+	 * This method maps the error type
+	 * to a string
+	 *
+	 * @param int $no Error type
+	 * @param string Returns the value of the error type map
+	 */
     public static function Stringify($no)
     {
-        switch($no)
-        {
-            case E_NOTICE:
-                return "E_NOTICE";
-            case E_USER_NOTICE:
-                return "E_USER_NOTICE";
-            case E_DEPRECATED:
-                return "E_DEPRECATED";
-            case E_USER_DEPRECATED:
-                return "E_USER_DEPRECATED";
-            case E_STRICT:
-                return "E_STRICT";
-            case E_WARNING:
-                return "E_WARNING";
-            case E_USER_WARNING:
-                return "E_USER_WARNING";
-            case E_USER_WARNING:
-                return "E_USER_WARNING";
-            case E_ERROR:
-                return "E_ERROR";
-            case E_USER_ERROR:
-                return "E_USER_ERROR";
-            case 0:
-                return "EXCEPTION";
-            default:
-                return "E_UNDEFINED";
-        }
+		if(array_key_exists($no, self::$_error_type_map))
+			return self::$_error_type_map[$no];
+		return 'E_UNDEFINED';
     }
 
+	/**
+	 * LogError
+	 *
+	 * Logs the error in the core.log file with a 4 (error) level
+	 *
+	 * @param int $no Error type
+	 * @param string $str Error message
+	 * @param string $file File path of where error occured
+	 * @param int $line Line in file where error occured
+	 */
     public static function LogError($no, $str, $file, $line)
     {
-        $_no = self::Stringify($no);
-        if(!is_int($no))
-            $_no = $no;
-        Log::corewrite('%s', 4, $_no, $file.':'.$line, array(
+        Log::corewrite('%s', 4, self::Stringify($no), $file.':'.$line, array(
             $str
         ));
     }
 
+	/**
+	 * BuildMessage
+	 *
+	 * This method builds a message that will be displayed
+	 * in the enviroment it is in. In example, if this error
+	 * occurs in the command line it will de displayed in a
+	 * simple one line message where in the browser it will display
+	 * in HTML
+	 *
+	 * @param int $no Error type
+	 * @param string $str Error message
+	 * @param string $file File path of where error occured
+	 * @param int $line Line in file where error occured
+	 * @param string $color HEX color for the error message
+	 */
     public static function BuildMessage($no, $str, $file, $line, $color)
     {
         $_no = self::Stringify($no);
@@ -162,6 +271,18 @@ class Error
         }
     }
     
+	/**
+	 * _HandleNotice
+	 *
+	 * If the current enviroment is NOT 'PRO',
+	 * display the message using ::BuildMessage().
+	 * This method also appends to the ::$_errors property
+	 *
+	 * @param int $no Error type
+	 * @param string $str Error message
+	 * @param string $file File path of where error occured
+	 * @param int $line Line in file where error occured
+	 */
     public static function _HandleNotice($no, $str, $file, $line)
     {
         if(SkyDefines::GetEnv() !== 'PRO') // Display Error
@@ -189,18 +310,53 @@ class Error
         }
     }
 
+	/**
+	 * _HandleDeprecated
+	 *
+	 * If the current enviroment is NOT 'PRO',
+	 * display the message using ::BuildMessage()
+	 *
+	 * @param int $no Error type
+	 * @param string $str Error message
+	 * @param string $file File path of where error occured
+	 * @param int $line Line in file where error occured
+	 */
     public static function _HandleDeprecated($no, $str, $file, $line)
     {
         if(SkyDefines::GetEnv() !== 'PRO') // Display Error
             self::BuildMessage($no, $str, $file, $line, 'eaa5ef');
     }
 
+	/**
+	 * _HandleWarning
+	 *
+	 * If the current enviroment is NOT 'PRO',
+	 * display the message using ::BuildMessage()
+	 *
+	 * @param int $no Error type
+	 * @param string $str Error message
+	 * @param string $file File path of where error occured
+	 * @param int $line Line in file where error occured
+	 */
     public static function _HandleWarning($no, $str, $file, $line)
     {
         if(SkyDefines::GetEnv() !== 'PRO') // Display Error
             self::BuildMessage($no, $str, $file, $line, 'ffe900');
     }
 
+	/**
+	 * _HandleError
+	 *
+	 * If the current enviroment is NOT 'PRO',
+	 * display the message using ::BuildMessage() while
+	 * also building a stack trace to be included in the
+	 * message
+	 *
+	 * @param int $no Error type
+	 * @param string $str Error message
+	 * @param string $file File path of where error occured
+	 * @param int $line Line in file where error occured
+	 */
     public static function _HandleError($no, $str, $file, $line)
     {
         $backtrace = debug_backtrace();
@@ -222,28 +378,61 @@ class Error
         exit();
     }
     
+	/**
+	 * IsThereErrors
+	 *
+	 * Checks to see if there are any errors in the
+	 * stack. Uses ::ErrorCount() to get the number
+	 * of errors
+	 *
+	 * @return boolean True if there are errors and false if not
+	 */
     public static function IsThereErrors()
     {
-        return (count(self::$_errors) > 0);
+        return (self::ErrorCount() > 0);
     }
     
+	/**
+	 * ErrorCount
+	 *
+	 * Counts the ::$_errors property
+	 *
+	 * @return int Number of errors
+	 */
     public static function ErrorCount()
     {
         return count(self::$_errors);
     }
     
+	/**
+	 * Flush
+	 *
+	 * If there are any errors, iterate over them
+	 * and send them to ::BuildMessage()
+	 *
+	 * @return boolean If there is any errors, return true else false
+	 */
     public static function Flush()
     {
-        if(count(self::$_errors) > 0)
+        if(self::IsThereErrors())
         {
             foreach(self::$_errors as $error)
                 self::BuildMessage($error['no'], $error['str'], $error['file'], $error['line'], $error['color']);
             return true;
-        } else {
-            return false;
         }
+        return false;
     }
 
+	/**
+	 * HandleExceptionErrors
+	 *
+	 * This method handles exceptions by extracting specific
+	 * properties from the Exception to then send the message
+	 * to ::BuildMessage of the enviroment is not 'PRO'. The
+	 * Exception will always be logged
+	 *
+	 * @param Exception Exception object
+	 */
     public static function HandleExceptionErrors($e)
     {
         $_file = $e->getFile();
@@ -273,6 +462,14 @@ class Error
         }
     }
 
+	/**
+	 * HandleShutdown
+	 *
+	 * When a fatal error occurs, this is the last method
+	 * that is called and it will log the error and display
+	 * it through ::BuildMessage() if the enviroment is NOT
+	 * 'PRO'
+	 */
     public static function HandleShutdown()
     {
         $error = error_get_last();
