@@ -149,6 +149,17 @@ class TaskManager
         return $this; // Chainable
     }
 
+    /**
+     * Public Run method
+     *
+     * This is the outward facing run method that will determine
+     * how to process the request it is given by handing it
+     * off to the correct sub method.
+     *
+     * @param mixed $method If a method name is passed, it will then hand it off to ::RunMethod()
+     * else it will use ::RunAllMethods()
+     * @return void
+     */
     public function Run($method = false)
     {
         $this->VerboseOut('# Running...');
@@ -164,7 +175,14 @@ class TaskManager
         return $this->RunMethod($TASK, $method);
     }
 
-    // ##Private
+    /**
+     * Outputs messages
+     *
+     * If ::$_v is set to true, messages passed to it
+     * will be printed to the screen
+     *
+     * @param string $msg
+     */
     private function VerboseOut($msg)
     {
         if($this->_v)
