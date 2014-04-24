@@ -102,6 +102,12 @@ class TaskManager
      */
     private static $_dependencies = array();
 
+    /**
+     * String buffer for nesting
+     * @var string
+     */
+    private $_lvl = '';
+
     const TASKFILEENDING = '.task.php';
 
     /**
@@ -233,13 +239,31 @@ class TaskManager
             $this->_cli->PrintLn($msg);
     }
 
+    /**
+     * Outputs Errors and die
+     *
+     * If ::$_v is set to true, error messages passed to it
+     * will be printed to the screen then the script
+     * will exit
+     *
+     * @param string $err
+     */
     private function VerboseErr($err)
     {
         if($this->_v)
             $this->_cli->ShowError($err);
     }
 
-    private function GetCallableMethods($task)
+    /**
+     * Get array of callable methods
+     *
+     * Will return an array of methods from the task
+     * called that are public and not a dependency
+     *
+     * @param Task $task Task object
+     * @return string[] Array of callable methods
+     */
+    private function GetCallableMethods(Task $task)
     {
         $class = new ReflectionClass($task);
         return array_diff(array_map(function($rm) {
@@ -249,7 +273,16 @@ class TaskManager
         );
     }
 
-    private function RunAllMethods($task)
+    /**
+     * Call all of a task's callable methods
+     *
+     * This method will get all of a task's callable
+     * methods and pass them to a helper method that
+     * calls the method
+     *
+     * @param Task $task Task to be used
+     */
+    private function RunAllMethods(Task $task)
     {
         $methods = $this->GetCallableMethods($task);
 
@@ -261,21 +294,50 @@ class TaskManager
         }
     }
 
-    private function RunMethod($task, $method)
+    /**
+     * Call a single method from the task
+     *
+     * This method will check if the passed method
+     * name is callable then uses the helper
+     * method to call it
+     *
+     * @param Task $task Task to be used
+     * @param string $method Method name
+     */
+    private function RunMethod(Task $task, $method)
     {
         if($this->IsMethodCallable(array($task, $method)))
             $this->_RunMethod($task, $method);
     }
 
-    private $_lvl = '';
-    private function _RunMethod($task, $method)
+    /**
+     * Helper method to call methods
+     *
+     * This is what calls the actual method, but not
+     * before checking if it has any dependencies and then
+     * running them
+     *
+     * @param Task $task Task to be used
+     * @param string $method Method name
+     */
+    private function _RunMethod(Task $task, $method)
     {
         $this->VerboseOut('# '.$this->_lvl.'-> Running [::'.$method.']');
         $this->HandleDependencies($task, $method);
         $task->$method();
     }
 
-    private function HandleDependencies($task, $method)
+    /**
+     * Checks for dependencies then runs them
+     *
+     * This method checks to see if the method
+     * name passed has any dependencies, and them runs them
+     * by using the helper ::_RunMethod method
+     *
+     * @param Task $task Task to be used
+     * @param string $method Method name
+     */
+    private function HandleDependencies(Task $task, $method)
     {
         if(array_key_exists($method, self::$_dependencies))
         {
@@ -284,17 +346,43 @@ class TaskManager
         }
     }
 
+    /**
+     * Check if method is callable
+     *
+     * Checks if the method in the task exists
+     * and it is callable from this scope
+     *
+     * @param mixed[] $task_method array(Task, 'methodName')
+     * @return boolean
+     */
     private function IsMethodCallable($task_method)
     {
         return (method_exists($task_method[0], $task_method[1]) && is_callable($task_method));
     }
 
-    // ##Static
+    /**
+     * Static method to add dependencies
+     *
+     * Use this static method to add a dependent
+     * to a method in a task
+     *
+     * @param string $method Name of method that depends on another method
+     * @param string $on Name of dependency method
+     */
     public static function DependentOn($method, $on)
     {
         self::$_dependencies[$method] = $on;
     }
 
+    /**
+     * Helper static method for file name
+     *
+     * This method will concatinate the file name
+     * with the constant ::TASKFILEENDING
+     *
+     * @param string $name Name of task file
+     * @return string Full name of file with extension
+     */
     public static function TaskFileName($name)
     {
         return $name.self::TASKFILEENDING;
