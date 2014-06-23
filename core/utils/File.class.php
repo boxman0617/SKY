@@ -243,4 +243,3 @@ class File
         self::$FILES[$locator] = $data;
     }
 }
-?>

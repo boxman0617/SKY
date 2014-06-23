@@ -92,4 +92,3 @@ class MySQLTest
 			TestMaster::Assert($RETURN, 'Something went wrong!');
 	}
 }
-?>

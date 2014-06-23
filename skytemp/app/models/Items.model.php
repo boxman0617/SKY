@@ -3,4 +3,3 @@ class Items extends Model
 {
 	
 }
-?>

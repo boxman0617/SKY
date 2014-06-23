@@ -326,4 +326,3 @@ class Bcrypt
         return $output;
     }
 }
-?>

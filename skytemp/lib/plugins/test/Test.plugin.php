@@ -8,7 +8,7 @@ class Plugin_Test
         {
             $variables['css'][] = '/lib/plugins/test/test.css';
             $obj->variables = $variables;
-        }   
+        }
         else
             $obj->Assign('css', array('/lib/plugins/test/test.css'));
     }
@@ -17,4 +17,3 @@ class Plugin_Test
         echo '<div class="test_footer">This is a footer. Time is: '.date('H:i:s A').'</div>';
     }
 }
-?>

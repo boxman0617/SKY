@@ -6,4 +6,3 @@ class Home extends Controller
         $this->Assign('title', 'Hello World, This is SKY! [v'.SKY::Version().']');
     }
 }
-?>

@@ -57,4 +57,3 @@ class ProcessError extends Error
 $_errorHandler = ProcessError::GetInstance();
 
 SkyL::Import($s);
-?>

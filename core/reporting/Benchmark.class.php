@@ -33,4 +33,3 @@ class Benchmark extends Base
         return round($END - $START, 4);
     }
 }
-?>

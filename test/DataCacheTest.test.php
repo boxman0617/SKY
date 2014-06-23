@@ -82,4 +82,3 @@ class DataCacheTest
 		TestMaster::Assert((90 > ($end - $start)), '10000 Load test took too long!');
 	}
 }
-?>

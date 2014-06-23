@@ -192,4 +192,3 @@ $e_bob = Fixture::AddRow('employees', array(
 	'manager_id' => $e_alan->id,
 	'name' => 'Bob'
 ));
-?>

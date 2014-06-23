@@ -49,4 +49,3 @@ class SKYQueue
 		$sqr->delete_set();
 	}
 }
-?>

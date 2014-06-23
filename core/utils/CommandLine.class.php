@@ -102,4 +102,3 @@ class CommandLine
 		var_dump($this->arguments);
 	}
 }
-?>

@@ -19,7 +19,7 @@ class SkyDefines
             foreach($classes as $class)
             {
                 $m = explode('.', $class);
-                if(isset($m[1]) && $m[1] == 'class') 
+                if(isset($m[1]) && $m[1] == 'class')
                     SkyDefines::Define(strtoupper($m[0]).'_CLASS', $path.'/'.$class);
             }
         }
@@ -76,7 +76,7 @@ SkyDefines::Define('SKYCORE_FIXTURES', SkyDefines::Call('SKYCORE').'/test/fixtur
 // #Defining ROOT/CORE dirs
 if($handle = opendir(SkyDefines::Call('SKYCORE_CORE')))
 {
-    while(false !== ($entry = readdir($handle))) 
+    while(false !== ($entry = readdir($handle)))
     {
         if($entry != "." && $entry != "..")
             SkyDefines::AddCoreDir('SKYCORE_CORE_'.strtoupper($entry), SkyDefines::Call('SKYCORE_CORE').'/'.$entry);
@@ -96,13 +96,12 @@ class SkyL
             if(is_file($path))
                 return self::_Import($path);
 
-            if(strpos($path, 'service.') !== false) 
+            if(strpos($path, 'service.') !== false)
                 return self::_ImportService($path);
 
-            return self::_ImportFromUserPaths($path);
+            if(self::_ImportFromUserPaths($path) === false)
+              throw new ImportException('Unable to import ['.$path.']');
         }
-
-        return false;
     }
 
     private static function _Import($file)
@@ -134,11 +133,11 @@ class SkyL
     {
         foreach($paths as $dir)
         {
-            if(is_dir($dir)) 
+            if(is_dir($dir))
             {
-                if($dh = opendir($dir)) 
+                if($dh = opendir($dir))
                 {
-                    while(($file = readdir($dh)) !== false) 
+                    while(($file = readdir($dh)) !== false)
                     {
                         $INFO = pathinfo($file);
                         if($INFO['filename'] == $name)
@@ -172,17 +171,16 @@ class SkyL
 if(!function_exists('date_diff'))
 {
     function date_diff($date1, $date2)
-    { 
-        $current = $date1; 
-        $datetime2 = date_create($date2); 
-        $count = 0; 
-        while(date_create($current) < $datetime2){ 
-            $current = gmdate("Y-m-d", strtotime("+1 day", strtotime($current))); 
-            $count++; 
-        } 
-        return $count; 
-    } 
+    {
+        $current = $date1;
+        $datetime2 = date_create($date2);
+        $count = 0;
+        while(date_create($current) < $datetime2){
+            $current = gmdate("Y-m-d", strtotime("+1 day", strtotime($current)));
+            $count++;
+        }
+        return $count;
+    }
 }
 SkyDefines::Define('ARTIFICIAL_LOAD', false);
 Benchmark::Mark('END_SKYCORE_DEFINES');
-?>

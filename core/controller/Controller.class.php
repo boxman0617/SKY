@@ -1,26 +1,26 @@
 <?php
 /**
  * This is the C in the MVC model.
- * 
- * It allows for the user to construct a logic tie between the Views and the Models. 
+ *
+ * It allows for the user to construct a logic tie between the Views and the Models.
  * Separating the design logic from the HTML renderings
  * and the business data logic from the Data models.
- * 
+ *
  * LICENSE:
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2014 DeeplogiK
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -28,7 +28,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
+ *
  * @author      Alan Tirado <alan@deeplogik.com>
  * @copyright   2014 DeepLogik, All Rights Reserved
  * @license     MIT
@@ -43,9 +43,9 @@ SkyL::Import(SkyDefines::Call('FILE_CLASS'));
 
 /**
  * Handles how a request from the Router Class should be ran.
- * 
+ *
  * This class is ABSTRACT and must be extended from the APP like so:
- * 
+ *
  *      <?php
  *      class Home extends Controller
  *      {
@@ -67,11 +67,11 @@ abstract class Controller extends Base
 
     /**
      * A configurable array of filters
-     * 
+     *
      * Configuring this property in the child class will make it so
      * a callback method is called **before** the main action
      * is called.
-     * 
+     *
      *      <?php
      *      class Home extends Controller
      *      {
@@ -81,11 +81,11 @@ abstract class Controller extends Base
      *                  'only' => 'IndexMethod' // Will ONLY run when action IndexMethod is called
      *               )
      *          );
-     *          
+     *
      *          // ... REST OF CLASS ...
      *      }
      *      ?>
-     * 
+     *
      * Options:
      * - 'only'       => Will run filter ONLY when action specified is called
      * - 'exclude'    => Will run on all actions, EXCEPT the ones defined undet this array
@@ -95,11 +95,11 @@ abstract class Controller extends Base
 
     /**
      * A configurable array of filters
-     * 
+     *
      * Configuring this property in the child class will make it so
      * a callback method is called **after** the main action
      * is called.
-     * 
+     *
      *      <?php
      *      class Home extends Controller
      *      {
@@ -109,11 +109,11 @@ abstract class Controller extends Base
      *                  'only' => 'IndexMethod' // Will ONLY run when action IndexMethod is called
      *               )
      *          );
-     *          
+     *
      *          // ... REST OF CLASS ...
      *      }
      *      ?>
-     * 
+     *
      * Options:
      * - 'only'       => Will run filter ONLY when action specified is called
      * - 'exclude'    => Will run on all actions, EXCEPT the ones defined undet this array
@@ -123,7 +123,7 @@ abstract class Controller extends Base
 
     /**
      * Custom flash message.
-     * 
+     *
      * Here you can specify the way flash messages will look.
      *
      *      <?php
@@ -133,11 +133,11 @@ abstract class Controller extends Base
      *              'info' => '<div class="flash alert-info">',
      *              'success' => '<div class="flash alert-success">'
      *          );
-     *          
+     *
      *          // ... REST OF CLASS ...
      *      }
      *      ?>
-     * 
+     *
      * The supported flash types are:
      * - info
      * - success
@@ -148,18 +148,18 @@ abstract class Controller extends Base
 
     /**
      * The location of the public directory in the APP
-     * 
+     *
      * The location of where all the public files like images and CSS live in
-     * 
+     *
      * Default value `'/public'`
      */
     protected $public_location = '/public';
 
     /**
      * The location of public files wihtin the public directory of the APP
-     * 
+     *
      * These are the locations of CSS, Javascript, and images.
-     * 
+     *
      * Default values:
      * - css => stylesheet
      * - js => javascript
@@ -173,28 +173,28 @@ abstract class Controller extends Base
 
     /**
      * Property that holds all the rendered parts
-     * 
+     *
      * @see Controller::Part()
      */
     private static $_parts = array();
 
     /**
      * Property that holds the current position in the parts tree
-     * 
+     *
      * @see Controller::Part()
      */
     private static $_parts_pos = 0;
 
     /**
      * Property that holds all of the active parts
-     * 
+     *
      * @see Controller::Part()
      */
     private static $_parts_tree = array();
 
     /**
      * Holds the state of the controller in regards to the render cycle
-     * 
+     *
      * This array will hold the following:
      * - The layout that will be used by default
      * - The method that will be called
@@ -210,7 +210,7 @@ abstract class Controller extends Base
 
     /**
      * Hold where the subview will be included from
-     * 
+     *
      * This array will determine what directory and what view file
      * will be included within the layout
      */
@@ -221,7 +221,7 @@ abstract class Controller extends Base
 
     /**
      * Holds all outter variables
-     * 
+     *
      * This array will hold all of the passed outter variables.
      * This includes:
      * - $_POST
@@ -233,7 +233,7 @@ abstract class Controller extends Base
 
     /**
      * Holds a clean version of the $_FILES variable
-     * 
+     *
      * This array will hold a cleaner version of the $_FILES variable
      * and will be used to register File objects
      */
@@ -241,7 +241,7 @@ abstract class Controller extends Base
 
     /**
      * Holds the variables that will be present in the views
-     * 
+     *
      * When the controller starts rendering a view, this array
      * will be extracted to create variables for that view
      */
@@ -257,19 +257,19 @@ abstract class Controller extends Base
 
     /**
      * Holds the specs of the Router object
-     * 
+     *
      * This array is set by the Router object to pass any important
      * information down to the Controller like the URL query
-     * 
+     *
      * @type array
      */
     public $_router_specs = array();
-    
+
     /**
      * __toString
-     * 
+     *
      * Magic method to convert class to string
-     * 
+     *
      * @return String
      * - Returns the name of the called class
      * @reference [http://php.net/manual/en/function.get-called-class.php]
@@ -282,9 +282,9 @@ abstract class Controller extends Base
 
     /**
      * __construct
-     * 
+     *
      * Constructor method. Gets called at object initialization.
-     * 
+     *
      * @param mixed[] $params An array of parameters to be merged with $_POST, $this->params and $_GET
      * @app
      */
@@ -322,9 +322,9 @@ abstract class Controller extends Base
 
     /**
      * __set
-     * 
+     *
      * Setter for assign properties
-     * 
+     *
      * @param string $name Name of the variable
      * @param mixed $value Value of the variable
      * @app
@@ -338,9 +338,9 @@ abstract class Controller extends Base
 
     /**
      * __get
-     * 
+     *
      * Getter for assign properties
-     * 
+     *
      * @param string $name Name of the variable
      * @app
      */
@@ -353,9 +353,9 @@ abstract class Controller extends Base
 
     /**
      * RenderViewPart
-     * 
+     *
      * Renders ViewParts found under views
-     * 
+     *
      * @param string $view_part The name of the ViewPart to render
      * - Example: 'header' => '_header.part.php'
      * - Example: 'shared/header' => 'shared/_header.part.php'
@@ -388,10 +388,10 @@ abstract class Controller extends Base
 
     /**
      * RenderPart
-     * 
+     *
      * Renders request specific snippets that can be found in their respective
      * view
-     * 
+     *
      * @args String $part
      * - The index of the part to be rendered
      * - Example: ':javascript'
@@ -410,9 +410,9 @@ abstract class Controller extends Base
 
     /**
      * Part
-     * 
+     *
      * Starts the capture of a "Part".
-     * 
+     *
      * @args String $name
      * - Name of the index of the part to be rendered
      * - Example: ':javascript'
@@ -430,9 +430,9 @@ abstract class Controller extends Base
 
     /**
      * EndPart
-     * 
+     *
      * Ends the capture of a "Part".
-     * 
+     *
      * @static
      * @app
      */
@@ -441,12 +441,12 @@ abstract class Controller extends Base
         self::$_parts[self::$_parts_tree[self::$_parts_pos-1]][] = ob_get_clean();
         self::$_parts_pos--;
     }
-    
+
     /**
      * SetRouterSpecs
-     * 
+     *
      * Assigned the $specs array from the Router instance to the Controller
-     * 
+     *
      * @args Array $specs @default array()
      * - An array of parameters from the Router
      * @core
@@ -455,12 +455,12 @@ abstract class Controller extends Base
     {
         $this->_router_specs = $specs;
     }
-    
+
     /**
      * CSS
-     * 
+     *
      * Create a CSS link to a file according to the path locations set in the Controller child
-     * 
+     *
      * @args String $file_path
      * - The path after the base path set by the app in the Controller to a CSS file
      * - Example: 'myscript.css'
@@ -473,12 +473,12 @@ abstract class Controller extends Base
     {
         return '<link href="'.self::CSS_LOC($file_path).'" rel="stylesheet">';
     }
-    
+
     /**
      * CSS_LOC
-     * 
+     *
      * Create a CSS link to a file according to the path locations set in the Controller child
-     * 
+     *
      * @args String $file_path
      * - The path after the base path set by the app in the Controller to a CSS file
      * - Example: 'myscript.css'
@@ -493,13 +493,13 @@ abstract class Controller extends Base
         $loc = self::CachedLocation($class);
         return str_replace('//', '/', SkyDefines::Call('BASE_GLOBAL_URL').$loc['public_location'].'/'.$loc['locations']['css'].'/'.$file_path);
     }
-    
+
     /**
      * CachedLocation
-     * 
+     *
      * This will create a cache in the Base::$_share property if not found and return the
      * correct array of locations
-     * 
+     *
      * @args String $class_name
      * @return Array
      * @static
@@ -519,12 +519,12 @@ abstract class Controller extends Base
         }
         return self::$_share['LOC_CLASSES'][$class_name];
     }
-    
+
     /**
      * JS
-     * 
+     *
      * Create a JS script to a file according to the path locations set in the Controller child
-     * 
+     *
      * @args String $file_path
      * - The path after the base path set by the app in the Controller to a JS file
      * - Example: 'myscript.js'
@@ -537,12 +537,12 @@ abstract class Controller extends Base
     {
         return '<script src="'.self::JS_LOC($file_path).'" type="text/javascript" charset="utf-8"></script>';
     }
-    
+
     /**
      * JS_LOC
-     * 
+     *
      * Get JS location according to the path locations set in the COntroller child
-     * 
+     *
      * @args String $file_path
      * - The path after the base path set by the app in the Controller to a JS file
      * - Example: 'myscript.js'
@@ -557,12 +557,12 @@ abstract class Controller extends Base
         $loc = self::CachedLocation($class);
         return str_replace('//', '/', SkyDefines::Call('BASE_GLOBAL_URL').$loc['public_location'].'/'.$loc['locations']['js'].'/'.$file_path);
     }
-    
+
     /**
      * IMG_LOC
-     * 
+     *
      * Gets an image path according to the location of where images are, set in the Controller child
-     * 
+     *
      * @args String $file_path
      * - The path after the base path set by the app in the Controller to an image file
      * - Example: 'myimage.png'
@@ -580,9 +580,9 @@ abstract class Controller extends Base
 
     /**
      * Render
-     * 
+     *
      * Adds app level control of how data is rendered.
-     * 
+     *
      * @args Array $params
      * - By passing an array of options, the way data is rendered can be controlled.
      * - Examples:
@@ -627,12 +627,12 @@ abstract class Controller extends Base
             $this->render_info['render'] = self::RENDER_NONE;
         }
     }
-    
+
     /**
      * JSON
-     * 
+     *
      * Shorthand method for Render(RENDER_JSON). Echos $info in a JSON format.
-     * 
+     *
      * @args Mixed $info
      * - $info argument gets turned to JSON using json_encode function
      * @reference [http://php.net/manual/en/function.json-encode.php]
@@ -649,9 +649,9 @@ abstract class Controller extends Base
 
     /**
      * NONE
-     * 
+     *
      * Shorthand method for Render(self::RENDER_NONE).
-     * 
+     *
      * @app
      * @dependent ::Render
      */
@@ -664,9 +664,9 @@ abstract class Controller extends Base
 
     /**
      * GetFile
-     * 
+     *
      * Forces a file download to be downloaded.
-     * 
+     *
      * @args String $filename
      * - $filename Name of (with path) of file that must be downloaded.
      * @app
@@ -707,9 +707,9 @@ abstract class Controller extends Base
 
     /**
      * SetLayout
-     * 
+     *
      * Allows for user to use a different Layout view then the default one.
-     * 
+     *
      * @args String $layout_name
      * - Name of the layout file that should be used.
      * @lookat ::$render_info['layout']
@@ -722,9 +722,9 @@ abstract class Controller extends Base
 
     /**
      * HandleBeforeFilters
-     * 
+     *
      * Will run any filter methods before the main action is ran.
-     * 
+     *
      * @lookat ::$before_filter
      * @dependent ::DRYRunFilter
      * @core
@@ -736,9 +736,9 @@ abstract class Controller extends Base
 
     /**
      * DRYRunFilter
-     * 
+     *
      * Calls filter method by calling call_user_func.
-     * 
+     *
      * @args Array $filters
      * - array(
      * -     'FilterMethod' => true, // Will run on all actions
@@ -796,9 +796,9 @@ abstract class Controller extends Base
 
     /**
      * HandleAfterFilters
-     * 
+     *
      * Will run any filter methods after the main action is ran.
-     * 
+     *
      * @lookat ::$after_filter
      * @dependent ::DRYRunFilter
      * @core
@@ -810,13 +810,13 @@ abstract class Controller extends Base
 
     /**
      * HandleRequest
-     * 
+     *
      * When a request comes in, it is first handled by the Router class.
      * Then it passes what method should be ran to this method. It attempts
      * to find the method in the child class and run it. After, it finds
      * if it needs to render anything outside of this class and delegates
      * that task to it's correct method.
-     * 
+     *
      * @args String $method
      * - Name of what method to run in child object
      * @calledby Router::RunFollow
@@ -845,7 +845,7 @@ abstract class Controller extends Base
             $obj = new $class($this);
             $obj->Render($this->render_info);
         }
-        
+
         Event::PublishActionHook('/Controller/after/HandleRequest/', array($this));
         Benchmark::Mark('rendered');
         Log::corewrite('Rendering elapsed time: [%s seconds]', 3, __CLASS__, __FUNCTION__, array(Benchmark::ElapsedTime(null, 'rendered')));
@@ -854,9 +854,9 @@ abstract class Controller extends Base
 
     /**
      * SetFlash
-     * 
+     *
      * Sets flash message in Session instance
-     * 
+     *
      * @args String $msg
      * - String message that will show up in the flash message
      * @args String $type
@@ -877,9 +877,9 @@ abstract class Controller extends Base
 
     /**
      * GetStaticProperty
-     * 
+     *
      * Attempts to get a static property from itself
-     * 
+     *
      * @static
      * @core
      */
@@ -894,10 +894,10 @@ abstract class Controller extends Base
 
     /**
      * RenderSubView
-     * 
+     *
      * This static method allows the view of the action to be included
      * inside the current Layout view
-     * 
+     *
      * @static
      * @app
      */
@@ -935,10 +935,10 @@ abstract class Controller extends Base
 
     /**
      * SecurePost
-     * 
+     *
      * If index '_secure_post' is found in the $_variables property, it will be returned.
      * inside the current Layout view.
-     * 
+     *
      * @dependent Router::GetSalt
      * @return String
      * @static
@@ -954,9 +954,9 @@ abstract class Controller extends Base
 
     /**
      * DisplayFlash
-     * 
+     *
      * Outputs to the current view an HTML flash notice.
-     * 
+     *
      * @static
      * @app
      */
@@ -967,7 +967,7 @@ abstract class Controller extends Base
         {
             if(!isset($session->flash_type))
                 $session->flash_type = 'info';
-            
+
             if(empty(static::$flash_display))
             {
                 switch($session->flash_type)
@@ -1006,9 +1006,9 @@ abstract class Controller extends Base
 
     /**
      * MethodPut
-     * 
+     *
      * Outputs to current view the HTML that is needed to submit a form using the PUT method
-     * 
+     *
      * @return String
      * @static
      * @app
@@ -1018,12 +1018,12 @@ abstract class Controller extends Base
     {
         return self::Method('PUT');
     }
-    
+
     /**
      * MethodDelete
-     * 
+     *
      * Outputs to current view the HTML that is needed to submit a form using the DELETE method
-     * 
+     *
      * @return String
      * @static
      * @app
@@ -1033,13 +1033,13 @@ abstract class Controller extends Base
     {
         return self::Method('DELETE');
     }
-    
+
     /**
      * MethodDelete
-     * 
+     *
      * DRY method for outputting the required HTML for a form to be submitted
      * as something other then GET or POST
-     * 
+     *
      * @args String $type
      * - Method type
      * @return String
@@ -1059,9 +1059,9 @@ abstract class Controller extends Base
 
     /**
      * Assign
-     * 
+     *
      * Appends a variable to the $_variables property.
-     * 
+     *
      * @args String $name
      * - Name of the variable
      * @args String $value
@@ -1078,9 +1078,9 @@ abstract class Controller extends Base
 
     /**
      * RedirectTo
-     * 
+     *
      * Redirects controller to other page or controller action.
-     * 
+     *
      * @args Mixed $url
      * - If is String -> Redirect to URL
      * - If is Array -> Redirect to $url['action'] (optional $url['params'])
@@ -1110,9 +1110,9 @@ abstract class Controller extends Base
 
     /**
      * GetPageURL
-     * 
+     *
      * Get full page URL
-     * 
+     *
      * @return String
      * @static
      * @app
@@ -1134,9 +1134,9 @@ abstract class Controller extends Base
 
     /**
      * GetSubDomain
-     * 
+     *
      * Gets subdomain from URL
-     * 
+     *
      * @return String
      * @static
      * @app
@@ -1150,12 +1150,12 @@ abstract class Controller extends Base
         }
         return $domain[0];
     }
-    
+
     /**
      * GetClientIP
-     * 
+     *
      * Get the client's IP address
-     * 
+     *
      * @return String
      * @static
      * @app
@@ -1181,9 +1181,9 @@ abstract class Controller extends Base
 
     /**
      * RunTask
-     * 
+     *
      * Hack-ish way of running Tasks.
-     * 
+     *
      * @args String $task
      * - Task command
      * @args Array $params @default array()
@@ -1204,9 +1204,9 @@ abstract class Controller extends Base
 
     /**
      * TruncateString
-     * 
+     *
      * Truncate a string to a certain amount of characters then add the hellip [...]
-     * 
+     *
      * @args String $string
      * - String to be truncated
      * @args Integer $chars @default 100
@@ -1227,4 +1227,3 @@ abstract class Controller extends Base
         }
     }
 }
-?>

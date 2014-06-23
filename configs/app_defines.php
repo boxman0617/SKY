@@ -44,7 +44,7 @@ SkyDefines::Define('PHP_BIN', '/usr/bin/php');
 //#############################################
 // SkyL::Import() import paths @DoNotEdit
 //#############################################
-SkyDefines::Define('IMPORT_PATHS', 
+SkyDefines::Define('IMPORT_PATHS',
     SkyDefines::Call('DIR_APP_CONTROLLERS').';'.
     SkyDefines::Call('DIR_APP_MAILERS').';'.
     SkyDefines::Call('DIR_APP_MODELS').';'.
@@ -184,6 +184,12 @@ class AppConfig
 
 SkyL::Import(SkyDefines::Call('APPROOT').'/configs/defines.php');
 SkyL::Import(SkyDefines::Call('DIR_CONFIGS').'/configure.php');
+SkyL::Import(SkyDefines::Call('EXCEPTIONS_CLASS'));
+try {
+  SkyL::Import(SkyDefines::Call('DIR_CONFIGS').'/local.php');
+} catch(ImportException $e) {
+  die('Your app requires a local.php file! Did you forget to bring it over?');
+}
 
 // #Initialize SKYCORE Configures
 SkyL::Import(SkyDefines::Call('SKYCORE_CONFIGS').'/loadcore.php');
@@ -196,4 +202,3 @@ if(SkyDefines::Call('ARTIFICIAL_LOAD') === false)
 	// #Initialize Router
 	SkyL::Import(SkyDefines::Call('SKYCORE_CONFIGS').'/router_init.php');
 }
-?>

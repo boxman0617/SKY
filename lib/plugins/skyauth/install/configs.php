@@ -15,4 +15,3 @@ $_ACCESS_CONTROL = array(
         'Main'          => AUTH_ALLOW_ALL
     )
 );
-?>

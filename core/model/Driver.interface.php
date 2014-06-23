@@ -102,4 +102,3 @@ interface iDriver
     // private function LogBeforeAction($action_name, $action);
     // private function LogAfterAction(&$_START, $STATUS);
 }
-?>

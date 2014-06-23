@@ -52,11 +52,9 @@ class ".$name." extends Migration
 	{
 
 	}
-}
-?>");
+}");
 			fclose($f);
 		}
 		$this->_cli->PrintLn('Done!');
 	}
 }
-?>

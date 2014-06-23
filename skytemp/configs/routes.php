@@ -20,4 +20,3 @@ class AppRoute extends Route
 		// ));
 	}
 }
-?>

@@ -5,4 +5,3 @@ if(file_exists(SkyDefines::Call('DIR_LIB_PLUGINS').'/notify/config.php'))
 {
     SkyL::Import(SkyDefines::Call('DIR_LIB_PLUGINS').'/notify/config.php');
 }
-?>

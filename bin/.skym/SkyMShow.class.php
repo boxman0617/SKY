@@ -87,4 +87,3 @@ class SkyMShow implements SkyCommand
 		$this->_cli->PrintLn('# ['.$d[0].'] ('.date('F j, Y g:i A', strtotime($d[0])).') '.$t[0]);
 	}
 }
-?>

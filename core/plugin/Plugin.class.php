@@ -72,4 +72,3 @@ class Plugin
         return $cnf;
     }
 }
-?>

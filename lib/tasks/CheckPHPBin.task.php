@@ -41,4 +41,3 @@ class CheckPHPBin implements Task
 
 	private function Haha() {}
 }
-?>

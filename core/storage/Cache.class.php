@@ -90,4 +90,3 @@ class Cache
         unset(self::$_cached_values[self::$_pointer]);
     }
 }
-?>

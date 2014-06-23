@@ -273,4 +273,3 @@ class ProcessManager
 // 		$this->DropTable('processes');
 // 	}
 // }
-?>

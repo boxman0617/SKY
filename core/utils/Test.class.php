@@ -185,4 +185,3 @@ class TestMaster
         self::_IncreaseCount(!isset($var), 'IsNotSet', $msg);
     }
 }
-?>

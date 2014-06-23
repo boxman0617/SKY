@@ -146,4 +146,3 @@ class PushOVER implements iNotifyPush
         curl_close($ch);
     }
 }
-?>

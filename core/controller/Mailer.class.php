@@ -105,4 +105,3 @@ abstract class Mailer
         Event::PublishActionHook('/Mailer/after/Assign/', array($this, $name, $value));
     }
 }
-?>

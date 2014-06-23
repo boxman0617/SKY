@@ -7,7 +7,7 @@
  *
  * LICENSE:
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2014 DeeplogiK
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -34,11 +34,11 @@
  * @package     Core\Reporting\Error
  * @version     1.0.0
  */
- 
+
 if(!defined('E_USER_DEPRECATED'))
     define('E_USER_DEPRECATED', 16384);
 if(!defined('E_DEPRECATED'))
-    define('E_DEPRECATED', 8192); 
+    define('E_DEPRECATED', 8192);
 
 /**
  * ErrorHandler class
@@ -143,7 +143,7 @@ class Error extends Base
         set_exception_handler(array('Error', 'HandleExceptionErrors'));
         register_shutdown_function(array('Error', 'HandleShutdown'));
     }
-    
+
 	/**
 	 * Supress
 	 *
@@ -197,7 +197,7 @@ class Error extends Base
                     self::$_errors[] = array('no' => $no, 'str' => $str, 'file' => $file, 'line' => $line, 'color' => self::$_colors['error']);
                     break;
                 default:
-                    
+
             }
         }
     }
@@ -263,14 +263,14 @@ class Error extends Base
             echo $h->div(
                 $h->div(
                     $h->div('['.$_no.']', array('style' => 'float: left;padding-right:5px;font-weight:bold;')).
-                    $h->div($file.':'.$line, array('style' => 'padding-left:5px;')), 
+                    $h->div($file.':'.$line, array('style' => 'padding-left:5px;')),
                     array('style' => 'padding: 5px;border-bottom:1px solid #000;background:#'.$color.';')).
-                $h->div($str, array('style' => 'padding:5px;background:#FFFFFF;')), 
+                $h->div($str, array('style' => 'padding:5px;background:#FFFFFF;')),
                 array('style' => 'width:95%; border:1px solid #000;margin:5px auto;color:#000000;font-family:"Courier New";font-size:14px;')
             );
         }
     }
-    
+
 	/**
 	 * _HandleNotice
 	 *
@@ -370,14 +370,14 @@ class Error extends Base
                 break;
             }
         }
-        
+
         $message = $str."<h3>Traceback:</h3><pre>".var_export($trace, true)."</pre>";
 
         if(SkyDefines::GetEnv() !== 'PRO')
             self::BuildMessage($no, $message, $file, $line, 'f48989');
         exit();
     }
-    
+
 	/**
 	 * IsThereErrors
 	 *
@@ -391,7 +391,7 @@ class Error extends Base
     {
         return (self::ErrorCount() > 0);
     }
-    
+
 	/**
 	 * ErrorCount
 	 *
@@ -403,7 +403,7 @@ class Error extends Base
     {
         return count(self::$_errors);
     }
-    
+
 	/**
 	 * Flush
 	 *
@@ -484,4 +484,3 @@ class Error extends Base
         }
     }
 }
-?>

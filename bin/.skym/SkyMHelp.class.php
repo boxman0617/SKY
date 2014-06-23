@@ -72,4 +72,3 @@ class SkyMHelp implements SkyCommand
 		}
 	}
 }
-?>

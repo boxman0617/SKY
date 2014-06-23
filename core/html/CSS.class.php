@@ -77,4 +77,3 @@ class CSS
 		echo $this->Parse();
 	}
 }
-?>

@@ -114,4 +114,3 @@ class SkyMRollback implements SkyCommand
 		return ($migration >= $target);
 	}
 }
-?>

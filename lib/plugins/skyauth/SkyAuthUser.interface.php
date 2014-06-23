@@ -6,4 +6,3 @@ interface SkyAuthUser
     public function GetRole();
     public function GetGroup();
 }
-?>

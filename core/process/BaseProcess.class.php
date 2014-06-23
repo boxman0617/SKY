@@ -149,4 +149,3 @@ class ProcessData
 		return $this->_dirty;
 	}
 }
-?>

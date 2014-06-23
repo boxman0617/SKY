@@ -19,29 +19,3 @@ AppConfig::EnableMySQLQueryCache(true);
 
 // $_FILES Auto Clean up
 AppConfig::EnableFileArrayCleanup(true);
-
-// Database Enviroments
-AppConfig::DatabaseENV('DEV', array(
-    ':driver'   => 'MySQL',
-    ':server'   => 'localhost',
-    ':username' => 'root',
-    ':password' => '',
-    ':database' => 'dev_database'
-));
-
-AppConfig::DatabaseENV('TEST', array(
-    ':driver'   => 'MySQL',
-    ':server'   => 'localhost',
-    ':username' => 'root',
-    ':password' => '',
-    ':database' => 'test_database'
-));
-
-AppConfig::DatabaseENV('PRO', array(
-    ':driver'   => 'MySQL',
-    ':server'   => 'localhost',
-    ':username' => 'root',
-    ':password' => '',
-    ':database' => 'pro_database'
-));
-?>

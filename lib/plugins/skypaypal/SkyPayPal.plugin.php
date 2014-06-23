@@ -240,4 +240,3 @@ class PaymentDetails extends PayPalObject
             $this->Data['paymentaction'] = 'Sale';
     }
 }
-?>

@@ -6,4 +6,3 @@ interface SkyCommand
 	public function GetLongHelp();
 	public function Execute($args = array());
 }
-?>

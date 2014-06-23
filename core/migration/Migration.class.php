@@ -110,14 +110,14 @@ abstract class MigrateTable
 	protected function CreateAddColumn($query, $name, $column)
 	{
 		$query .= '`'.$name.'` '.strtoupper($column['type']);
-			
+
 		if(array_key_exists('required', $this->_column_types[$column['type']]))
 		{
 			foreach($this->_column_types[$column['type']]['required'] as $required)
 			{
 				if(!array_key_exists($required, $column['options']))
 					throw new Exception('Migration failed due to unfullfilled required field ['.$required.'] for column ['.$name.']');
-				
+
 				$method = 'Process'.ucfirst($required);
 				if(method_exists($this, $method))
 					$query .= call_user_func(array($this, $method), $column['options'][$required]);
@@ -189,7 +189,7 @@ abstract class MigrateTable
 			throw new Exception('Migration failed. ROW_FORMAT requires value to be either {DEFAULT|DYNAMIC|FIXED|COMPRESSED|REDUNDANT|COMPACT}. ['.$value.'] was given.');
 		return 'ROW_FORMAT = '.$value;
 	}
-	
+
 	protected function ProcessOptionInsert_method($value, $options = array())
 	{
 		if(!in_array($value, array('NO', 'FIRST', 'LAST')))
@@ -390,7 +390,7 @@ class ".$this->_table_name." extends Model
 {
 
 }
-?>
+
 ";
         $f = fopen(SkyDefines::Call('DIR_APP_MODELS')."/".$this->_table_name.".model.php", "w");
         fwrite($f, $class);
@@ -403,7 +403,7 @@ class AlterTable extends MigrateTable
 	private $_table_name;
 	private $_columns = array();
 	private $_rename_table = false;
-	
+
 	const ADD = 'ADD';
 	const DROP = 'DROP';
 	const CHANGE = 'CHANGE';
@@ -500,7 +500,7 @@ class AlterTable extends MigrateTable
 		foreach($this->_columns as $name => $column)
 		{
 			$query .= call_user_func_array(
-				array($this, '_'.$column['action'].'Column'), 
+				array($this, '_'.$column['action'].'Column'),
 				array($name, $column)
 			);
 
@@ -567,4 +567,3 @@ class Table
 		return new AlterTable($table_name);
 	}
 }
-?>

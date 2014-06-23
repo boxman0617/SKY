@@ -94,7 +94,7 @@ class ".$MODEL." extends Model
 				}
 			}
 			$class .= "}
-?>
+
 ";
 			if(file_exists(SkyDefines::Call('DIR_APP_MODELS')."/".$MODEL.".model.php")) unlink(SkyDefines::Call('DIR_APP_MODELS')."/".$MODEL.".model.php");
 	        $f = fopen(SkyDefines::Call('DIR_APP_MODELS')."/".$MODEL.".model.php", "w");
@@ -139,4 +139,3 @@ class FixtureRow
 		return $this->data[$key];
 	}
 }
-?>

@@ -24,7 +24,7 @@ class Testpersons extends Model
         $this->OutputFormat[$name] = $action;
     }
 }
-?>
+
 ';
         $f = fopen(SkyDefines::Call('DIR_APP_MODELS')."/Testpersons.model.php", "w");
         fwrite($f, $class);
@@ -135,4 +135,3 @@ class Testpersons extends Model
         TestMaster::Assert($RETURN, 'Something went wrong!');
     }
 }
-?>

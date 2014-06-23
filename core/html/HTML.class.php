@@ -75,4 +75,3 @@ class HTML
         return $html;
     }
 }
-?>

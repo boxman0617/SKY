@@ -66,4 +66,3 @@ class SkyTRun implements SkyCommand
 		$this->tm->Run($method);
 	}
 }
-?>

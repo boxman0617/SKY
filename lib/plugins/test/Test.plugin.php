@@ -17,4 +17,3 @@ class Plugin_Test
         echo '<div class="test_footer">This is a footer. Time is: '.date('H:i:s A').'</div>';
     }
 }
-?>

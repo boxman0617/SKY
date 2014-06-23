@@ -1,25 +1,25 @@
 <?php
 /**
  * API publisher class
- * 
+ *
  * It allows services to be extended out and allowed to publish
  * methods as an API.
- * 
+ *
  * LICENSE:
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2014 DeeplogiK
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -27,7 +27,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
+ *
  * @author      Alan Tirado <alan@deeplogik.com>
  * @copyright   2014 DeepLogik, All Rights Reserved
  * @license     MIT
@@ -40,7 +40,7 @@ Event::SubscribeActionHook('/Route/query/ready/before/', 'PublishAPI::Test');
 interface APIService
 {
 	public function HandleNoMethodCall();
-	public function HandleSecutiry();
+	public function HandleSecurity();
 }
 
 /**
@@ -52,7 +52,7 @@ class PublishAPI
 
 	/**
 	 * Singleton method
-	 * 
+	 *
 	 * This will return the only instance of this class
 	 */
 	public static function GetInstance()
@@ -83,13 +83,13 @@ class PublishAPI
 
 	/**
 	 * Test if this request is an API request
-	 * 
+	 *
 	 * If the request to the Router starts with the API_BASE_ROUTE,
 	 * this method will intercept that request and handle it
-	 * 
+	 *
 	 * @param string $query The outter query sent to the Router
 	 * @param string $method The request method sent to the Router
-	 * 
+	 *
 	 * @return void
 	 */
 	public static function Test($query, $method)
@@ -169,9 +169,9 @@ class PublishAPI
 	{
 		$class = strtolower($action);
 		$dir = SkyDefines::Call('DIR_APP_API');
-		if(is_dir($dir)) 
+		if(is_dir($dir))
         {
-            if($dh = opendir($dir)) 
+            if($dh = opendir($dir))
             {
                 while(($file = readdir($dh)) !== false)
                 {
@@ -189,4 +189,3 @@ class PublishAPI
         return false;
 	}
 }
-?>

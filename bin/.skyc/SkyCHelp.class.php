@@ -72,4 +72,3 @@ class SkyCHelp implements SkyCommand
 		}
 	}
 }
-?>

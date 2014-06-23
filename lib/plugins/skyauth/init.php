@@ -24,4 +24,3 @@ function LoadSkyAuth($class_name = false)
         SkyAuth::$AccessControl = $_ACCESS_CONTROL;
     }
 }
-?>

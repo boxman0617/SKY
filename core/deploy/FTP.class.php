@@ -122,4 +122,3 @@ class FTP extends FileTransfer
         ftp_rename($this->_C, $old, $new);
     }
 }
-?>

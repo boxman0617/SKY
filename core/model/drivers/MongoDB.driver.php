@@ -223,4 +223,3 @@ class MongoDBDriver implements iDriver
     		$driver_info['query'] = $matches;
     }
 }
-?>

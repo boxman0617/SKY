@@ -110,4 +110,3 @@ class SkyMMigrate implements SkyCommand
 		return ($migration <= $target);
 	}
 }
-?>

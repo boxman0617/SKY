@@ -7,4 +7,3 @@ class ErrorPage extends Controller
         $this->Assign('error', '404 Not Found');
     }
 }
-?>

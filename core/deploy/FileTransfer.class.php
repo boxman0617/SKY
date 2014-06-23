@@ -22,4 +22,3 @@ abstract class FileTransfer
     abstract public function DoesItExists($it);
     abstract public function MakeDIr($dir);
 }
-?>

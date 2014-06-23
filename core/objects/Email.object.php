@@ -65,4 +65,3 @@ class Email implements iEmail
         return true;
     }
 }
-?>

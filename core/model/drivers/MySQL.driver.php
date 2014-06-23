@@ -5,58 +5,58 @@ class Operator
 {
     public $operator = null;
     public $value = null;
-    
+
     public function __construct($operator = '!=', $value)
     {
         $this->operator = $operator;
         $this->value = $value;
     }
-    
+
     public static function Not($value)
     {
         return new Operator('!=', $value);
     }
-    
+
     public static function NotIn($value)
     {
         return new Operator('NOT IN', $value);
     }
-    
+
     public static function IsNot($value)
     {
         return new Operator('IS NOT', $value);
     }
-    
+
     public static function IsNotNull()
     {
         return new Operator('IS NOT NULL', null);
     }
-    
+
     public static function IsNull()
     {
         return new Operator('IS NULL', null);
     }
-    
+
     public static function LessThan($value)
     {
         return new Operator('<', $value);
     }
-    
+
     public static function LessThanOrEqualTo($value)
     {
         return new Operator('<=', $value);
     }
-    
+
     public static function GreaterThan($value)
     {
         return new Operator('>', $value);
     }
-    
+
     public static function GreaterThanOrEqualTo($value)
     {
         return new Operator('>=', $value);
     }
-    
+
     public static function Like($value)
     {
         throw new Exception('This is not yet supported!');
@@ -138,13 +138,13 @@ class MySQLDriver implements iDriver
                 return Cache::GetCache($QUERY);
             }
         }
-        
+
         $_START = $this->LogBeforeAction('RUN', $QUERY);
-        
+
         $RESULTS = self::$DB[$this->Server]->query($QUERY);
-        
+
         $this->LogAfterAction($_START, $RESULTS, array('RESULTS' => $RESULTS->num_rows));
-        
+
         if($RESULTS === true)
             return $RESULTS;
         $RETURN = array();
@@ -154,7 +154,7 @@ class MySQLDriver implements iDriver
             Cache::Cache($QUERY, $RETURN);
         return $RETURN;
     }
-    
+
     private function diff($array1, $array2)
     {
         $diff = array();
@@ -314,7 +314,7 @@ class MySQLDriver implements iDriver
         $db = new mysqli($settings[':server'], $settings[':username'], $settings[':password'], $settings[':database']);
         return $db->query($CREATE_STATEMENT);
     }
-    
+
     public function ShowColumns()
     {
         $QUERY = "SHOW COLUMNS FROM `".$this->TableName."`";
@@ -328,7 +328,7 @@ class MySQLDriver implements iDriver
     //============================================================================//
     // Query Builder Methods                                                      //
     //============================================================================//
-    
+
     private function bool_to_string(&$where)
     {
         foreach($where as $field => $value)
@@ -342,7 +342,7 @@ class MySQLDriver implements iDriver
             }
         }
     }
-    
+
     private function enum_to_bool($row)
     {
         foreach($row as $field => $value)
@@ -357,7 +357,7 @@ class MySQLDriver implements iDriver
         }
         return $row;
     }
-    
+
     public function search($where = array(), $select = array())
     {
         if(!empty($select)) call_user_func_array(array($this, 'select'), $select);
@@ -457,7 +457,7 @@ class MySQLDriver implements iDriver
      * $users = new Users();
      * $users->select('name', 'number')->run();
      * ?>
-     * 
+     *
      * @access public
      * @return $this
      */
@@ -478,7 +478,7 @@ class MySQLDriver implements iDriver
      * $users = new Users();
      * $users->from('adminusers')->run();
      * ?>
-     * 
+     *
      * @access public
      * @return $this
      */
@@ -494,26 +494,26 @@ class MySQLDriver implements iDriver
      *
      * Allows the following parameters:
      * // Regular string based //////////////////////////////////////////////////////////////////////
-     * ::where(String)                                                                          
+     * ::where(String)
      *     PHP: "`name` = 'Alan'"
      *     SQL: WHERE `name` = 'Alan'
      * // Array based ///////////////////////////////////////////////////////////////////////////////
-     * ::where(Array)                                                                           
+     * ::where(Array)
      *     PHP: array(1, 2, 3, 4, 5, 6)
      *     SQL: WHERE `field` IN (1, 2, 3, 4, 5, 6)
      * // Associative substitution based ////////////////////////////////////////////////////////////
-     * ::where(String $query, Array $sub)                                                       
+     * ::where(String $query, Array $sub)
      *     PHP: "`name` = :name", array('name' => 'Alan')
      *     SQL: WHERE `name` = 'Alan'
      * // Ordered substitution based ////////////////////////////////////////////////////////////////
-     * ::where(String $query, String $sub [, String $...])                                      
+     * ::where(String $query, String $sub [, String $...])
      *     PHP: "`name` = ? AND `age` = ?", 'Alan', 2
      *     SQL: WHERE `name` = 'Alan' AND `age` = 23
      * // Multiple Associative-Array based //////////////////////////////////////////////////////////
-     * ::where(String $query, Array $sub [, Array $...])                                        
+     * ::where(String $query, Array $sub [, Array $...])
      *     PHP: array('name' => 'Alan'), array('hobbies', => array('programming', 'music'))
      *     SQL: WHERE name = 'Alan' AND hobbies IN ('programming', 'music')
-     * 
+     *
      * @access public
      * @return $this
      */
@@ -552,7 +552,7 @@ class MySQLDriver implements iDriver
                 );
             }
         }
-        // Associative substitution based where clause. 
+        // Associative substitution based where clause.
         // Substitution of symbol like patterns (:symbol) in first parameter
         // PHP: "`name` = :name", array('name' => 'Alan')
         // SQL: WHERE `name` = 'Alan'
@@ -652,7 +652,7 @@ class MySQLDriver implements iDriver
      * ::limit(Integer $offset, Integer $limit)
      *     PHP: 10, 100
      *     SQL: LIMIT 10, 100
-     * 
+     *
      * @example
      * <?php
      * $users = new Users();
@@ -688,7 +688,7 @@ class MySQLDriver implements iDriver
      * $users = new Users();
      * $users->orderby('age')->run();
      * ?>
-     * 
+     *
      * @access public
      * @return $this
      */
@@ -706,7 +706,7 @@ class MySQLDriver implements iDriver
      * $users = new Users();
      * $users->groupby('age')->run();
      * ?>
-     * 
+     *
      * @access public
      * @return $this
      */
@@ -716,4 +716,3 @@ class MySQLDriver implements iDriver
         $driver_info['groupby'][] = $by;
     }
 }
-?>

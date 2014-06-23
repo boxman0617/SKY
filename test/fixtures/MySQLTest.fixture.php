@@ -6,4 +6,3 @@ Fixture::CreateModels('MySQL', array(
 		'occupation' => 'varchar_255'
 	)
 ));
-?>

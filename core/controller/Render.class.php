@@ -128,4 +128,3 @@ class RenderSUBVIEWS implements RenderInterface
 
 	}
 }
-?>

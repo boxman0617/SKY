@@ -86,4 +86,3 @@ abstract class SkyCLI
 		printf("%'".$fill[0].$size."s", $string);
 	}
 }
-?>

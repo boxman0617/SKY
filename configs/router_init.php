@@ -7,4 +7,3 @@ $_approute->AppRoutes();
 Benchmark::End();
 Log::corewrite('CORE Loading time: [%s seconds]', 3, 'CORE', 'LOADING', array(Benchmark::ElapsedTime()));
 $_router->Follow($_approute->_GetMatches());
-?>

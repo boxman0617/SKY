@@ -1,5 +1,4 @@
 <?php
-SkyL::Import(SkyDefines::Call('EXCEPTIONS_CLASS'));
 SkyL::Import(SkyDefines::Call('LOG_CLASS'));
 SkyL::Import(SkyDefines::Call('PLUGIN_CLASS'));
 SkyL::Import(SkyDefines::Call('EVENT_CLASS'));
@@ -25,4 +24,3 @@ Event::PublishActionHook('/preimports/after/');
 
 // #Starting Error Instance
 $_errorHandler = Error::GetInstance();
-?>

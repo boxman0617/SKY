@@ -11,4 +11,3 @@ function randConsonant()
 	return $consonants[array_rand($consonants, 1)];
 }
 
-?>

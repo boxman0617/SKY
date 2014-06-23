@@ -59,4 +59,3 @@ class RouteTo
         //Log::write('Dyn Route: [%s] => [%s]', $term, $definition);
     }
 }
-?>

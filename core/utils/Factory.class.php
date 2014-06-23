@@ -45,4 +45,3 @@ class ObjectFactory
         return false;
     }
 }
-?>

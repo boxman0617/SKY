@@ -5,4 +5,3 @@ Event::SubscribeActionHook('/Route/after/Follow/IndirectMatchRequest/', array('P
 Event::SubscribeActionHook('/Route/before/Follow/HomeRequest/', array('Plugin_Test', 'IncludeCSS'));
 Event::SubscribeActionHook('/Route/before/Follow/DirectMatchRequest/', array('Plugin_Test', 'IncludeCSS'));
 Event::SubscribeActionHook('/Route/before/Follow/IndirectMatchRequest/', array('Plugin_Test', 'IncludeCSS'));
-?>

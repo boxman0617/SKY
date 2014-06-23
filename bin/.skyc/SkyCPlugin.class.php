@@ -153,4 +153,3 @@ class SkyCPlugin implements SkyCommand
 		$this->_cli->ShowBar();
 	}
 }
-?>

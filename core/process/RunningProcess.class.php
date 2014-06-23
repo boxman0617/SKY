@@ -56,4 +56,3 @@ class RunningProcess extends BaseProcess
 		exit();
 	}
 }
-?>

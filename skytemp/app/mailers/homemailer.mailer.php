@@ -2,7 +2,7 @@
 class HomeMailer extends Mailer
 {
     public $from = 'test@sky.com';
-    
+
     public function TestEmail()
     {
         $this->Assign('name', $this->params['name']);
@@ -14,4 +14,3 @@ class HomeMailer extends Mailer
         //$this->Mail($email);
     }
 }
-?>

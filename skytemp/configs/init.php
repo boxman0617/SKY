@@ -8,4 +8,3 @@ require_once(getenv('SKYCORE').'/configs/defines.php');
 // #Initialize APP
 SkyDefines::Define('APPROOT', dirname(__FILE__).'/..');
 SkyL::Import(SkyDefines::Call('SKYCORE_CONFIGS').'/app_defines.php');
-?>

@@ -164,11 +164,10 @@ class ".$this->table['name']." extends Model
 {
 
 }
-?>
+
 ";
         $f = fopen(SkyDefines::Call('DIR_APP_MODELS')."/".$this->table['name'].".model.php", "w");
         fwrite($f, $class);
         fclose($f);
     }
 }
-?>

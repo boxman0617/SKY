@@ -26,4 +26,3 @@ $_PAYPAL['PRO'] = array(
     'ApplicationID' => '',
     'DeveloperEmailAccount' => 'pro@skypaypal.com'
 );
-?>

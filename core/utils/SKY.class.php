@@ -40,35 +40,35 @@ class SKY
         'RI' =>'Rhode Island', 'SC'=>'South Carolina', 'SD'=>'South Dakota',
         'TN' =>'Tennessee', 'TX'=>'Texas', 'UT'=>'Utah',
         'VT' =>'Vermont', 'VA'=>'Virginia', 'WA'=>'Washington',
-        'WV' =>'West Virginia', 'WI'=>'Wisconsin', 'WY'=>'Wyoming' 
+        'WV' =>'West Virginia', 'WI'=>'Wisconsin', 'WY'=>'Wyoming'
     );
 
     public static function GetCountries()
     {
         return array_change_key_case(array_combine(self::$countries, self::$countries));
     }
-    
+
 	public static function Version()
 	{
 		return trim(file_get_contents(SkyDefines::Call('SKYCORE').'/version.info'));
 	}
 
-    public static function RRMDIR($dir) 
-    { 
+    public static function RRMDIR($dir)
+    {
         $files = array_diff(scandir($dir), array('.', '..'));
         foreach($files as $file)
             (is_dir("$dir/$file")) ? self::RRMDIR("$dir/$file") : unlink("$dir/$file");
         return rmdir($dir);
-    } 
+    }
 
-	public static function RCP($src, $dst) 
-	{ 
-		$dir = opendir($src); 
+	public static function RCP($src, $dst)
+	{
+		$dir = opendir($src);
 		@mkdir($dst);
 		while(false !== ($file = readdir($dir)))
-		{ 
+		{
 			if(($file != '.' ) && ( $file != '..' ))
-			{ 
+			{
 				if(is_dir($src . '/' . $file))
 					self::RCP($src . '/' . $file, $dst . '/' . $file);
 				else
@@ -83,7 +83,7 @@ class SKY
 		return function_exists('curl_version');
 	}
 
-	public static function DownloadFile($file_source, $file_target) 
+	public static function DownloadFile($file_source, $file_target)
 	{
 		$rh = fopen($file_source, 'rb');
 		$wh = fopen($file_target, 'w+b');
@@ -91,7 +91,7 @@ class SKY
 			return false;
 
 		echo '[';
-		while (!feof($rh)) 
+		while (!feof($rh))
 		{
 			if (fwrite($wh, fread($rh, 4096)) === FALSE)
 				return false;
@@ -120,7 +120,7 @@ class SKY
 
         if(self::IsInApp())
             SkyL::Import(SkyDefines::Call('SKYCORE_CONFIGS').'/app_defines.php');
-		
+
         SkyDefines::SetEnv($ENV);
 	}
 
@@ -132,7 +132,7 @@ class SKY
     {
         $not_cap = array('to', 'a', 'the', 'at', 'in', 'with', 'and', 'but', 'or');
         $words = explode(' ', strtolower($title));
-        
+
         // First word always gets cap
         $words[0] = ucfirst($words[0]);
         for($i = 1; $i < count($words); $i++)
@@ -146,13 +146,13 @@ class SKY
                 $words[$i] = ucfirst($words[$i]);
         }
         return implode(' ', $words);
-        
+
     }
 
 	//############################################################
 	//# Word plural/singular Methods
 	//############################################################
-	
+
     public static function singularize($word)
     {
         $singular = array (
@@ -182,9 +182,9 @@ class SKY
             '/(n)ews$/i' => '$1ews',
             '/s$/i' => ''
         );
-        
+
         $uncountable = array('equipment', 'information', 'rice', 'money', 'species', 'series', 'fish', 'sheep');
-        
+
         $irregular = array(
             'person' => 'people',
             'man' => 'men',
@@ -192,7 +192,7 @@ class SKY
             'sex' => 'sexes',
             'move' => 'moves'
         );
-        
+
         $ending_in_s = array(
             'status',
             'alias',
@@ -200,7 +200,7 @@ class SKY
             'rendezvous',
             'address'
         );
-        
+
         $lowercased_word = strtolower($word);
         foreach ($uncountable as $_uncountable){
             if(substr($lowercased_word,(-1*strlen($_uncountable))) == $_uncountable){
@@ -208,14 +208,14 @@ class SKY
                 return $word;
             }
         }
-        
+
         foreach ($irregular as $_plural=> $_singular){
             if (preg_match('/('.$_singular.')$/i', $word, $arr)) {
                 //Log::corewrite('Irragular singular [%s][%s]', 2, __CLASS__, __FUNCTION__, array($word, $_singular));
                 return preg_replace('/('.$_singular.')$/i', substr($arr[0],0,1).substr($_plural,1), $word);
             }
         }
-        
+
         foreach ($singular as $rule => $replacement) {
             if (preg_match($rule, $word)) {
                 if(!in_array($word, $ending_in_s))
@@ -225,7 +225,7 @@ class SKY
             }
         }
         }
-        
+
         return false;
     }
 
@@ -291,7 +291,7 @@ class SKY
 			$return .= ucfirst($sub);
 		return $return;
 	}
-	
+
 	public static function CleanFileArray()
     {
         $RETURN = array();
@@ -320,7 +320,7 @@ class SKY
         }
         return $RETURN;
     }
-    
+
     public static function CreditCardYears($years = 10)
     {
         $this_year = date('Y');
@@ -333,4 +333,3 @@ class SKY
         return $options;
     }
 }
-?>

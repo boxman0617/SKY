@@ -288,4 +288,3 @@ class Router extends Base
         return false;
     }
 }
-?>

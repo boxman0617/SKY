@@ -134,4 +134,3 @@ class Cookie
         return $retval;
     }
 }
-?>

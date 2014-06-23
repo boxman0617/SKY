@@ -98,4 +98,3 @@ class ModelAssociation
 		TestMaster::AssertEqual($COUNT, 4, 'Order was not created properly!');
 	}
 }
-?>

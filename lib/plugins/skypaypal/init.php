@@ -8,4 +8,3 @@ function LoadSkyPayPal()
         SkyPayPal::$Settings[':ENV'] = array_merge(SkyPayPal::$Settings[':ENV'], $_PAYPAL[SkyDefines::GetEnv()]);
     }
 }
-?>

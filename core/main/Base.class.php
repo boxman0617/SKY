@@ -43,4 +43,3 @@ abstract class Base
 {
     protected static $_share = array();
 }
-?>

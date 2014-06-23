@@ -95,4 +95,3 @@ class SkyCNew implements SkyCommand
 		$this->_cli->ShowBar('>');
 	}
 }
-?>
