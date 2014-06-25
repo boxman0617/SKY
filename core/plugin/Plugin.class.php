@@ -17,12 +17,17 @@
  * @package     Sky.Core
  */
 
+class Plugin
+{
+    const PUBLISH_FILE = 'plugin.json';
+}
+
 /**
  * Plugin class
  * Handles the registering of user created plugins
  * @package Sky.Core.Plugin
  */
-class Plugin
+class PluginOLD
 {
     /**
      * Array of all plugins

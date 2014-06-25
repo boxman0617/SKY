@@ -1,7 +1,10 @@
 <?php
+SkyL::Import(SkyDefines::Call('PLUGIN_CLASS'));
+
 class SkyCPlugin implements SkyCommand
 {
 	private $_cli; // For two-way communication
+	private $_publish_url = 'http://codethesky.com/plugins/publish';
 
 	public function __construct($cli)
 	{
@@ -15,7 +18,8 @@ class SkyCPlugin implements SkyCommand
 		$help .= "#\tsky plugin list\n";
 		$help .= "#\tsky plugin remove pluginname\n";
 		$help .= "#\tsky plugin destroy pluginname\n";
-		$help .= "#\tsky plugin search pluginname";
+		$help .= "#\tsky plugin search pluginname\n";
+		$help .= "#\tsky plugin publish";
 		return $help;
 	}
 
@@ -40,7 +44,10 @@ class SkyCPlugin implements SkyCommand
 		$help .= "#\t - install.\n#\n";
 
 		$help .= "#\tsky plugin search pluginname\n";
-		$help .= "#\t - Will search the repo of plugins.";
+		$help .= "#\t - Will search the repo of plugins.\n#\n";
+
+		$help .= "#\tsky plugin publish\n";
+		$help .= "#\t - Will publish the plugin to the codethesky.com plugin registry.";
 
 		return $help;
 	}
@@ -62,6 +69,32 @@ class SkyCPlugin implements SkyCommand
 		$this->_cli->ShowBar();
 		$this->_cli->PrintLn('# '.$str);
 		$this->_cli->ShowBar('=');
+	}
+
+	private function ExecutePublish($args)
+	{
+		$cwd = getcwd();
+		$this->Header('SkyApp Plugin Publish:');
+		echo '# Checking for '.Plugin::PUBLISH_FILE.'...';
+		$publish_file = $cwd.'/'.Plugin::PUBLISH_FILE;
+		if(is_file($publish_file))
+		{
+			$this->_cli->PrintLn(" \033[0;32mOK!\033[0m");
+			echo '# Reading '.Plugin::PUBLISH_FILE.'...';
+			$publish_json = file_get_contents($publish_file);
+			$publish = json_decode($publish_json);
+			if($publish === null)
+			{
+				$this->_cli->PrintLn(" \033[0;31mFAIL!\033[0m");
+				$this->_cli->ShowError('Unable to publish! There is comthing wrong with your '.Plugin::PUBLISH_FILE.'.');
+			}
+			
+			$this->_cli->PrintLn(" \033[0;32mOK!\033[0m");
+			
+		} else {
+			$this->_cli->PrintLn(" \033[0;31mFAIL!\033[0m");
+			$this->_cli->ShowError('Unable to publish! No '.Plugin::PUBLISH_FILE.' found in ['.$cwd.'].');
+		}
 	}
 
 	private function ExecuteRemove($args)
