@@ -9,7 +9,7 @@
  * This file may not be redistributed in whole or significant part, or
  * used on a web site without licensing of the enclosed code, and
  * software features.
- * 
+ *
  * @author      Alan Tirado <root@deeplogik.com>
  * @copyright   2013 DeepLogik, All Rights Reserved
  * @license     http://www.codethesky.com/license
@@ -20,6 +20,14 @@
 class Plugin
 {
     const PUBLISH_FILE = 'plugin.json';
+    const PUBLISH_URL = 'http://codethesky.com/plugins/';
+    const QUERY_SEARCH = 'search';
+    const QUERY_EXISTS = 'exists';
+
+    public static function CheckIfExists($name, $version)
+    {
+      return json_decode(file_get_contents(self::PUBLISH_URL.self::QUERY_EXISTS.'/'.$name.'/'.$version));
+    }
 }
 
 /**
@@ -37,7 +45,7 @@ class PluginOLD
      */
     public static $plugin = array();
     private static $regex = '/((?!#).+)=(.*)/';
-    
+
     /**
      * Sets up {@link $plugin} under self::$plugin
      * Reads plugin's info.cnf file and runs it's init.php script

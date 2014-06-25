@@ -16,7 +16,7 @@ abstract class SkyCLI
 		unset($arguments[0]);
 		$arguments = array_values($arguments);
 		$this->_command = $arguments[0];
-		
+
 		if(array_key_exists($this->_command, $this->_commands))
 		{
 			array_shift($arguments);
@@ -38,7 +38,7 @@ abstract class SkyCLI
 		$real = SkyDefines::Call('SKYCORE_BIN').'/.'.$this->tool;
 		if($handle = opendir($real))
 		{
-		    while(false !== ($entry = readdir($handle))) 
+		    while(false !== ($entry = readdir($handle)))
 		    {
 		        if($entry != '.' && $entry != '..')
 		        {
@@ -64,6 +64,12 @@ abstract class SkyCLI
 	{
 		$this->PrintLn('[ERROR]:: '.$error);
 		exit();
+	}
+
+	public function Flush($str)
+	{
+		echo $str;
+		flush();
 	}
 
 	public function ShowBar($char = '#', $multi = 50)

@@ -4,7 +4,6 @@ SkyL::Import(SkyDefines::Call('PLUGIN_CLASS'));
 class SkyCPlugin implements SkyCommand
 {
 	private $_cli; // For two-way communication
-	private $_publish_url = 'http://codethesky.com/plugins/publish';
 
 	public function __construct($cli)
 	{
@@ -56,7 +55,7 @@ class SkyCPlugin implements SkyCommand
 	{
 		if(count($args) == 0)
 			$this->_cli->ShowError('sky plugin requires more arguments! (Run "sky help plugin" for more information)');
-		
+
 		$command = $args[0];
 		unset($args[0]);
 		$args = array_values($args);
@@ -75,26 +74,116 @@ class SkyCPlugin implements SkyCommand
 	{
 		$cwd = getcwd();
 		$this->Header('SkyApp Plugin Publish:');
-		echo '# Checking for '.Plugin::PUBLISH_FILE.'...';
+		$this->_cli->Flush('# Checking for '.Plugin::PUBLISH_FILE.'...');
 		$publish_file = $cwd.'/'.Plugin::PUBLISH_FILE;
 		if(is_file($publish_file))
 		{
 			$this->_cli->PrintLn(" \033[0;32mOK!\033[0m");
-			echo '# Reading '.Plugin::PUBLISH_FILE.'...';
+			$this->_cli->Flush('# Reading '.Plugin::PUBLISH_FILE.'...');
 			$publish_json = file_get_contents($publish_file);
-			$publish = json_decode($publish_json);
-			if($publish === null)
+			$publish = json_decode($publish_json, true);
+			if($publish === null || $this->_ValidatePublishFile($publish) === false)
 			{
 				$this->_cli->PrintLn(" \033[0;31mFAIL!\033[0m");
-				$this->_cli->ShowError('Unable to publish! There is comthing wrong with your '.Plugin::PUBLISH_FILE.'.');
+				$this->_cli->ShowError('Unable to publish! There is somthing wrong with your '.Plugin::PUBLISH_FILE.'.');
 			}
-			
+
 			$this->_cli->PrintLn(" \033[0;32mOK!\033[0m");
+
+			$this->_cli->Flush('# Checking if plugin exists in registry...');
+			$exists = Plugin::CheckIfExists($publish['name'], $publish['version']);
+			if($exists === null)
+			{
+				$this->_cli->PrintLn(" \033[0;31mFAIL!\033[0m");
+				$this->_cli->ShowError('There was a problem reaching the SKY Registry! Try again?');
+			}
+
+			if($exists === true)
+			{
+				$this->_cli->PrintLn(" \033[0;31mFAIL!\033[0m");
+				$this->_cli->ShowError('Plugin already exists! Did you forget to bump the version?');
+			}
+			$this->_cli->PrintLn(" \033[0;32mOK!\033[0m");
+
+			$this->_cli->Flush('# Packaging plugin...');
+			$tmp = $cwd.'/.tmp';
+			mkdir($tmp);
+			$ignore = array('.', '..', '.tmp', '.git', '.gitignore');
+			if(array_key_exists('include', $publish))
+			{
+				if($handle = opendir($cwd))
+				{
+			    while(false !== ($entry = readdir($handle)))
+					{
+		        if(!in_array($entry, $ignore))
+						{
+	            if(in_array($entry, $publish['include']))
+							{
+								if(is_dir($cwd.'/'.$entry))
+									SKY::RCP($cwd.'/'.$entry, $tmp.'/'.$entry);
+								else
+									copy($cwd.'/'.$entry, $tmp.'/'.$entry);
+							}
+		        }
+			    }
+			    closedir($handle);
+				}
+			} elseif(array_key_exists('exclude', $publish)) {
+				if($handle = opendir($cwd))
+				{
+					while(false !== ($entry = readdir($handle)))
+					{
+						if(!in_array($entry, $ignore))
+						{
+							if(!in_array($entry, $publish['exclude']))
+							{
+								if(is_dir($cwd.'/'.$entry))
+									SKY::RCP($cwd.'/'.$entry, $tmp.'/'.$entry);
+								else
+									copy($cwd.'/'.$entry, $tmp.'/'.$entry);
+							}
+						}
+					}
+					closedir($handle);
+				}
+			} else {
+				if($handle = opendir($cwd))
+				{
+					while(false !== ($entry = readdir($handle)))
+					{
+						if(!in_array($entry, $ignore))
+						{
+							if(is_dir($cwd.'/'.$entry))
+								SKY::RCP($cwd.'/'.$entry, $tmp.'/'.$entry);
+							else
+								copy($cwd.'/'.$entry, $tmp.'/'.$entry);
+						}
+					}
+					closedir($handle);
+				}
+			}
+
+			$phar = new PharData('.tmp/plugin.tar.gz');
+			$phar->buildFromDirectory($tmp);
+
+			$this->_cli->PrintLn(" \033[0;32mOK!\033[0m");
+
 			
+
 		} else {
 			$this->_cli->PrintLn(" \033[0;31mFAIL!\033[0m");
 			$this->_cli->ShowError('Unable to publish! No '.Plugin::PUBLISH_FILE.' found in ['.$cwd.'].');
 		}
+	}
+
+	private function _ValidatePublishFile($publish)
+	{
+		if(!array_key_exists('name', $publish))
+			return false;
+		if(!array_key_exists('version', $publish))
+			return false;
+
+		return true;
 	}
 
 	private function ExecuteRemove($args)
@@ -155,7 +244,7 @@ class SkyCPlugin implements SkyCommand
 		$real = SkyDefines::Call('SKYCORE_LIB_PLUGINS');
 		if($handle = opendir($real))
 		{
-		    while(false !== ($entry = readdir($handle))) 
+		    while(false !== ($entry = readdir($handle)))
 		    {
 		        if($entry != '.' && $entry != '..')
 		        {
