@@ -33,7 +33,7 @@ class SkyTRun implements SkyCommand
 		$c = count($args);
 
 		if($c == 0)
-			$this->_cli->ShowError('skyt run needs more parameters! (Run "skyt help" for list of commands)');
+			SkyCLI::ShowError('skyt run needs more parameters! (Run "skyt help" for list of commands)');
 
 		if(strpos($args[0], ':') !== false)
 		{

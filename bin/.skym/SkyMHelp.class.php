@@ -33,27 +33,27 @@ class SkyMHelp implements SkyCommand
 
 	private function HelpHeader()
 	{
-		$this->_cli->ShowBar();
-		$this->_cli->PrintLn('# Skym Help');
-		$this->_cli->ShowBar('=');
+		SkyCLI::ShowBar();
+		SkyCLI::PrintLn('# Skym Help');
+		SkyCLI::ShowBar('=');
 	}
 
 	private function GeneralHelp()
 	{
 		$this->HelpHeader();
 
-		$this->_cli->PrintLn('# Usage: skym command [argument [argument ...]]');
-		$this->_cli->PrintLn('#');
+		SkyCLI::PrintLn('# Usage: skym command [argument [argument ...]]');
+		SkyCLI::PrintLn('#');
 		$commands = $this->_cli->GetCommands();
 		foreach($commands as $name => $command)
 		{
-			$this->_cli->ShowBar('-');
-			$this->_cli->PrintLn('# Command: '.$name);
-			$this->_cli->PrintLn('#');
-			$this->_cli->PrintLn($command->GetShortHelp());
+			SkyCLI::ShowBar('-');
+			SkyCLI::PrintLn('# Command: '.$name);
+			SkyCLI::PrintLn('#');
+			SkyCLI::PrintLn($command->GetShortHelp());
 		}
-		$this->_cli->PrintLn('#');
-		$this->_cli->ShowBar();
+		SkyCLI::PrintLn('#');
+		SkyCLI::ShowBar();
 	}
 
 	private function HelpOn($command)
@@ -62,13 +62,13 @@ class SkyMHelp implements SkyCommand
 		if(array_key_exists($command, $commands))
 		{
 			$this->HelpHeader();
-			$this->_cli->PrintLn('# Help for ['.$command.']');
-			$this->_cli->PrintLn('#');
-			$this->_cli->PrintLn($commands[$command]->GetLongHelp());
-			$this->_cli->PrintLn('#');
-			$this->_cli->ShowBar();
+			SkyCLI::PrintLn('# Help for ['.$command.']');
+			SkyCLI::PrintLn('#');
+			SkyCLI::PrintLn($commands[$command]->GetLongHelp());
+			SkyCLI::PrintLn('#');
+			SkyCLI::ShowBar();
 		} else {
-			$this->_cli->ShowError('Command ['.$this->_command.'] not found! (Run "skym help" for list of commands)');
+			SkyCLI::ShowError('Command ['.$this->_command.'] not found! (Run "skym help" for list of commands)');
 		}
 	}
 }

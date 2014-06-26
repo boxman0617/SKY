@@ -40,7 +40,7 @@ abstract class SkyCLI
 		{
 		    while(false !== ($entry = readdir($handle)))
 		    {
-		        if($entry != '.' && $entry != '..')
+		        if($entry != '.' && $entry != '..' && strpos($entry, '.class.php') !== false)
 		        {
 		        	$class = str_replace('.class.php', '', $entry);
 		        	$name = strtolower(str_replace(get_called_class(), '', $class));
@@ -60,34 +60,34 @@ abstract class SkyCLI
 		return $this->_commands;
 	}
 
-	public function ShowError($error)
+	public static function ShowError($error)
 	{
-		$this->PrintLn('[ERROR]:: '.$error);
+		self::PrintLn('[ERROR]:: '.$error);
 		exit();
 	}
 
-	public function Flush($str)
+	public static function Flush($str)
 	{
 		echo $str;
 		flush();
 	}
 
-	public function ShowBar($char = '#', $multi = 50)
+	public static function ShowBar($char = '#', $multi = 50)
 	{
-		$this->PrintLn(str_repeat($char, $multi));
+		self::PrintLn(str_repeat($char, $multi));
 	}
 
-	public function PrintLn($str)
+	public static function PrintLn($str)
 	{
 		echo $str."\n";
 	}
 
-	public function LJust($string, $size, $fill = ' ')
+	public static function LJust($string, $size, $fill = ' ')
 	{
 		printf("%'".$fill[0].'-'.$size."s", $string);
 	}
 
-	public function RJust($string, $size, $fill = ' ')
+	public static function RJust($string, $size, $fill = ' ')
 	{
 		printf("%'".$fill[0].$size."s", $string);
 	}

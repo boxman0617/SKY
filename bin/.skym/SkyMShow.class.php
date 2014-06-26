@@ -34,35 +34,35 @@ class SkyMShow implements SkyCommand
 		SkyL::Import(SkyDefines::Call('MIGRATION_CLASS'));
 		$num = count($args);
 		if($num == 0)
-			$this->_cli->ShowError('skym show requires 1 more argument! Please run skym help show for more info.');
+			SkyCLI::ShowError('skym show requires 1 more argument! Please run skym help show for more info.');
 		if(method_exists($this, 'Execute'.ucfirst($args[0])))
 			call_user_func(array($this, 'Execute'.ucfirst($args[0])));
 	}
 
 	private function ExecuteList()
 	{
-		$this->_cli->ShowBar();
-		$this->_cli->PrintLn('# List of all Migrations');
-		$this->_cli->ShowBar('=');
-		$migrations = $this->_cli->GetListOfMigrations();
+		SkyCLI::ShowBar();
+		SkyCLI::PrintLn('# List of all Migrations');
+		SkyCLI::ShowBar('=');
+		$migrations = SkyCLI::GetListOfMigrations();
 		foreach($migrations as $migration)
 			$this->DisplayMigration($migration);
 	}
 
 	private function ExecuteMigrated()
 	{
-		$this->_cli->ShowBar();
-		$this->_cli->PrintLn('# List of all migrated Migrations under ['.SkyDefines::GetEnv().']');
-		$this->_cli->ShowBar('=');
+		SkyCLI::ShowBar();
+		SkyCLI::PrintLn('# List of all migrated Migrations under ['.SkyDefines::GetEnv().']');
+		SkyCLI::ShowBar('=');
 
 		$this->ShowListOf('migrated', '# No migrations have been migrated under the current env.');
 	}
 
 	private function ExecuteRolled()
 	{
-		$this->_cli->ShowBar();
-		$this->_cli->PrintLn('# List of all rolled back Migrations under ['.SkyDefines::GetEnv().']');
-		$this->_cli->ShowBar('=');
+		SkyCLI::ShowBar();
+		SkyCLI::PrintLn('# List of all rolled back Migrations under ['.SkyDefines::GetEnv().']');
+		SkyCLI::ShowBar('=');
 
 		$this->ShowListOf('rolled', '# No migrations have been rolled back under the current env.');
 	}
@@ -72,7 +72,7 @@ class SkyMShow implements SkyCommand
 		$migrations = call_user_func('MigrationLog::Get'.ucfirst($of));
 		if(empty($migrations))
 		{
-			$this->_cli->PrintLn($failed);
+			SkyCLI::PrintLn($failed);
 			return false;
 		}
 
@@ -84,6 +84,6 @@ class SkyMShow implements SkyCommand
 	{
 		$t = explode('_', $migration);
 		$d = explode('.', $t[1]);
-		$this->_cli->PrintLn('# ['.$d[0].'] ('.date('F j, Y g:i A', strtotime($d[0])).') '.$t[0]);
+		SkyCLI::PrintLn('# ['.$d[0].'] ('.date('F j, Y g:i A', strtotime($d[0])).') '.$t[0]);
 	}
 }

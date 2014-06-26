@@ -29,26 +29,26 @@ class SkyCNew implements SkyCommand
 	public function Execute($args = array())
 	{
 		if(count($args) == 0)
-			$this->_cli->ShowError('sky new requires the name of the new app! (Run "sky help new" for more information)');
+			SkyCLI::ShowError('sky new requires the name of the new app! (Run "sky help new" for more information)');
 		flush();
 		$name = $args[0];
 
 		$app = getcwd().'/'.$name;
 		SKY::RCP(SkyDefines::Call('SKYCORE').'/skytemp', $app);
-		$this->_cli->ShowBar();
+		SkyCLI::ShowBar();
 
 		$dirs = scandir(SkyDefines::Call('SKYCORE').'/skytemp');
-		$this->_cli->PrintLn('Creating new SKY app:');
+		SkyCLI::PrintLn('Creating new SKY app:');
 		foreach($dirs as $d)
 		{
 			if(is_dir(SkyDefines::Call('SKYCORE').'/skytemp/'.$d) && $d !== '.' && $d !== '..' && $d[0] !== '.')
 			{
-				$this->_cli->PrintLn(" => ".$d);
+				SkyCLI::PrintLn(" => ".$d);
 				$inner = scandir(SkyDefines::Call('SKYCORE').'/skytemp/'.$d);
 				foreach ($inner as $inner_d)
 				{
 					if(is_dir(SkyDefines::Call('SKYCORE').'/skytemp/'.$d.'/'.$inner_d) && $inner_d != '.' && $inner_d != '..')
-						$this->_cli->PrintLn("\t => ".$d.'/'.$inner_d);
+						SkyCLI::PrintLn("\t => ".$d.'/'.$inner_d);
 				}
 			}
 		}
@@ -69,29 +69,29 @@ class SkyCNew implements SkyCommand
 		$f = fopen($app.'/.skycore', 'w');
 		fwrite($f, 'Generated with Sky version ['.SKY::Version().']');
 		fclose($f);
-		$this->_cli->ShowBar('=');
-		$this->_cli->PrintLn('# Success!');
-		$this->_cli->ShowBar();
+		SkyCLI::ShowBar('=');
+		SkyCLI::PrintLn('# Success!');
+		SkyCLI::ShowBar();
 		chmod($app.'/log', 0777);
 	}
 
 	private function GruntLess($app, $name)
 	{
-		$this->_cli->ShowBar('+');
-		$this->_cli->PrintLn('# + Building GruntLESS\n#');
+		SkyCLI::ShowBar('+');
+		SkyCLI::PrintLn('# + Building GruntLESS\n#');
 		$base = dirname(__FILE__).'/../../skytemp/.grunt-less';
 		$package = file_get_contents($base.'/package.json');
 		$package = str_replace('{{NAME}}', $name, $package);
-		$this->_cli->PrintLn('# Creating package.json');
+		SkyCLI::PrintLn('# Creating package.json');
 		file_put_contents($app.'/package.json', $package);
-		$this->_cli->PrintLn('# Installing Gruntfile.js');
+		SkyCLI::PrintLn('# Installing Gruntfile.js');
 		copy($base.'/Gruntfile.js', $app.'/Gruntfile.js');
-		$this->_cli->PrintLn('# Installing Dev directories');
+		SkyCLI::PrintLn('# Installing Dev directories');
 		mkdir($app.'/dev');
 		mkdir($app.'/dev/less');
-		$this->_cli->ShowBar('>');
-		$this->_cli->PrintLn('#!!! now run: sudo npm install');
-		$this->_cli->PrintLn('#!!! (Make sure you have nodejs and npm installed!)');
-		$this->_cli->ShowBar('>');
+		SkyCLI::ShowBar('>');
+		SkyCLI::PrintLn('#!!! now run: sudo npm install');
+		SkyCLI::PrintLn('#!!! (Make sure you have nodejs and npm installed!)');
+		SkyCLI::ShowBar('>');
 	}
 }

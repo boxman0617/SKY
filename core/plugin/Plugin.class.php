@@ -20,14 +20,7 @@
 class Plugin
 {
     const PUBLISH_FILE = 'plugin.json';
-    const PUBLISH_URL = 'http://codethesky.com/plugins/';
-    const QUERY_SEARCH = 'search';
-    const QUERY_EXISTS = 'exists';
-
-    public static function CheckIfExists($name, $version)
-    {
-      return json_decode(file_get_contents(self::PUBLISH_URL.self::QUERY_EXISTS.'/'.$name.'/'.$version));
-    }
+    
 }
 
 /**

@@ -33,8 +33,8 @@ class SkyMNew implements SkyCommand
 	public function Execute($args = array())
 	{
 		if(count($args) == 0)
-			$this->_cli->ShowError('skym new requires the name of the migration! (Run "skym help new" for more information)');
-		$this->_cli->PrintLn('Generating new migration...');
+			SkyCLI::ShowError('skym new requires the name of the migration! (Run "skym help new" for more information)');
+		SkyCLI::PrintLn('Generating new migration...');
 		flush();
 		$name = $args[0];
 		if(is_dir(SkyDefines::Call('DIR_LIB_MIGRATIONS')))
@@ -55,6 +55,6 @@ class ".$name." extends Migration
 }");
 			fclose($f);
 		}
-		$this->_cli->PrintLn('Done!');
+		SkyCLI::PrintLn('Done!');
 	}
 }

@@ -236,7 +236,7 @@ class TaskManager
     private function VerboseOut($msg)
     {
         if($this->_v)
-            $this->_cli->PrintLn($msg);
+            SkyCLI::PrintLn($msg);
     }
 
     /**
@@ -251,7 +251,7 @@ class TaskManager
     private function VerboseErr($err)
     {
         if($this->_v)
-            $this->_cli->ShowError($err);
+            SkyCLI::ShowError($err);
     }
 
     /**

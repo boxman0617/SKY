@@ -306,12 +306,12 @@ abstract class Controller extends Base
             $this->files = File::FilesCleanUp();
             foreach($this->files as $name => $file)
             {
-                if(is_array($file))
+                if(!array_key_exists('name', $file))
                 {
                     foreach($file as $loc => $data)
                         File::RegisterFile($name.'['.$loc.']', new SingleFile($name.'['.$loc.']', $data));
                 } else {
-                    File::RegisterFile($name, new SingleFile($name.'['.$loc.']', $file));
+                    File::RegisterFile($name, new SingleFile($name, $file));
                 }
             }
         }

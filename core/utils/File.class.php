@@ -99,7 +99,8 @@ class File
             'rar' => 'application/x-rar-compressed',
             'exe' => 'application/x-msdownload',
             'msi' => 'application/x-msdownload',
-            'cab' => 'application/vnd.ms-cab-compressed'
+            'cab' => 'application/vnd.ms-cab-compressed',
+            'tar' => 'application/x-tar'
         ),
         'MEDIA' => array(
             'mp3' => 'audio/mpeg',

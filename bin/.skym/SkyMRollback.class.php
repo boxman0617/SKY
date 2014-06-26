@@ -51,20 +51,20 @@ class SkyMRollback implements SkyCommand
 		foreach($migrations as $migration)
 		{
 			SkyL::Import(SkyDefines::Call('DIR_LIB_MIGRATIONS').'/'.$migration);
-			$this->_cli->PrintLn('#=> '.$migration);
+			SkyCLI::PrintLn('#=> '.$migration);
 			flush();
 			$tmp = explode('_', $migration);
 			$class = $tmp[0];
 
-			$mObj = new $class($this->_cli->GetMySQLConnection(SkyDefines::GetEnv()));
+			$mObj = new $class(SkyCLI::GetMySQLConnection(SkyDefines::GetEnv()));
 			try {
 				$mObj->Down();
 			} catch(Exception $e) {
-				$this->_cli->ShowError('#!!! Was unable to complete migrations due to unexpected error.');
+				SkyCLI::ShowError('#!!! Was unable to complete migrations due to unexpected error.');
 			}
 
 			MigrationLog::MarkAsRolled($migration);
-			$this->_cli->PrintLn('#=== Complete!');
+			SkyCLI::PrintLn('#=== Complete!');
 			$ran_count++;
 		}
 		return $ran_count;
@@ -77,17 +77,17 @@ class SkyMRollback implements SkyCommand
 		$about_to_run = count($migrations);
 		if($about_to_run == 0)
 		{
-			$this->_cli->PrintLn('# No rollbacks to run...');
+			SkyCLI::PrintLn('# No rollbacks to run...');
 			exit();
 		} else {
-			$this->_cli->PrintLn('# About to roll back ['.$about_to_run.'] migrations(s)');
-			$this->_cli->PrintLn('#');
+			SkyCLI::PrintLn('# About to roll back ['.$about_to_run.'] migrations(s)');
+			SkyCLI::PrintLn('#');
 		}
 
-		$this->_cli->PrintLn('# Rolling back...');
+		SkyCLI::PrintLn('# Rolling back...');
 		$ran_count = $this->RunRollbacks($migrations);
 
-		$this->_cli->PrintLn('# Rolled back ['.$ran_count.'/'.$about_to_run.'] migration(s)!');
+		SkyCLI::PrintLn('# Rolled back ['.$ran_count.'/'.$about_to_run.'] migration(s)!');
 	}
 
 	private function RunRollbacksForEnv()
