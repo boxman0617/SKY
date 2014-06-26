@@ -6,10 +6,10 @@ class PluginPublish
 	private $_name = false;
 
 	const PUBLISH_URL = 'http://codethesky.com/plugins/';
-    const QUERY_SEARCH = 'search';
-    const QUERY_EXISTS = 'exists';
-    const QUERY_PUSH_JSON = 'publish/json';
-    const QUERY_UPLOAD = 'upload';
+  const QUERY_SEARCH = 'search';
+  const QUERY_EXISTS = 'exists';
+  const QUERY_PUSH_JSON = 'publish/json';
+  const QUERY_UPLOAD = 'upload';
 
 	public function __construct($cwd)
 	{
@@ -19,6 +19,11 @@ class PluginPublish
 	public function Start()
 	{
 		$this->CheckForPluginJSONFile();
+	}
+
+	public static function InstallPlugin($name)
+	{
+
 	}
 
 	private function CheckForPluginJSONFile()
@@ -41,7 +46,7 @@ class PluginPublish
 		$publish_json = file_get_contents($publish_file);
 		if($publish_json === false)
 			$this->Fail('Unable to publish! Was unable to read the '.Plugin::PUBLISH_FILE);
-		
+
 		$publish = json_decode($publish_json, true);
 		if($publish === null || $this->ValidatePublishFile($publish) === false)
 			$this->Fail('Unable to publish! There is something wrong with your '.Plugin::PUBLISH_FILE.'.');
@@ -132,14 +137,14 @@ class PluginPublish
 		$publish_file = $this->_cwd.'/'.Plugin::PUBLISH_FILE;
 
 		$target_url = self::PUBLISH_URL.self::QUERY_PUSH_JSON;
-	 
+
 	    $ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $target_url);
 		$this->curl_custom_postfields($ch, array(), array('plugin_json' => $publish_file));
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 		$result = json_decode(curl_exec($ch));
 		curl_close($ch);
-		
+
 		if($result === false)
 			$this->Fail('Unable to sync with the registry. Try again? Have you tried turning it off then on again?');
 
@@ -152,14 +157,14 @@ class PluginPublish
 		SkyCLI::Flush('# Pushing Plugin to registry...');
 
 		$target_url = self::PUBLISH_URL.self::QUERY_UPLOAD.'/'.$ID;
-	 
+
 	    $ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $target_url);
 		$this->curl_custom_postfields($ch, array(), array('plugin' => $this->_cwd.'/.tmp/plugin.tar.gz'));
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 		$result = json_decode(curl_exec($ch));
 		curl_close($ch);
-		
+
 		if($result === false)
 			$this->Fail('Noooooooo! Unable to push plugin. I guess you can try again...');
 
@@ -215,27 +220,27 @@ class PluginPublish
 
 	/**
 	* For safe multipart POST request for PHP5.3 ~ PHP 5.4.
-	* 
+	*
 	* @param resource $ch cURL resource
 	* @param array $assoc "name => value"
 	* @param array $files "name => path"
 	* @return bool
 	*/
 	private function curl_custom_postfields($ch, array $assoc = array(), array $files = array()) {
-	    
+
 	    // invalid characters for "name" and "filename"
 	    static $disallow = array("\0", "\"", "\r", "\n");
-	    
+
 	    // build normal parameters
 	    foreach ($assoc as $k => $v) {
 	        $k = str_replace($disallow, "_", $k);
 	        $body[] = implode("\r\n", array(
 	            "Content-Disposition: form-data; name=\"{$k}\"",
 	            "",
-	            $v, 
+	            $v,
 	        ));
 	    }
-	    
+
 	    // build file parameters
 	    foreach ($files as $k => $v) {
 	        switch (true) {
@@ -257,24 +262,24 @@ class PluginPublish
 	            "Content-Disposition: form-data; name=\"{$k}\"; filename=\"{$v}\"",
 	            "Content-Type: ".$content_type,
 	            "",
-	            $data, 
+	            $data,
 	        ));
 	    }
-	    
-	    // generate safe boundary 
+
+	    // generate safe boundary
 	    do {
 	        $boundary = "---------------------" . md5(mt_rand() . microtime());
 	    } while (preg_grep("/{$boundary}/", $body));
-	    
+
 	    // add boundary for each parameters
 	    array_walk($body, function (&$part) use ($boundary) {
 	        $part = "--{$boundary}\r\n{$part}";
 	    });
-	    
+
 	    // add final boundary
 	    $body[] = "--{$boundary}--";
 	    $body[] = "";
-	    
+
 	    // set options
 	    return @curl_setopt_array($ch, array(
 	        CURLOPT_POST       => true,

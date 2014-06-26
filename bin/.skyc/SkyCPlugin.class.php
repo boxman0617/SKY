@@ -14,7 +14,7 @@ class SkyCPlugin implements SkyCommand
 	public function GetShortHelp()
 	{
 		$help = "#\tsky plugin install pluginname\n";
-		$help .= "#\tsky plugin load pluginname\n";
+		$help .= "#\tsky plugin use pluginname\n";
 		$help .= "#\tsky plugin list\n";
 		$help .= "#\tsky plugin remove pluginname\n";
 		$help .= "#\tsky plugin destroy pluginname\n";
@@ -28,9 +28,9 @@ class SkyCPlugin implements SkyCommand
 		$help = "#\tsky plugin install pluginname\n";
 		$help .= "#\t - Will install 'pluginname' into SKYCORE.\n#\n";
 
-		$help .= "#\tsky plugin load pluginname\n";
-		$help .= "#\t - Will install 'pluginname' into your app if it is\n";
-		$help .= "#\t - already installed in your SKYCORE.\n#\n";
+		$help .= "#\tsky plugin use pluginname\n";
+		$help .= "#\t - Will install 'pluginname' into your app. If it is\n";
+		$help .= "#\t - not installed in your SKYCORE, it will install there first.\n#\n";
 
 		$help .= "#\tsky plugin list\n";
 		$help .= "#\t - Will show a list of all the currently installed plugins\n";
@@ -101,6 +101,20 @@ class SkyCPlugin implements SkyCommand
 		SkyCLI::ShowError('Seems as though this plugin is not installed in your app?');
 	}
 
+	private function ExecuteUse($args)
+	{
+		if(count($args) == 0)
+			SkyCLI::ShowError('sky plugin use requires more arguments! (Run "sky help plugin" for more information)');
+		$this->Header('SkyApp Plugin Installation:');
+		$plugin_name = $args[0];
+
+		$plugin_dir = SkyDefines::Call('SKYCORE_LIB_PLUGINS').'/'.$plugin_name;
+		if(!is_dir($plugin_dir))
+		{
+			
+		}
+	}
+
 	private function ExecuteLoad($args)
 	{
 		if(count($args) == 0)
@@ -152,7 +166,7 @@ class SkyCPlugin implements SkyCommand
 		        				if(is_dir(SkyDefines::Call('DIR_LIB_PLUGINS').'/'.$entry))
 		        					$str .= ' *';
 		        			}
-							SkyCLI::PrintLn($str);
+									SkyCLI::PrintLn($str);
 		        		} else {
 		        			continue;
 		        		}

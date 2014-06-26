@@ -20,7 +20,15 @@
 class Plugin
 {
     const PUBLISH_FILE = 'plugin.json';
-    
+    const PLUGINS_FILE = 'plugins.json';
+
+    public static $JSON = array();
+
+    public static function Init()
+    {
+      $json = json_decode(file_get_contents(SkyDefines::Call('DIR_CONFIGS').'/'.self::PLUGINS_FILE), true);
+      
+    }
 }
 
 /**

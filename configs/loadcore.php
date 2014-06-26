@@ -2,7 +2,6 @@
 SkyL::Import(SkyDefines::Call('LOG_CLASS'));
 SkyL::Import(SkyDefines::Call('PLUGIN_CLASS'));
 SkyL::Import(SkyDefines::Call('EVENT_CLASS'));
-SkyL::Import(SkyDefines::Call('DIR_CONFIGS').'/plugins.php');
 SkyL::Import(SkyDefines::Call('SKYCORE_CONFIGS').'/autoloader.php');
 SkyL::Import(SkyDefines::Call('HTML_CLASS'));
 SkyL::Import(SkyDefines::Call('ERROR_CLASS'));

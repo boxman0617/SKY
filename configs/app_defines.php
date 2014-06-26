@@ -194,6 +194,9 @@ try {
 // #Initialize SKYCORE Configures
 SkyL::Import(SkyDefines::Call('SKYCORE_CONFIGS').'/loadcore.php');
 
+// #Initialize Plugin system
+Plugin::Init();
+
 if(SkyDefines::Call('ARTIFICIAL_LOAD') === false)
 {
 	// #initialize Sessions
