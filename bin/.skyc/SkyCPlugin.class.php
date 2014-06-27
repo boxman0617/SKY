@@ -111,7 +111,7 @@ class SkyCPlugin implements SkyCommand
 		$plugin_dir = SkyDefines::Call('SKYCORE_LIB_PLUGINS').'/'.$plugin_name;
 		if(!is_dir($plugin_dir))
 		{
-			
+
 		}
 	}
 
@@ -125,18 +125,8 @@ class SkyCPlugin implements SkyCommand
 		$plugin_dir = SkyDefines::Call('SKYCORE_LIB_PLUGINS').'/'.$plugin_name;
 		if(!is_dir($plugin_dir))
 		{
-			mkdir(SkyDefines::Call('SKYCORE_LIB_PLUGINS').'/.tmp');
-			$f = fopen(SkyDefines::Call('SKYCORE_LIB_PLUGINS').'/.tmp/plugin.tar.gz' , 'w+');
-		    $handle = fopen(PluginPublish::PUBLISH_URL.'/'.PluginPublish::QUERY_DOWNLOAD.'/'.$plugin_name.'/latest' , "rb");
-
-		    while(!feof($handle))
-		    {
-		        $contents = fread($handle, 8192);
-		        fwrite($f , $contents);
-		    }
-		     
-		    fclose($handle);
-		    fclose($f);
+			$p = new PluginPublish(getcwd());
+			$p->InstallPlugin($plugin_name);
 		}
 	}
 

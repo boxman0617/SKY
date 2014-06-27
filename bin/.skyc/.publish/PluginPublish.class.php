@@ -22,9 +22,65 @@ class PluginPublish
 		$this->CheckForPluginJSONFile();
 	}
 
-	public static function InstallPlugin($name)
+	public function InstallPlugin($plugin_name)
 	{
+		mkdir(SkyDefines::Call('SKYCORE_LIB_PLUGINS').'/.tmp');
+		$opts = array(
+			'http' => array(
+				'method' => 'GET',
+				'header' => "Accept-language: en\r\n"
+			)
+		);
+		$context = stream_context_create($opts);
+		stream_context_set_params($context, array(
+			'notification' => 'PluginPublish::stream_notification_callback'
+		));
+		$file = file_get_contents(PluginPublish::PUBLISH_URL.'/'.PluginPublish::QUERY_DOWNLOAD.'/'.$plugin_name.'/latest', false, $context);
+		$tar_file = SkyDefines::Call('SKYCORE_LIB_PLUGINS').'/.tmp/plugin.tar.gz';
+		file_put_contents($tar_file, $file);
 
+		$this->OKMessage();
+		$this->UntarPlugin($tar_file);
+	}
+
+	private function UntarPlugin($file)
+	{
+		SkyCLI::Flush('# Unpackaging Plugin File...');
+		try {
+			$phar = new PharData($file);
+			$phar->decompress();
+			$phar = new PharData(str_replace('.gz', '', $file));
+	    $phar->extractTo(dirname($file));
+		} catch(Exception $e) {
+			$this->Fail($e->message);
+		}
+
+		$this->OKMessage();
+	}
+
+	public function stream_notification_callback($notification_code, $severity, $message, $message_code, $bytes_transferred, $bytes_max)
+	{
+		switch($notification_code)
+		{
+			case STREAM_NOTIFY_CONNECT:
+				SkyCLI::Flush('# Downloading: ');
+				break;
+			case STREAM_NOTIFY_FILE_SIZE_IS:
+        $filesize = $bytes_max;
+        break;
+
+			case STREAM_NOTIFY_PROGRESS:
+				if($bytes_transferred > 0)
+				{
+          if(!isset($filesize))
+              printf("\r# Downloading: %2dkb...", $bytes_transferred/1024);
+          else {
+            $length = (int)(($bytes_transferred/$filesize)*100);
+            printf("\r[%-100s] %d%% (%2d/%2d kb)", str_repeat("=", $length). ">", $length, ($bytes_transferred/1024), $filesize/1024);
+          }
+        }
+				break;
+		}
 	}
 
 	private function CheckForPluginJSONFile()
