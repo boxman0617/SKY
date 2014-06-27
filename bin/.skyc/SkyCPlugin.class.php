@@ -115,6 +115,31 @@ class SkyCPlugin implements SkyCommand
 		}
 	}
 
+	private function ExecuteInstall($args)
+	{
+		if(count($args) == 0)
+			SkyCLI::ShowError('sky plugin install requires more arguments! (Run "sky help plugin" for more information)');
+		$this->Header('SkyApp Plugin Installation:');
+		$plugin_name = $args[0];
+
+		$plugin_dir = SkyDefines::Call('SKYCORE_LIB_PLUGINS').'/'.$plugin_name;
+		if(!is_dir($plugin_dir))
+		{
+			mkdir(SkyDefines::Call('SKYCORE_LIB_PLUGINS').'/.tmp');
+			$f = fopen(SkyDefines::Call('SKYCORE_LIB_PLUGINS').'/.tmp/plugin.tar.gz' , 'w+');
+		    $handle = fopen(PluginPublish::PUBLISH_URL.'/'.PluginPublish::QUERY_DOWNLOAD.'/'.$plugin_name.'/latest' , "rb");
+
+		    while(!feof($handle))
+		    {
+		        $contents = fread($handle, 8192);
+		        fwrite($f , $contents);
+		    }
+		     
+		    fclose($handle);
+		    fclose($f);
+		}
+	}
+
 	private function ExecuteLoad($args)
 	{
 		if(count($args) == 0)

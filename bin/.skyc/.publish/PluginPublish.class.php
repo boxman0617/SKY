@@ -10,6 +10,7 @@ class PluginPublish
   const QUERY_EXISTS = 'exists';
   const QUERY_PUSH_JSON = 'publish/json';
   const QUERY_UPLOAD = 'upload';
+  const QUERY_DOWNLOAD = 'download';
 
 	public function __construct($cwd)
 	{
