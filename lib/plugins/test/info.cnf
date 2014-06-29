@@ -1,5 +1,0 @@
-# Config file for test plugin
-name=Test
-version=1.0
-file=Test.plugin.php
-class=Plugin_Test

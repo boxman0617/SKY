@@ -72,6 +72,22 @@ abstract class SkyCLI
 		flush();
 	}
 
+	public static function OKMessage()
+	{
+		self::PrintLn(" \033[0;32mOK!\033[0m");
+	}
+
+	public static function FAILMessage()
+	{
+		self::PrintLn(" \033[0;31mFAIL!\033[0m");
+	}
+
+	public static function Fail($msg)
+	{
+		self::FailMessage();
+		self::ShowError($msg);
+	}
+
 	public static function ShowBar($char = '#', $multi = 50)
 	{
 		self::PrintLn(str_repeat($char, $multi));

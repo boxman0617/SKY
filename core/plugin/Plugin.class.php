@@ -17,6 +17,11 @@
  * @package     Sky.Core
  */
 
+/**
+ * Plugin class
+ * Handles the registering of user created plugins
+ * @package Sky.Core.Plugin
+ */
 class Plugin
 {
     const PUBLISH_FILE = 'plugin.json';
@@ -24,65 +29,49 @@ class Plugin
 
     public static $JSON = array();
 
+    private static $_gets = array();
+
     public static function Init()
     {
       $json = json_decode(file_get_contents(SkyDefines::Call('DIR_CONFIGS').'/'.self::PLUGINS_FILE), true);
-      
-    }
-}
+      foreach($json as $plugin => $props)
+      {
+        if(array_key_exists('getID', $props))
+          self::$_gets[$props['getID']] = $plugin;
 
-/**
- * Plugin class
- * Handles the registering of user created plugins
- * @package Sky.Core.Plugin
- */
-class PluginOLD
-{
-    /**
-     * Array of all plugins
-     * @access public
-     * @static
-     * @var array
-     */
-    public static $plugin = array();
-    private static $regex = '/((?!#).+)=(.*)/';
-
-    /**
-     * Sets up {@link $plugin} under self::$plugin
-     * Reads plugin's info.cnf file and runs it's init.php script
-     * @access public
-     * @static
-     * @param string $name
-     */
-    public static function Register($name)
-    {
-        $name = strtolower($name);
-        $thisplugin = SkyDefines::Call('SKYCORE_LIB_PLUGINS').$name;
-        if(is_dir($thisplugin))
+        if(array_key_exists('onLoad', $props))
         {
-            if(is_file($thisplugin.'/info.cnf'))
-            {
-                $info = file_get_contents($thisplugin.'/info.cnf');
-                preg_match_all(self::$regex, $info, $matches);
-                for($i=0;$i<count($matches[1]);$i++)
-                    self::$plugin[$name][$matches[1][$i]] = $matches[2][$i];
-                if(!isset(self::$plugin[$name]['dir']))
-                    self::$plugin[$name]['dir'] = $thisplugin;
-                SkyL::Import(self::$plugin[$name]['dir'].'/init.php');
-            } else
-                unset(self::$plugin[$name]);
-        } else
-            unset(self::$plugin[$name]);
+          require_once(SkyDefines::Call('SKYCORE_LIB_PLUGINS').'/'.$plugin.'/'.$props['onLoad']);
+        }
+      }
     }
 
-    public static function ReadCNF($info_file)
+    public static function Get($get_id)
     {
-        $info = file_get_contents($info_file);
-        preg_match_all(self::$regex, $info, $matches);
-        $cnf = array();
+      if(array_key_exists($get_id, self::$_gets))
+      {
+        return new self::$_gets[$get_id]();
+      }
+    }
 
-        foreach($matches[1] as $i => $key)
-            $cnf[$key] = $matches[2][$i];
-        return $cnf;
+    public static function GetPluginDir($plugin_name)
+    {
+      return SkyDefines::Call('SKYCORE_LIB_PLUGINS').'/'.$plugin_name;
+    }
+
+    public static function GetLocalPluginDir($plugin_name)
+    {
+      return SkyDefines::Call('DIR_LIB_PLUGINS').'/'.$plugin_name;
+    }
+
+    public static function GetFile($plugin_name)
+    {
+      $json = self::ReadJSON($plugin_name);
+      return self::GetPluginDir($plugin_name).'/'.$json['file'];
+    }
+
+    public static function ReadJSON($plugin_name)
+    {
+      return json_decode(file_get_contents(SkyDefines::Call('SKYCORE_LIB_PLUGINS').'/'.$plugin_name.'/'.self::PUBLISH_FILE), true);
     }
 }

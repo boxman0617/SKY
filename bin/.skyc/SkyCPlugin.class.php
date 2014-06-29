@@ -17,7 +17,7 @@ class SkyCPlugin implements SkyCommand
 		$help .= "#\tsky plugin use pluginname\n";
 		$help .= "#\tsky plugin list\n";
 		$help .= "#\tsky plugin remove pluginname\n";
-		$help .= "#\tsky plugin destroy pluginname\n";
+		$help .= "#\tsky plugin uninstall pluginname\n";
 		$help .= "#\tsky plugin search pluginname\n";
 		$help .= "#\tsky plugin publish";
 		return $help;
@@ -39,8 +39,8 @@ class SkyCPlugin implements SkyCommand
 		$help .= "#\tsky plugin remove pluginname\n";
 		$help .= "#\t - Will remove an installed plugin from your app.\n#\n";
 
-		$help .= "#\tsky plugin destroy pluginname\n";
-		$help .= "#\t - Will remove an installed plugin from you SKYCORE\n";
+		$help .= "#\tsky plugin uninstall pluginname\n";
+		$help .= "#\t - Will remove an installed plugin from SKYCORE\n";
 		$help .= "#\t - install.\n#\n";
 
 		$help .= "#\tsky plugin search pluginname\n";
@@ -86,19 +86,48 @@ class SkyCPlugin implements SkyCommand
 		$plugin_name = $args[0];
 
 		$plugin_home = SkyDefines::Call('DIR_LIB_PLUGINS').'/'.strtolower($plugin_name);
+
+		SkyCLI::PrintLn('# Removing plugin ['.$plugin_name.']...');
+		$plugins_file = SkyDefines::Call('DIR_CONFIGS').'/'.Plugin::PLUGINS_FILE;
+		$json = json_decode(file_get_contents($plugins_file), true);
+		if(!array_key_exists($plugin_name, $json))
+			SkyCLI::ShowError('Seems as though this plugin is not installed in your app?');
+
+		$rm = true;
+		if(is_dir($plugin_home))
+			$rm = SKY::RRMDIR($plugin_home);
+
+		if($rm === false)
+			SkyCLI::ShowError('Unable to delete plugin home directory.');
+		unset($json[$plugin_name]);
+		file_put_contents($plugins_file, json_encode($json));
+		SkyCLI::ShowBar('=');
+		SkyCLI::PrintLn('# Success! This plugin is now removed from your app.');
+		SkyCLI::ShowBar();
+		return true;
+	}
+
+	private function ExecuteUninstall($args)
+	{
+		if(count($args) == 0)
+			SkyCLI::ShowError('sky plugin uninstall requires more arguments! (Run "sky help plugin" for more information)');
+		$this->Header('SkyApp Plugin Uninstaller:');
+		$plugin_name = $args[0];
+
+		$plugin_home = Plugin::GetPluginDir($plugin_name);
 		if(is_dir($plugin_home))
 		{
-			SkyCLI::PrintLn('# Removing plugin ['.$plugin_name.']...');
+			SkyCLI::PrintLn('# Uninstalling plugin ['.$plugin_name.']...');
 			if(SKY::RRMDIR($plugin_home))
 			{
 				SkyCLI::ShowBar('=');
-				SkyCLI::PrintLn('# Success! This plugin is now removed from your app.');
+				SkyCLI::PrintLn('# Success! This plugin is now uninstalled.');
 				SkyCLI::ShowBar();
 				return true;
 			}
-			SkyCLI::ShowError('Unexpected error while removing this plugin...');
+			SkyCLI::ShowError('Unexpected error while uninstalling this plugin...');
 		}
-		SkyCLI::ShowError('Seems as though this plugin is not installed in your app?');
+		SkyCLI::ShowError('Seems as though this plugin is not installed?');
 	}
 
 	private function ExecuteUse($args)
@@ -107,12 +136,51 @@ class SkyCPlugin implements SkyCommand
 			SkyCLI::ShowError('sky plugin use requires more arguments! (Run "sky help plugin" for more information)');
 		$this->Header('SkyApp Plugin Installation:');
 		$plugin_name = $args[0];
-
 		$plugin_dir = SkyDefines::Call('SKYCORE_LIB_PLUGINS').'/'.$plugin_name;
+
 		if(!is_dir($plugin_dir))
 		{
-
+			SkyCLI::PrintLn('# Installing app...');
+			$p = new PluginPublish(getcwd());
+			$p->InstallPlugin($plugin_name);
 		}
+
+		SkyCLI::Flush('# Checking for dups...');
+
+		$plugins = json_decode(file_get_contents(SkyDefines::Call('DIR_CONFIGS').'/'.Plugin::PLUGINS_FILE), true);
+
+		if(array_key_exists($plugin_name, $plugins))
+			SkyCLI::Fail('Plugin is already installed in app!');
+
+		SkyCLI::OKMessage();
+
+		SkyCLI::Flush('# Installing...');
+		$json = Plugin::ReadJSON($plugin_name);
+		$plugins[$plugin_name] = array(
+			'version' => $json['version']
+		);
+
+		if(array_key_exists('onLoad', $json))
+			$plugins[$plugin_name]['onLoad'] = $json['onLoad'];
+		if(array_key_exists('getID', $json))
+			$plugins[$plugin_name]['getID'] = $json['getID'];
+
+		if(array_key_exists('localInstall', $json))
+		{
+			$local = SkyDefines::Call('DIR_LIB_PLUGINS').'/'.$json['name'];
+			SKY::RCP($plugin_dir.'/'.$json['localInstall'], $local);
+		}
+
+		if(array_key_exists('onUse', $json))
+		{
+			$local = SkyDefines::Call('DIR_LIB_PLUGINS').'/'.$json['name'];
+			require_once(Plugin::GetPluginDir($plugin_name).'/'.$json['onUse']);
+		}
+
+		file_put_contents(SkyDefines::Call('DIR_CONFIGS').'/'.Plugin::PLUGINS_FILE, json_encode($plugins));
+
+		SkyCLI::OKMessage();
+		SkyCLI::PrintLn('=> Yay!!! You did it!');
 	}
 
 	private function ExecuteInstall($args)

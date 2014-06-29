@@ -22,7 +22,7 @@ class PluginPublish
 		$this->CheckForPluginJSONFile();
 	}
 
-	public function InstallPlugin($plugin_name)
+	public function InstallPlugin($plugin_name, $version = 'latest')
 	{
 		mkdir(SkyDefines::Call('SKYCORE_LIB_PLUGINS').'/.tmp');
 		$opts = array(
@@ -35,7 +35,7 @@ class PluginPublish
 		stream_context_set_params($context, array(
 			'notification' => 'PluginPublish::stream_notification_callback'
 		));
-		$file = file_get_contents(PluginPublish::PUBLISH_URL.'/'.PluginPublish::QUERY_DOWNLOAD.'/'.$plugin_name.'/latest', false, $context);
+		$file = file_get_contents(PluginPublish::PUBLISH_URL.'/'.PluginPublish::QUERY_DOWNLOAD.'/'.$plugin_name.'/'.$version, false, $context);
 		$tar_file = SkyDefines::Call('SKYCORE_LIB_PLUGINS').'/.tmp/plugin.tar.gz';
 		file_put_contents($tar_file, $file);
 
@@ -52,10 +52,45 @@ class PluginPublish
 			$phar = new PharData(str_replace('.gz', '', $file));
 	    $phar->extractTo(dirname($file));
 		} catch(Exception $e) {
-			$this->Fail($e->message);
+			$tmp = SkyDefines::Call('SKYCORE_LIB_PLUGINS').'/.tmp';
+			$this->CleanInstallTMP($tmp);
+			$this->Fail($e->getMessage());
 		}
 
 		$this->OKMessage();
+		$this->ActualInstall();
+	}
+
+	private function ActualInstall()
+	{
+		SkyCLI::Flush('# Installing...');
+		$tmp = SkyDefines::Call('SKYCORE_LIB_PLUGINS').'/.tmp';
+		$json = json_decode(file_get_contents($tmp.'/'.Plugin::PUBLISH_FILE), true);
+		$plugin = SkyDefines::Call('SKYCORE_LIB_PLUGINS').'/'.$json['name'];
+
+		@unlink($tmp.'/plugin.tar.gz');
+		@unlink($tmp.'/plugin.tar');
+
+		SKY::RCP($tmp, $plugin);
+
+		$this->OKMessage();
+		$this->CleanInstallTMP($tmp);
+		$this->InstallDependencies($json);
+	}
+
+	private function InstallDependencies($json)
+	{
+		if(array_key_exists('dependencies', $json))
+		{
+			SkyCLI::PrintLn('# Installing dependencies...');
+			foreach($json['dependencies'] as $dependency => $version)
+				$this->InstallPlugin($dependency, $version);
+		}
+	}
+
+	private function CleanInstallTMP($dir)
+	{
+		SKY::RRMDIR($dir);
 	}
 
 	public function stream_notification_callback($notification_code, $severity, $message, $message_code, $bytes_transferred, $bytes_max)
@@ -199,7 +234,8 @@ class PluginPublish
 		curl_setopt($ch, CURLOPT_URL, $target_url);
 		$this->curl_custom_postfields($ch, array(), array('plugin_json' => $publish_file));
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-		$result = json_decode(curl_exec($ch));
+		$r = curl_exec($ch);
+		$result = json_decode($r);
 		curl_close($ch);
 
 		if($result === false)
@@ -215,7 +251,7 @@ class PluginPublish
 
 		$target_url = self::PUBLISH_URL.self::QUERY_UPLOAD.'/'.$ID;
 
-	    $ch = curl_init();
+	  $ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $target_url);
 		$this->curl_custom_postfields($ch, array(), array('plugin' => $this->_cwd.'/.tmp/plugin.tar.gz'));
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
@@ -226,13 +262,13 @@ class PluginPublish
 			$this->Fail('Noooooooo! Unable to push plugin. I guess you can try again...');
 
 		$this->OKMessage();
-		$this->CleanTMP();
+		$this->CleanTMP($this->_cwd.'/.tmp');
 	}
 
-	private function CleanTMP()
+	private function CleanTMP($loc)
 	{
 		SkyCLI::Flush('# Cleaning up...');
-		SKY::RRMDIR($this->_cwd.'/.tmp');
+		SKY::RRMDIR($loc);
 		$this->OKMessage();
 		SkyCLI::PrintLn('=> Yay!!! You did it! Your plugin is now up there. Woohoo!');
 		SkyCLI::PrintLn('=> You can now install it with: sky plugin install '.$this->_name);
