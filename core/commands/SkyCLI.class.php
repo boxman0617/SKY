@@ -6,6 +6,8 @@ abstract class SkyCLI
 	private $_command = null;
 	private $_command_args = array();
 
+	public static $CommandsBootstrap = null;
+
 	private $tool;
 
 	public function __construct($arguments)
@@ -35,7 +37,9 @@ abstract class SkyCLI
 
 	private function BootstrapCommands()
 	{
-		$real = SkyDefines::Call('SKYCORE_BIN').'/.'.$this->tool;
+		$real = self::$CommandsBootstrap;
+		if($real === null)
+			$real = SkyDefines::Call('SKYCORE_BIN').'/.'.$this->tool;
 		if($handle = opendir($real))
 		{
 		    while(false !== ($entry = readdir($handle)))

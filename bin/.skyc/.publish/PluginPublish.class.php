@@ -73,6 +73,13 @@ class PluginPublish
 
 		SKY::RCP($tmp, $plugin);
 
+		if(array_key_exists('exec', $json))
+		{
+			$src = SkyDefines::Call('SKYCORE_BIN').'/plugins/'.$json['exec'];
+			copy($plugin.'/'.$json['exec'], $src);
+			chmod($src, 0777);
+		}
+
 		$this->OKMessage();
 		$this->CleanInstallTMP($tmp);
 		$this->InstallDependencies($json);
