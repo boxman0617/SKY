@@ -1,0 +1,207 @@
+body {
+  margin: 0;
+  padding: 0;
+  font: 14px helvetica, arial, sans-serif;
+}
+
+#wrapper {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+}
+
+#stacktrace_nav, #content_wrapper {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  overflow-y: auto;
+}
+
+#stacktrace_nav {
+  left: 0;
+  width: 496px;
+  border-right: 4px solid rgb(109, 139, 141);
+
+  background-color: rgb(218, 234, 235);
+}
+
+#stacktrace_nav .trace {
+  padding: 15px;
+  background-color: rgb(239, 254, 255);
+  cursor: pointer;
+}
+
+#stacktrace_nav .trace:hover {
+  background-color: rgb(176, 228, 242);
+}
+
+#stacktrace_nav .active {
+  background-color: rgb(83, 210, 235);
+}
+
+#stacktrace_nav .active:hover {
+  background-color: rgb(83, 210, 235);
+}
+
+#stacktrace_nav .trace .function {
+  font-weight: bold;
+}
+
+#stacktrace_nav .active .function {
+  color: #ffffff;
+}
+
+#stacktrace_nav .trace .file_name .line {
+  color: #1176D3;
+}
+
+#content_wrapper {
+  left: 500px;
+  right: 0;
+
+  background-color: rgb(189, 203, 204);
+}
+
+#header {
+  position: relative;
+  background-color: rgb(56, 56, 56);
+  height: 100px;
+  border-left: 20px solid rgb(252, 73, 73);
+}
+
+#header .error_type, #header .error_message {
+  position: absolute;
+}
+
+#header .error_type {
+  color: rgb(252, 73, 73);
+  top: 23px;
+  left: 30px;
+  font-size: 18px;
+}
+
+#header .error_message {
+  color: rgb(231, 231, 231);
+  left: 30px;
+  bottom: 22px;
+  font-size: 30px;
+}
+
+#code {
+  background-color: #181818;
+  padding: 5px 0;
+  border-top: 4px solid #37a9d6;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  margin: 0 225px 0 20px;
+  box-shadow: 0 0 5px 2px rgba(15, 15, 15, 0.95);
+  position: relative;
+  z-index: 100;
+}
+
+#code .file_name {
+  padding: 5px 10px;
+  background-color: #717171;
+  color: #eaeaea;
+  text-shadow: 0 1px 0 #181818;
+}
+
+#code .prettyprint li.error:before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(212, 73, 73, 0.24);
+}
+
+#code .prettyprint li.error:after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  left: -55px;
+  width: 55px;
+  background-color: rgba(212, 73, 73, 0.24);
+}
+
+#code .prettyprint {
+  background-color: rgb(38, 38, 38);
+  padding: 10px 2px;
+  margin: 0;
+  border: none;
+}
+
+#code .prettyprint .linenums {
+  padding: 0 0 0 55px;
+}
+
+#code .prettyprint li {
+  position: relative;
+  list-style-type: decimal !important;
+  color: rgb(168, 168, 168);
+  background-color: rgb(38, 38, 38) !important;
+  line-height: 15px;
+}
+
+pre.prettyprint { display: block; background-color: #333 }
+pre .nocode { background-color: none; color: #000 }
+pre .str { color: #8aff7d }
+pre .kwd { color: #00C4AC; font-weight: bold }
+pre .com { color: #87ceeb }
+pre .typ { color: #21D9FC }
+pre .lit { color: #F04444 }
+pre .pun { color: #fffeeb }
+pre .pln { color: #e6df2b }
+pre .tag { color: #3666fa; font-weight: bold }
+pre .atn { color: #bdb76b; font-weight: bold }
+pre .atv { color: #ffa0a0 }
+pre .dec { color: #98fb98 }
+
+ol.linenums { margin-top: 0; margin-bottom: 0; color: #AEAEAE }
+li.L0,li.L1,li.L2,li.L3,li.L5,li.L6,li.L7,li.L8 { list-style-type: none }
+li.L1,li.L3,li.L5,li.L7,li.L9 { }
+
+@media print {
+  pre.prettyprint { background-color: none }
+  pre .str, code .str { color: #060 }
+  pre .kwd, code .kwd { color: #006; font-weight: bold }
+  pre .com, code .com { color: #600; font-style: italic }
+  pre .typ, code .typ { color: #404; font-weight: bold }
+  pre .lit, code .lit { color: #044 }
+  pre .pun, code .pun { color: #440 }
+  pre .pln, code .pln { color: #000 }
+  pre .tag, code .tag { color: #006; font-weight: bold }
+  pre .atn, code .atn { color: #404 }
+  pre .atv, code .atv { color: #060 }
+}
+
+#info {
+  background-color: #808F96;
+  padding: 20px 10px 10px;
+  position: relative;
+  top: -10px;
+  color: #FFFFFF;
+}
+
+#info h3 {
+  margin: 5px 0;
+  border-bottom: 1px solid #3673B6;
+  padding: 0 0 5px 0;
+  color: #255C97;
+}
+
+#info table {
+  margin-bottom: 20px;
+}
+
+#info table:last-child {
+  margin-bottom: 0;
+}
+
+#info table tr td {
+  font-size: 13px;
+}
+
+#info table tr td:first-child {
+  width: 215px;
+  font-weight: bold;
+}

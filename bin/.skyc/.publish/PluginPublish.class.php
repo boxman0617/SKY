@@ -24,6 +24,12 @@ class PluginPublish
 
 	public function InstallPlugin($plugin_name, $version = 'latest')
 	{
+		SkyCLI::Flush('# Checking if plugin is already installed...');
+		$plugin = SkyDefines::Call('SKYCORE_LIB_PLUGINS').'/'.$plugin_name;
+		if(is_dir($plugin))
+			SkyCLI::Fail('This plugin is already installed!');
+		$this->OKMessage();
+
 		mkdir(SkyDefines::Call('SKYCORE_LIB_PLUGINS').'/.tmp');
 		$opts = array(
 			'http' => array(

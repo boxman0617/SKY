@@ -76,7 +76,10 @@ class Error extends Base
         'depricated' => 'eaa5ef',
         'warning'    => 'ffe900',
         'error'      => 'f48989',
-        'exception'  => '949ce8'
+        'E_ERROR'      => 'f48989',
+        'exception'  => '949ce8',
+        'parse'      => 'ce8ef2',
+        'E_PARSE'      => 'ce8ef2'
     );
 
 	/**
@@ -89,6 +92,7 @@ class Error extends Base
 	 */
 	private static $_error_type_map = array(
 		E_NOTICE 			=> 'E_NOTICE',
+        E_PARSE 			=> 'E_PARSE',
 		E_USER_NOTICE 		=> 'E_USER_NOTICE',
 		E_DEPRECATED 		=> 'E_DEPRECATED',
 		E_USER_DEPRECATED 	=> 'E_USER_DEPRECATED',
@@ -134,12 +138,8 @@ class Error extends Base
 	 */
     public function __construct()
     {
-        if(SkyDefines::GetEnv() !== 'PRO')
-            ini_set('display_errors', 1);
-        else
-            ini_set('display_errors', 0);
         error_reporting(-1);
-        set_error_handler(array('Error', 'HandleNormalErrors'));
+        set_error_handler(array('Error', 'HandleNormalErrors'), E_ALL | E_STRICT);
         set_exception_handler(array('Error', 'HandleExceptionErrors'));
         register_shutdown_function(array('Error', 'HandleShutdown'));
     }
@@ -213,9 +213,9 @@ class Error extends Base
 	 */
     public static function Stringify($no)
     {
-		if(array_key_exists($no, self::$_error_type_map))
-			return self::$_error_type_map[$no];
-		return 'E_UNDEFINED';
+        if(array_key_exists($no, self::$_error_type_map))
+        	return self::$_error_type_map[$no];
+        return 'E_UNDEFINED';
     }
 
 	/**
@@ -478,9 +478,26 @@ class Error extends Base
             self::LogError($error['type'], $error['message'], $error['file'], $error['line']);
             if(SkyDefines::GetEnv() !== 'PRO')
             {
-                //ob_end_clean( );
-                self::BuildMessage($error['type'], $error['message'], $error['file'], $error['line'], 'f48989');
+                $header = array(
+                    'type' => $error['type'],
+                    'message' => $error['message']
+                );
+                $trace = array(
+                    array(
+                        'file' => $error['file'],
+                        'line' => $error['line'],
+                        'function' => '&lt;FATAL&gt;'
+                    )
+                );
+                self::ShowPrettyErrorPage($header, $trace);
             }
         }
+    }
+
+    public static function ShowPrettyErrorPage($header, $trace)
+    {
+        $header['type'] = self::Stringify($header['type']);
+
+        require_once(dirname(__FILE__).'/error_handler/error.view.php');
     }
 }

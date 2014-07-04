@@ -1,7 +1,5 @@
 #!/usr/bin/php
 <?php
-// sky new project_name
-// sky help
 require_once(getenv('SKYCORE').'/core/utils/SKY.class.php');
 SKY::LoadCore();
 SkyL::Import(SkyDefines::Call('SKYCLI_CLASS'));
