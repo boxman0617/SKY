@@ -1,29 +1,29 @@
 <?php
 /**
  * Router Class
- * 
+ *
  * This class acts like a router for all incoming requests.
  * It uses the Route class to determine where the requests
  * should go. Once the request matches up with one of the
  * routes in the Route class, it will create an instance
  * of the controller defined within the route definition.
  * Then the method that should be ran will be.
- * 
+ *
  * LICENSE:
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2014 DeeplogiK
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -31,7 +31,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
+ *
  * @author      Alan Tirado <alan@deeplogik.com>
  * @copyright   2014 DeepLogik, All Rights Reserved
  * @license     MIT
@@ -56,8 +56,12 @@ class Router extends Base
     private $query_string;
     private $status = STATUS_NOTFOUND;
     private $REQUEST_METHOD;
+    public static $_request_method;
     public static $_current_location;
-    
+    public static $_route;
+    public static $_controller;
+    public static $_action;
+
     // ####
     // __construct
     // @desc Constructor method. Gets called at object initialization.
@@ -87,11 +91,12 @@ class Router extends Base
             Log::corewrite('Assigning DRY method', 1, __CLASS__, __FUNCTION__);
             $this->REQUEST_METHOD = $_SERVER['REQUEST_METHOD'];
         }
+        self::$_request_method = $this->REQUEST_METHOD;
         Log::corewrite('Method [%s]', 3, __CLASS__, __FUNCTION__, array($this->REQUEST_METHOD));
         Event::PublishActionHook('/Route/after/__construct/');
         Log::corewrite('At the end of method', 2, __CLASS__, __FUNCTION__);
     }
-    
+
     // ####
     // GetSalt
     // @desc Returns static $salt
@@ -104,7 +109,7 @@ class Router extends Base
     {
         return self::$salt;
     }
-    
+
     // ####
     // CreateHash
     // @desc Creates secure MD5 hash from session id and $salt
@@ -122,7 +127,7 @@ class Router extends Base
         Log::corewrite("Creating Hash [%s] [%s]", 1, __CLASS__, __FUNCTION__, array($id, $salt));
         return md5($id.$salt);
     }
-    
+
     // ####
     // CreateHash
     // @desc Checks auth token hash when a secure POST request comes in
@@ -150,14 +155,16 @@ class Router extends Base
         Event::PublishActionHook('/Route/after/SecurePOST/');
         return true;
     }
-    
+
     private function ControllerInit($class, $query, $action, $params = array())
     {
+        self::$_controller = $class;
+        self::$_action = $action;
         $controller = new $class($params);
         if(!($controller instanceof Controller))
             throw new Exception('['.$class.'] is not a Controller');
         Event::PublishActionHook('/Router/before/ControllerInit/', array(array(
-            'class' => $class, 
+            'class' => $class,
             'query' => $query,
             'action' => $action,
             'params' => $params,
@@ -171,7 +178,7 @@ class Router extends Base
         $controller->HandleRequest($action);
         $this->status = STATUS_FOUND;
         Event::PublishActionHook('/Router/after/ControllerInit/', array(array(
-            'class' => $class, 
+            'class' => $class,
             'query' => $query,
             'action' => $action,
             'params' => $params,
@@ -192,6 +199,8 @@ class Router extends Base
         if($query == '')
             $query = '_';
 
+        self::$_route = $query;
+
         Log::corewrite('Following query [%s][%s]', 1, __CLASS__, __FUNCTION__, array($this->REQUEST_METHOD, $query));
 
         $e_tmp = explode('/', $query);
@@ -199,7 +208,7 @@ class Router extends Base
             $tmp = $routes[$this->REQUEST_METHOD][count($e_tmp)];
         else
             $tmp = array();
-        
+
         self::$_share['router']['query'] = $query;
         self::$_share['router']['METHOD'] = $this->REQUEST_METHOD;
 
@@ -233,7 +242,7 @@ class Router extends Base
                 {
                     if(strpos($e[$n], ':') !== false)
                     {
-                        $params[ltrim($e[$n], ':')] = $e_tmp[$n]; 
+                        $params[ltrim($e[$n], ':')] = $e_tmp[$n];
                         $check_tmp[$n] = $e_tmp[$n];
                     }
                     else
@@ -268,9 +277,9 @@ class Router extends Base
                 if(class_exists($class))
                 {
                     $this->ControllerInit(
-                        $class, 
-                        $query, 
-                        ucfirst(strtolower($winner)), 
+                        $class,
+                        $query,
+                        ucfirst(strtolower($winner)),
                         $indirect_matches[$winner]['params']
                     );
                     return true;

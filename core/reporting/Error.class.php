@@ -252,23 +252,41 @@ class Error extends Base
 	 */
     public static function BuildMessage($no, $str, $file, $line, $color)
     {
-        $_no = self::Stringify($no);
-        if(!is_int($no))
-            $_no = $no;
         if(php_sapi_name() == 'cli')
         {
+            $_no = self::Stringify($no);
+            if(!is_int($no))
+                $_no = $no;
             echo '['.$_no.'] '.$file.':'.$line.' => '.$str."\n";
         } else {
-            $h = new HTML();
-            echo $h->div(
-                $h->div(
-                    $h->div('['.$_no.']', array('style' => 'float: left;padding-right:5px;font-weight:bold;')).
-                    $h->div($file.':'.$line, array('style' => 'padding-left:5px;')),
-                    array('style' => 'padding: 5px;border-bottom:1px solid #000;background:#'.$color.';')).
-                $h->div($str, array('style' => 'padding:5px;background:#FFFFFF;')),
-                array('style' => 'width:95%; border:1px solid #000;margin:5px auto;color:#000000;font-family:"Courier New";font-size:14px;')
+            $header = array(
+              'type' => $no,
+              'message' => $str
             );
+            $trace = self::FilterTraceback();
+            self::ShowPrettyErrorPage($header, $trace);
         }
+    }
+
+    private static function FilterTraceback()
+    {
+      $trace = debug_backtrace();
+      $trace = array_filter($trace, function($v) {
+        return array_key_exists('file', $v);
+      });
+
+      $trace = array_filter($trace, function($v) {
+        return (strpos($v['file'], 'Error.class.php') === false);
+      });
+
+      $trace = array_filter($trace, function($v) {
+        return (strpos($v['file'], SkyDefines::Call('SKYCORE')) === false);
+      });
+
+      $trace = array_filter($trace, function($v) {
+        return (strpos($v['file'], 'configs/init.php') === false);
+      });
+      return $trace;
     }
 
 	/**
@@ -497,6 +515,18 @@ class Error extends Base
     public static function ShowPrettyErrorPage($header, $trace)
     {
         $header['type'] = self::Stringify($header['type']);
+        $trace = array_values($trace);
+
+        $files = array();
+        foreach($trace as $t)
+        {
+          $buffer = file($t['file']);
+          $l = (((int)$t['line']) - 11);
+          if($l < 0)
+            $l = 0;
+          $buffer = array_slice($buffer, $l, 22);
+          $files[] = $buffer;
+        }
 
         require_once(dirname(__FILE__).'/error_handler/error.view.php');
     }

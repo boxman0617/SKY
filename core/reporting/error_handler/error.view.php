@@ -71,7 +71,7 @@
         foreach($trace as $k => $t)
         {
         ?>
-        <div class="trace<?php echo ($k === 0) ? ' active' : ''; ?>">
+        <div data-trigger="<?php echo $k; ?>" class="trace<?php echo ($k === 0) ? ' active' : ''; ?>">
           <div class="function"><?php echo $t['function']; ?></div>
           <div class="file_name"><?php echo $t['file']; ?><span class="line">:<?php echo $t['line']; ?></span></div>
         </div>
@@ -85,76 +85,74 @@
           <div class="error_message"><?php echo $header['message']; ?></div>
         </div>
         <div id="code">
-          <div class="file_name">/var/www/skycore/core/reporting/Error.class.php</div>
-<pre class="prettyprint linenums:11 lang-php">
-echo "This is PHP!";
-
-function andItsNice()
+          <?php foreach($files as $k => $file) { ?>
+            <?php $start = ((int)$trace[$k]['line'] - 10); ?>
+            <?php if($start < 0) { $start = 0; } ?>
+          <div class="file<?php if($k === 0) { echo " active"; } ?>"<?php if($k !== 0) { echo " style='display: none;'"; } ?> data-start="<?php echo $start; ?>" data-line="<?php echo $trace[$k]['line']; ?>" data-file="<?php echo $k; ?>">
+            <div class="file_name"><?php echo $trace[$k]['file']; ?></div>
+<pre class="prettyprint linenums<?php if($start > 0) { echo ':'.$start; } ?> lang-php">
+<?php
+foreach($file as $f)
 {
-  echo "Super nice!";
+  echo htmlspecialchars($f);
 }
-
-class Number
-{
-  public static $num = 0;
-}
-
-echo Number::$num + 10;
+?>
 </pre>
+          </div>
+          <?php } ?>
         </div>
         <div id="info">
           <h3>Application</h3>
           <table>
             <tbody>
-              <tr><td>Route</td><td>/profile/save</td></tr>
-              <tr><td>Controller</td><td>Profile</td></tr>
-              <tr><td>Action</td><td>Save</td></tr>
+              <tr><td>Route</td><td><?php echo Router::$_route; ?></td></tr>
+              <tr><td>Controller</td><td><?php echo Router::$_controller; ?></td></tr>
+              <tr><td>Action</td><td><?php echo Router::$_action; ?></td></tr>
             </tbody>
           </table>
 
           <h3>Request</h3>
           <table>
             <tbody>
-              <tr><td>URI</td><td>http://localhost:80/profile/save</td></tr>
-              <tr><td>Method</td><td>GET</td></tr>
-              <tr><td>Action</td><td>Save</td></tr>
-              <tr><td>Port</td><td>80</td></tr>
-              <tr><td>Host</td><td>localhost</td></tr>
+              <tr><td>URI</td><td><?php echo Controller::GetPageURL(true); ?></td></tr>
+              <tr><td>Method</td><td><?php echo Router::$_request_method; ?></td></tr>
+              <tr><td>Port</td><td><?php echo $_SERVER['SERVER_PORT']; ?></td></tr>
+              <tr><td>Host</td><td><?php echo $_SERVER['HTTP_HOST']; ?></td></tr>
             </tbody>
           </table>
 
           <h3>Controller Params</h3>
           <table>
             <tbody>
-              <tr><td>test</td><td>"blah"</td></tr>
-              <tr><td>hello</td><td>100</td></tr>
+              <?php
+              if(count(Controller::$_debug_params) > 0)
+              {
+                foreach(Controller::$_debug_params as $key => $value)
+                {
+                ?>
+                <tr><td><?php echo $key; ?></td><td><?php var_export($value); ?></td></tr>
+                <?php
+                }
+              } else {
+                ?>
+                <tr><td colspan="2">None</td></tr>
+                <?php
+              }
+              ?>
             </tbody>
           </table>
 
           <h3>$_SERVER</h3>
           <table>
             <tbody>
-              <tr><td>DOCUMENT_ROOT</td><td>/demo/dev/whoops/examples</td></tr>
-              <tr><td>REMOTE_ADDR</td><td>127.0.0.1</td></tr>
-              <tr><td>REMOTE_PORT</td><td>42317</td></tr>
-              <tr><td>SERVER_SOFTWARE</td><td>PHP 5.4.6-1ubuntu1.2 Development Server</td></tr>
-              <tr><td>SERVER_PROTOCOL</td><td>HTTP/1.1</td></tr>
-              <tr><td>SERVER_NAME</td><td>localhost</td></tr>
-              <tr><td>SERVER_PORT</td><td>8080</td></tr>
-              <tr><td>REQUEST_URI</td><td>/example-silex.php</td></tr>
-              <tr><td>REQUEST_METHOD</td><td>GET</td></tr>
-              <tr><td>SCRIPT_NAME</td><td>/example-silex.php</td></tr>
-              <tr><td>SCRIPT_FILENAME</td><td>/demo/dev/whoops/examples/example-silex.php</td></tr>
-              <tr><td>PHP_SELF</td><td>/example-silex.php</td></tr>
-              <tr><td>HTTP_HOST</td><td>localhost:8080</td></tr>
-              <tr><td>HTTP_CONNECTION</td><td>keep-alive</td></tr>
-              <tr><td>HTTP_ACCEPT</td><td>text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8</td></tr>
-              <tr><td>HTTP_USER_AGENT</td><td>Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.22 (KHTML, like Gecko) Ubuntu Chromium/25.0.1364.160 Chrome/25.0.1364.160 Safari/537.22</td></tr>
-              <tr><td>HTTP_ACCEPT_ENCODING</td><td>gzip,deflate,sdch</td></tr>
-              <tr><td>HTTP_ACCEPT_LANGUAGE</td><td>en-US,en;q=0.8</td></tr>
-              <tr><td>HTTP_ACCEPT_CHARSET</td><td>ISO-8859-1,utf-8;q=0.7,*;q=0.3</td></tr>
-              <tr><td>REQUEST_TIME_FLOAT</td><td>1365585072.0011</td></tr>
-              <tr><td>REQUEST_TIME</td><td>1365585072</td></tr>
+              <?php
+              foreach($_SERVER as $key => $value)
+              {
+              ?>
+              <tr><td><?php echo $key; ?></td><td><?php echo $value; ?></td></tr>
+              <?php
+              }
+              ?>
             </tbody>
           </table>
         </div>
@@ -165,7 +163,36 @@ echo Number::$num + 10;
     <script src="http://cdnjs.cloudflare.com/ajax/libs/prettify/r224/prettify.js" type="text/javascript"></script>
     <script type="text/javascript">
     $(function() {
-        prettyPrint();
+      prettyPrint();
+
+      $('#code').find('.file').each(function() {
+        var line = $(this).attr('data-line');
+        var start = $(this).attr('data-start');
+
+        if(start == 0)
+          var n = line - start;
+        else
+          var n = (line - start) + 1;
+        $(this).find('pre ol li:nth-child('+n+')').addClass('error');
+      });
+
+      $('#stacktrace_nav').on('click', '.trace', function() {
+        var $trigger = $(this);
+        if(!$trigger.hasClass('active')) {
+          var $old = $('#stacktrace_nav').find('.active');
+          $old.removeClass('active');
+          var old_id = $old.attr('data-trigger');
+          $('#code').find('.file.active').slideUp(function() {
+            $(this).removeClass('active');
+          });
+
+          $trigger.addClass('active');
+          var file_id = $trigger.attr('data-trigger');
+          $('#code').find('.file[data-file="'+file_id+'"]').slideDown(function() {
+            $(this).addClass('active');
+          });
+        }
+      });
     });
     </script>
   </body>

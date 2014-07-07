@@ -230,6 +230,7 @@ abstract class Controller extends Base
      * - Any parameters passed to the controller during instantiation
      */
     public $params = array();
+    public static $_debug_params = array();
 
     /**
      * Holds a clean version of the $_FILES variable
@@ -316,6 +317,7 @@ abstract class Controller extends Base
             }
         }
         unset($this->params['_query']);
+        self::$_debug_params = $this->params;
         Event::PublishActionHook('/Controller/after/__construct/', array($this));
         Log::corewrite('At the end of method', 2, __CLASS__, __FUNCTION__);
     }
