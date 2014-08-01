@@ -61,13 +61,15 @@ class SKY
         return rmdir($dir);
     }
 
-	public static function RCP($src, $dst)
+	public static function RCP($src, $dst, $exclude = array())
 	{
+	    if(in_array(basename($src), $exclude))
+	        return true;
 		$dir = opendir($src);
 		@mkdir($dst);
 		while(false !== ($file = readdir($dir)))
 		{
-			if(($file != '.' ) && ( $file != '..' ))
+			if($file != '.'  && $file != '..'  && !in_array($file, $exclude))
 			{
 				if(is_dir($src . '/' . $file))
 					self::RCP($src . '/' . $file, $dst . '/' . $file);

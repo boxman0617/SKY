@@ -34,14 +34,14 @@ class SkyCNew implements SkyCommand
 		$name = $args[0];
 
 		$app = getcwd().'/'.$name;
-		SKY::RCP(SkyDefines::Call('SKYCORE').'/skytemp', $app);
+		SKY::RCP(SkyDefines::Call('SKYCORE').'/skytemp', $app, array('.grunt-less'));
 		SkyCLI::ShowBar();
 
 		$dirs = scandir(SkyDefines::Call('SKYCORE').'/skytemp');
 		SkyCLI::PrintLn('Creating new SKY app:');
 		foreach($dirs as $d)
 		{
-			if(is_dir(SkyDefines::Call('SKYCORE').'/skytemp/'.$d) && $d !== '.' && $d !== '..' && $d[0] !== '.')
+			if(is_dir(SkyDefines::Call('SKYCORE').'/skytemp/'.$d) && $d !== '.' && $d !== '..' && substr($d, 0, 1) !== '.')
 			{
 				SkyCLI::PrintLn(" => ".$d);
 				$inner = scandir(SkyDefines::Call('SKYCORE').'/skytemp/'.$d);
