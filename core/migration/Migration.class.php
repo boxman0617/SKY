@@ -338,7 +338,7 @@ class CreateTable extends MigrateTable
 
 	public function Create()
 	{
-		$query = 'CREATE TABLE `'.$this->_table_name.'` ';
+		$query = 'CREATE TABLE IF NOT EXISTS `'.$this->_table_name.'` ';
 		$query .= '(`id` INT(11) NOT NULL AUTO_INCREMENT, ';
 		$columns = '';
 		foreach($this->_columns as $name => $column)

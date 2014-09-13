@@ -102,6 +102,11 @@ foreach($file as $f)
           <?php } ?>
         </div>
         <div id="info">
+          <h3>Message</h3>
+          <pre>
+          <?php echo $header['message']; ?>
+          </pre>
+          
           <h3>Application</h3>
           <table>
             <tbody>

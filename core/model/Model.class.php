@@ -1008,6 +1008,8 @@ abstract class Model implements Iterator, ArrayAccess, Countable
     {
         foreach($this->HasMany as $MODEL => $OPTIONS)
         {
+        	if(!is_array($OPTIONS))
+        		$OPTIONS = array();
             if(array_key_exists(':dependent', $OPTIONS))
             {
                 if($OPTIONS[':dependent'] === ':delete')

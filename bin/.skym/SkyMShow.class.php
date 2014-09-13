@@ -44,7 +44,7 @@ class SkyMShow implements SkyCommand
 		SkyCLI::ShowBar();
 		SkyCLI::PrintLn('# List of all Migrations');
 		SkyCLI::ShowBar('=');
-		$migrations = SkyCLI::GetListOfMigrations();
+		$migrations = SkyM::GetListOfMigrations();
 		foreach($migrations as $migration)
 			$this->DisplayMigration($migration);
 	}
