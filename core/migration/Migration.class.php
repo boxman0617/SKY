@@ -370,7 +370,7 @@ class CreateTable extends MigrateTable
 		$db = Migration::GetDB();
 		$result = $db->query($query);
 		if($result === false)
-			throw new Exception('Unable to create new table! Unexpected error.');
+			throw new Exception('Unable to create new table! Unexpected error. ['.$db->error.']');
 
 		$org_name = $this->_table_name;
         // Building Model
@@ -456,7 +456,7 @@ class AlterTable extends MigrateTable
 	public function AlterColumn($name, $options = array())
 	{
 		if((array_key_exists('set_default', $options) || array_key_exists('drop_default', $options)) === false)
-			throw new Exception('::AlterColumn() options should have {set_defaulr | drop_default}');
+			throw new Exception('::AlterColumn() options should have {set_default | drop_default}');
 		$this->_columns[$name] = array(
 			'action' => self::ALTER,
 			'options' => $options
@@ -491,8 +491,9 @@ class AlterTable extends MigrateTable
 
 		$db = Migration::GetDB();
 		$result = $db->query($query);
+		
 		if($result === false)
-			throw new Exception('Unable to alter table! Unexpected error.');
+			throw new Exception('Unable to alter table! Unexpected error.'."\n".$db->error);
 	}
 
 	private function ProcessingColumns($query)
@@ -515,7 +516,7 @@ class AlterTable extends MigrateTable
 			if($pos !== false)
 			{
 				$query = substr($query, 0, -2);
-				$query .= ' '.$pos.' `'.$column['options'][strtolower($pos)].', ';
+				$query .= ' '.$pos.' `'.$column['options'][strtolower($pos)].'`, ';
 			}
 		}
 		return substr($query, 0, -2);

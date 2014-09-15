@@ -56,7 +56,7 @@ class SkyMMigrate implements SkyCommand
 			try {
 				$mObj->Up();
 			} catch(Exception $e) {
-				SkyCLI::ShowError('#!!! Was unable to complete migrations due to unexpected error.');
+				SkyCLI::ShowError('#!!! Was unable to complete migrations due to unexpected error.'."\n".$e->getMessage());
 			}
 			
 			MigrationLog::MarkAsMigrated($migration);

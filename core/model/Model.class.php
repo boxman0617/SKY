@@ -102,6 +102,16 @@ abstract class Model implements Iterator, ArrayAccess, Countable
         if(method_exists($this, 'init'))
             $this->init();
 	}
+	
+	public static function __set_state($an_array)
+	{
+		return $this->_iterator_data;
+	}
+	
+	public function __debugInfo()
+	{
+		return $this->_iterator_data;
+	}
 
     public function __toString()
     {
