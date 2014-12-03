@@ -194,10 +194,13 @@ class Router extends Base
     public function Follow($routes)
     {
         Log::corewrite('Following query [%s]', 3, __CLASS__, __FUNCTION__, array($_REQUEST['_query']));
-        Event::PublishActionHook('/Route/before/Follow/');
         $query = rtrim($_REQUEST['_query'], '/');
         if($query == '')
             $query = '_';
+            
+        Event::PublishActionHook('/Route/before/Follow/', array(
+            $query, $this->REQUEST_METHOD
+        ));
 
         self::$_route = $query;
 

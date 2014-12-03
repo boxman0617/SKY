@@ -56,7 +56,7 @@ class SkyMRollback implements SkyCommand
 			$tmp = explode('_', $migration);
 			$class = $tmp[0];
 
-			$mObj = new $class(SkyCLI::GetMySQLConnection(SkyDefines::GetEnv()));
+			$mObj = new $class(SkyM::GetMySQLConnection(SkyDefines::GetEnv()));
 			try {
 				$mObj->Down();
 			} catch(Exception $e) {

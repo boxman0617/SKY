@@ -121,9 +121,12 @@ class SKY
         SkyDefines::Overwrite('ARTIFICIAL_LOAD', true);
 
         if(self::IsInApp())
+        {
             SkyL::Import(SkyDefines::Call('SKYCORE_CONFIGS').'/app_defines.php');
-
-        SkyDefines::SetEnv($ENV);
+            SkyL::Import(SkyDefines::Call('APPROOT').'/configs/defines.php');
+        } else {
+            SkyDefines::SetEnv($ENV);
+        }
 	}
 
 	//############################################################
