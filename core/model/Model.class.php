@@ -294,7 +294,15 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 
 	public function __isset($key)
 	{
-		return isset($this->_iterator_data[$this->_iterator_position][$key]);
+		try {
+			$value = $this->$key;
+			if($value === null)
+				return false;
+			// if(isset($this->_iterator_data[$this->_iterator_position][$key]))
+		} catch(Exception $e) {
+			return false;
+		}
+		return true;
 	}
 	
 	public function responds_to($name)
@@ -679,10 +687,19 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 				$SEARCH[$OPTIONS[':as'].'_type'] = strtolower(SKY::singularize($this->_child));
 			if(array_key_exists(':through', $OPTIONS))
 			{
-                $explode = explode('_', $model_name);
-                $explode[count($explode)-1] = SKY::singularize($explode[count($explode)-1]);
-                $mid = implode('_', $explode);
-				$MID_FOREIGN_KEY = strtolower($mid.'_id');
+				if(array_key_exists(':foreign_key', $OPTIONS))
+				{
+					$MID_FOREIGN_KEY = $OPTIONS[':foreign_key'];
+					if(array_key_exists(':as', $OPTIONS))
+					{
+						unset($SEARCH[$OPTIONS[':as'].'_type']);
+					}
+				} else {
+	                $explode = explode('_', $model_name);
+	                $explode[count($explode)-1] = SKY::singularize($explode[count($explode)-1]);
+	                $mid = implode('_', $explode);
+					$MID_FOREIGN_KEY = strtolower($mid.'_id');
+				}
 				$MID_obj = $this->_GetModel($OPTIONS[':through']);
                 if(array_key_exists(':through_conditions', $OPTIONS))
                 {

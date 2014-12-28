@@ -282,7 +282,7 @@ class Router extends Base
                     $this->ControllerInit(
                         $class,
                         $query,
-                        ucfirst(strtolower($winner)),
+                        $winner,
                         $indirect_matches[$winner]['params']
                     );
                     return true;
