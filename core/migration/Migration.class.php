@@ -63,11 +63,11 @@ abstract class MigrateTable
 		'numeric' => array(
 			'optional' => array('length', 'decimals', 'unsigned', 'zerofill')
 		),
-		'date' => true,
-		'time' => true,
-		'timestamp' => true,
-		'datetime' => true,
-		'year' => true,
+		'date' => array(),
+		'time' => array(),
+		'timestamp' => array(),
+		'datetime' => array(),
+		'year' => array(),
 		'char' => array(
 			'optional' => array('length', 'character_set', 'collate')
 		),
@@ -80,10 +80,10 @@ abstract class MigrateTable
 		'varbinary' => array(
 			'required' => array('length')
 		),
-		'tinyblob' => true,
-		'blob' => true,
-		'mediumblob' => true,
-		'longblob' => true,
+		'tinyblob' => array(),
+		'blob' => array(),
+		'mediumblob' => array(),
+		'longblob' => array(),
 		'tinytext' => array(
 			'optional' => array('binary', 'character_set', 'collate')
 		),

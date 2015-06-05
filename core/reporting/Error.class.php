@@ -200,6 +200,7 @@ class Error extends Base
 
             }
         }
+        die();
     }
 
 	/**

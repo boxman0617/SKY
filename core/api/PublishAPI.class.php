@@ -111,6 +111,16 @@ class PublishAPI
 		$action = array_shift($stack);
 		$class = $this->LoadAPIClasses($action);
 
+		if(in_array($method, array('POST', 'PUT'))) {
+			$PAYLOAD = file_get_contents('php://input');
+			if(!empty($PAYLOAD))
+			{
+				$JSON = json_decode($PAYLOAD, true);
+				if(!is_null($JSON))
+					$stack = array_merge($stack, $JSON);
+			}
+		}
+
 		$this->HandleRequest($class, $stack);
 		die('API');
 	}
@@ -126,16 +136,18 @@ class PublishAPI
 		$expected_method = array_shift($params);
 		$method = $this->ParseObjectMethod($expected_method);
 
-		$obj->HandleSecutiry();
+		$obj->HandleSecurity();
 
 		if(method_exists($obj, $method))
 		{
 			$result = $obj->$method($params);
-			if(array_key_exists(':type', $result))
+			if(isset($result[':type']))
 			{
 				$output = 'Handle'.$result[':type'];
 				if(method_exists($this, $output))
 					$this->$output($result[':data']);
+			} else {
+				die('No handle method for result: '.var_export($result, true));
 			}
 		}
 	}

@@ -186,9 +186,10 @@ SkyL::Import(SkyDefines::Call('APPROOT').'/configs/defines.php');
 SkyL::Import(SkyDefines::Call('DIR_CONFIGS').'/configure.php');
 SkyL::Import(SkyDefines::Call('EXCEPTIONS_CLASS'));
 try {
-  SkyL::Import(SkyDefines::Call('DIR_CONFIGS').'/local.php');
+    SkyL::Import(SkyDefines::Call('DIR_CONFIGS').'/local.php');
 } catch(ImportException $e) {
-  die('Your app requires a local.php file! Did you forget to bring it over?');
+    echo SkyDefines::Call('DIR_CONFIGS').'</br>';
+    die('Your app requires a local.php file! Did you forget to bring it over?');
 }
 
 // #Initialize SKYCORE Configures
