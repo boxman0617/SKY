@@ -723,6 +723,9 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 				for($i=0; $i<$COUNT; $i++)
 					$SEARCH = array_merge($SEARCH, $CONDITIONS[$i]);
 			}
+            if (array_key_exists(':order_by', $OPTIONS)) {
+                $obj->orderby($OPTIONS[':order_by']);
+            }
 			$r = $obj->search($SEARCH)->run();
 			$r->setAssociationKey(array(
 				'key' => $FOREIGN_KEY, 
@@ -764,6 +767,9 @@ abstract class Model implements Iterator, ArrayAccess, Countable
 				for($i=0; $i<$COUNT; $i++)
 					$SEARCH = array_merge($SEARCH, $CONDITIONS[$i]);
 			}
+            if (array_key_exists(':order_by', $OPTIONS)) {
+                $obj->orderby($OPTIONS[':order_by']);
+            }
 			$r = $obj->search($SEARCH)->run();
 			if(array_key_exists(':readonly', $OPTIONS)) $r->setToReadOnly();
 			$this->_iterator_data[$this->_iterator_position][$original_name] = $r;
