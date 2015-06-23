@@ -381,7 +381,11 @@ class CreateTable extends MigrateTable
         } else {
             $this->_table_name = ucfirst($this->_table_name);
         }
-        $class = "<?php
+        $model_file = SkyDefines::Call('DIR_APP_MODELS')."/".$this->_table_name.".model.php";
+
+        if(!file_exists($model_file))
+        {
+        	$class = "<?php
 // ####
 // [".$org_name."]
 ".$columns."// ##
@@ -392,9 +396,10 @@ class ".$this->_table_name." extends Model
 }
 
 ";
-        $f = fopen(SkyDefines::Call('DIR_APP_MODELS')."/".$this->_table_name.".model.php", "w");
-        fwrite($f, $class);
-        fclose($f);
+	        $f = fopen($model_file, "w");
+	        fwrite($f, $class);
+	        fclose($f);
+        }
 	}
 }
 

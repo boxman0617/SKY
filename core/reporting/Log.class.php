@@ -38,6 +38,44 @@ class Log
         'tmobile' => 'tomomail.net'
     );
 
+    private $file_name = null;
+    private $file_count = 0;
+
+    public function __construct($file_name)
+    {
+        $this->file_name = $file_name;
+    }
+
+    public function log()
+    {
+        $LOG = SkyDefines::Call('DIR_LOG').'/'.$this->file_name.'.log';
+        $f = fopen($LOG, 'a');
+        $this->file_count++;
+        if($this->file_count == 1)
+            fwrite($f, ">=============LOG===========> ".date('m-d-Y H:i:s')."\n");
+        if(func_num_args() == 1)
+        {
+            $arg = func_get_arg(0);
+            if(is_array($arg) || is_object($arg))
+                $arg = var_export($arg, true);
+            fwrite($f, sprintf(self::$app_format, date('H:i:s'), $arg));
+        }
+        elseif(func_num_args() > 1)
+        {
+            $args = func_get_args();
+            $msg = $args[0];
+            unset($args[0]);
+            $args = array_values($args);
+            $args = array_reverse($args);
+            $args[] = date('H:i:s');
+            $args[] = "%s > ".$msg."\n";
+            $args = array_reverse($args);
+            $r = call_user_func_array('sprintf', $args);
+            fwrite($f, $r);
+        }
+        fclose($f);
+    }
+
     public static function predebug()
     {
         if(SkyDefines::GetEnv() !== 'PRO')
@@ -169,7 +207,7 @@ class Log
      */
     public static function corewrite($msg, $level, $class, $method, $args = array())
     {
-        if(AppConfig::IsLoggingEnabled() && SkyDefines::GetEnv() != 'TEST')
+        if(AppConfig::IsLoggingEnabled())
         {
             if($level >= AppConfig::GetLoggingLevel())
             {
