@@ -1,3 +1,6 @@
+@DEPRICATED
+Please use the v2_rework branch. It will eventually replace this branch (master).
+
 SKY
 ===
 
